@@ -1,4 +1,4 @@
-/* NetHack 5.0	pline.c	$NHDT-Date: 1719819280 2024/07/01 07:34:40 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.130 $ */
+/* NetHack 5.0	pline.c	$NHDT-Date: 1781973061 2026/06/20 16:31:01 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.150 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -609,18 +609,18 @@ impossible(const char *s, ...)
         return;
     }
 
-    Strcpy(pbuf2, "Program in disorder!");
+    Strcpy(pbuf2, "程序错误!");
     if (program_state.something_worth_saving)
-        Strcat(pbuf2, "  (Saving and reloading may fix this problem.)");
+        Strcat(pbuf2, " (将存档保存并重新加载可能会解决该问题. )");
     pline("%s", pbuf2);
-    pline("Please report these messages to %s.", DEVTEAM_EMAIL);
+    pline("请将这些消息上报给%s.", DEVTEAM_EMAIL); pline("(译者注: 如果能给wizardofyendor@outlook.com也发一份的话, 我们将不胜感激. )");
     if (sysopt.support) {
-        pline("Alternatively, contact local support: %s", sysopt.support);
+        pline("或者, 联系本地支持: %s", sysopt.support);
     }
 
 #ifdef CRASHREPORT
     if (sysopt.crashreporturl) {
-        boolean report = ('y' == yn_function("Report now?", ynchars,
+        boolean report = ('y' == yn_function("现在上报?", ynchars,
                                              'n', FALSE));
 
         raw_print(""); /* prove to the user the character was accepted */

@@ -1,4 +1,4 @@
--- NetHack endgame air.lua	$NHDT-Date: 1652196019 2022/05/10 15:20:19 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.1 $
+-- NetHack endgame air.lua	$NHDT-Date: 1781994877 2026/06/20 22:34:37 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.3 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1992,1993 by Izchak Miller, David Cohrs,
 --                      and Timo Hakulinen
@@ -9,8 +9,8 @@ des.level_init({ style = "solidfill", fg = " " });
 des.level_flags("mazelevel", "noteleport", "hardfloor", "shortsighted", "stormy")
 -- The following messages are somewhat obtuse, to make then
 -- equally meaningful if the player can see or not.
-des.message("What a strange feeling!")
-des.message("You notice that there is no gravity here.")
+des.message("你感觉很奇怪!")
+des.message("你注意到这里没有重力.")
 -- The player lands, upon arrival, in the
 -- lower-left area.  The location of the
 -- portal to the next level is randomly chosen.

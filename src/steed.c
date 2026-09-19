@@ -1,4 +1,4 @@
-/* NetHack 5.0	steed.c	$NHDT-Date: 1720128167 2024/07/04 21:22:47 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.121 $ */
+/* NetHack 5.0	steed.c	$NHDT-Date: 1781973068 2026/06/20 16:31:08 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.132 $ */
 /* Copyright (c) Kevin Hugo, 1998-1999. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -16,7 +16,7 @@ staticfn void maybewakesteed(struct monst *);
 void
 rider_cant_reach(void)
 {
-    You("还不够熟练,无法从%s上够到.", y_monnam(u.usteed));
+    You("还不够熟练, 无法从%s上够到.", y_monnam(u.usteed));
 }
 
 /*** Putting the saddle on ***/
@@ -70,7 +70,7 @@ use_saddle(struct obj *otmp)
         You("碰到了%s.", mon_nam(mtmp));
         if (!(poly_when_stoned(gy.youmonst.data) && polymon(PM_STONE_GOLEM))) {
             Sprintf(kbuf, "试图给%s装上鞍",
-                    an(pmname(mtmp->data, Mgender(mtmp))));
+                    an_pmname(mtmp->data, Mgender(mtmp)));
             instapetrify(kbuf);
         }
     }
@@ -81,7 +81,7 @@ use_saddle(struct obj *otmp)
     }
     if (mtmp->isminion || mtmp->isshk || mtmp->ispriest || mtmp->isgd
         || mtmp->iswiz) {
-        pline("我想%s会介意的.", mon_nam(mtmp));
+        pline("我觉得%s会介意的.", mon_nam(mtmp));
         return ECMD_TIME;
     }
     if (!can_saddle(mtmp)) {
@@ -246,7 +246,7 @@ mount_steed(
         return (FALSE);
     }
     if (!force && (near_capacity() > SLT_ENCUMBER)) {
-        You_cant("在携带这么多物品时这么做.");
+        You("携带的物品太多, 做不了."); /*换pline:You_cant*/
         return (FALSE);
     }
 
@@ -273,7 +273,7 @@ mount_steed(
         if (Punished || !(u.uswallow || u.ustuck || u.utrap))
             You("挪不动你的%s.", body_part(LEG));
         else
-            You("暂时被困在这儿.");
+            You("暂时被困在这里.");
         return (FALSE);
     }
 
@@ -290,7 +290,7 @@ mount_steed(
 
         You("碰到了%s.", mon_nam(mtmp));
         Sprintf(kbuf, "试图骑乘%s",
-                an(pmname(mtmp->data, Mgender(mtmp))));
+                an_pmname(mtmp->data, Mgender(mtmp)));
         instapetrify(kbuf);
     }
     if (!mtmp->mtame || mtmp->isminion) {
@@ -343,7 +343,7 @@ mount_steed(
             pline("%s从你身边溜走了.", Monnam(mtmp));
             return FALSE;
         }
-        You("在试图骑上%s时滑了下来.", mon_nam(mtmp));
+        You("试图骑上%s, 但滑了下来.", mon_nam(mtmp));
 
         Sprintf(buf, "在试图骑上%s时滑倒",
                 /* "a saddled mumak" or "a saddled pony called Dobbin" */
@@ -426,7 +426,7 @@ kick_steed(void)
             else
                 /* if hallucinating, might yield "He rouses herself" or
                    "She rouses himself" */
-                pline("%s!", monverbself(u.usteed, He, "惊醒", (char *) 0));
+                pline("%s!", monverbself(u.usteed, He, "惊醒了", (char *) 0));
         } else
             pline("%s没有反应.", He);
         return;
@@ -609,8 +609,8 @@ dismount_steed(
         if (!have_spot)
             have_spot = landing_spot(&cc, reason, 1);
         if (!ulev && !ufly) {
-            losehp(Maybe_Half_Phys(rn1(10, 10)), "骑行事故",
-                   KILLED_BY_AN);
+            losehp(Maybe_Half_Phys(rn1(10, 10)), "死于骑行事故",
+                   NO_KILLER_PREFIX);
             set_wounded_legs(BOTH_SIDES, (int) HWounded_legs + rn1(5, 5));
             repair_leg_damage = FALSE;
         }
@@ -642,8 +642,8 @@ dismount_steed(
             return;
         }
         if (!has_mgivenname(mtmp)) {
-            pline("你骑着无名的%s横穿了地牢.",
-                  an(pmname(mtmp->data, Mgender(mtmp))));
+            pline("你骑着一%s无名的%s横穿了地牢.", mon_classifier(mtmp),
+                  pmname(mtmp->data, Mgender(mtmp)));
             if (Hallucination)
                 pline("走出雨中的感觉真好.");
         } else
@@ -882,7 +882,7 @@ stucksteed(boolean checkfeeding)
     if (steed) {
         /* check whether steed can move */
         if (helpless(steed)) {
-            pline("%s动不了了!", YMonnam(steed));
+            pline("%s动不了!", YMonnam(steed));
             return TRUE;
         }
         /* optionally check whether steed is in the midst of a meal */
@@ -903,8 +903,10 @@ place_monster(struct monst *mon, coordxy x, coordxy y)
 
     buf[0] = '\0';
     /* normal map bounds are <1..COLNO-1,0..ROWNO-1> but sometimes
-       vault guards (either living or dead) are parked at <0,0> */
-    if (!isok(x, y) && (x != 0 || y != 0 || !mon->isgd)) {
+       vault guards (either living or dead) are parked at <0,0>;
+       their mstate should have the MON_PARKED bit set (post-5.0.0) */
+    if (!isok(x, y)
+        && !(((mon->mstate & MON_PARKED) != 0) || PARKEDMONSTER(mon))) {
         describe_level(buf, 0);
         impossible("trying to place %s at <%d,%d> mstate:%lx on %s",
                    minimal_monnam(mon, TRUE), x, y, mon->mstate, buf);
@@ -912,7 +914,7 @@ place_monster(struct monst *mon, coordxy x, coordxy y)
     }
     if ((mon == u.usteed && !gi.in_steed_dismounting)
         /* special case is for convoluted vault guard handling */
-        || (DEADMONSTER(mon) && !(mon->isgd && x == 0 && y == 0))) {
+        || (DEADMONSTER(mon) && !PARKEDMONSTER(mon))) {
         describe_level(buf, 0);
         impossible("placing %s onto map, mstate:%lx, on %s?",
                    (mon == u.usteed) ? "steed" : "defunct monster",
@@ -928,7 +930,16 @@ place_monster(struct monst *mon, coordxy x, coordxy y)
     }
     mon->mx = x, mon->my = y;
     svl.level.monsters[x][y] = mon;
-    mon->mstate = MON_FLOOR;
+    /* even though MON_FLOOR is not actually a bit currently
+       (MON_FLOOR == 0) we want to preserve some of the other
+       bits that may be set. We'll probably make MON_FLOOR an
+       actual bit one day */
+
+    mon->mstate &= ~(MON_OFF_MAP_BITS);
+
+    /* We don't mess with these bits above:
+       MON_OBLITERATE | MON_STILL_ARRIVING
+     */
 }
 
 /*steed.c*/

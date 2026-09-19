@@ -1,4 +1,4 @@
-﻿/* NetHack 5.0	objects.h	$NHDT-Date: 1749097644 2025/06/04 20:27:24 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.30 $ */
+﻿/* NetHack 5.0	objects.h	$NHDT-Date: 1781973085 2026/06/20 16:31:25 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.39 $ */
 /* Copyright (c) Mike Threepoint, 1989.                           */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -342,7 +342,7 @@ WEAPON("bec de corbin", "beaked polearm", "鸦啄战锤", "喙长柄武器",
 
 /* formerly grouped with the polearms but don't use polearms skill;
    lance isn't even two-handed */
-WEAPON("dwarvish mattock", "broad pick", "矮人鹤嘴锄", "宽阔锄头",
+WEAPON("dwarvish mattock", "broad pick", "矮人镐", "扁镐",
        0, 0, 1, 13, 120,  50, 12,  8, -1, B,  P_PICK_AXE, IRON, HI_METAL,
                                                         DWARVISH_MATTOCK),
 WEAPON("lance", NoDes, "长戟", NoDes,
@@ -398,11 +398,11 @@ BOW("elven bow", "runed bow", "精灵弓", "符文弓",   0, 12, 30, 60, 0, WOOD
                                                         ELVEN_BOW),
 BOW("orcish bow", "crude bow", "兽人弓", "粗糙弓",  0, 12, 30, 60, 0, WOOD, P_BOW, CLR_BLACK,
                                                         ORCISH_BOW),
-BOW("yumi", "long bow", "弩", "长弓",               0,  0, 30, 60, 0, WOOD, P_BOW, HI_WOOD,
+BOW("yumi", "long bow", "和弓", "长弓",               0,  0, 30, 60, 0, WOOD, P_BOW, HI_WOOD,
                                                         YUMI),
 BOW("sling", NoDes, "投石器", NoDes,                1, 40,  3, 20, 0, LEATHER, P_SLING, HI_LEATHER,
                                                         SLING),
-BOW("crossbow", NoDes, "十字弓", NoDes,             1, 45, 50, 40, 0, WOOD, P_CROSSBOW, HI_WOOD,
+BOW("crossbow", NoDes, "弩", NoDes,             1, 45, 50, 40, 0, WOOD, P_CROSSBOW, HI_WOOD,
                                                         CROSSBOW),
 
 #undef P
@@ -559,7 +559,7 @@ ARMOR("plate mail", NoDes, "板甲", NoDes,
 ARMOR("crystal plate mail", NoDes, "水晶板甲", NoDes,
       1, 0, 1,  0, 10, 5, 415, 820,  3, 2,  ARM_SUIT, GLASS, CLR_WHITE,
                                                         CRYSTAL_PLATE_MAIL),
-ARMOR("bronze plate mail", NoDes, "青铜板甲", NoDes,
+ARMOR("bronze plate mail", NoDes, "黄铜板甲", NoDes,
       1, 0, 1,  0, 23, 5, 450, 400,  4, 1,  ARM_SUIT, COPPER, HI_COPPER,
                                                         BRONZE_PLATE_MAIL),
 ARMOR("splint mail", NoDes, "板条甲", NoDes,
@@ -627,7 +627,7 @@ CLOAK("robe", NoDes, "长袍", NoDes,
       1, 1,          0,  6, 0, 15, 50,  8, 2,  CLOTH, CLR_RED, ROBE),
         /* robe was adopted from slash'em, where it's worn as a suit
            rather than as a cloak and there are several variations */
-CLOAK("alchemy smock", "apron", "炼金术罩衫", "围裙",
+CLOAK("alchemy smock", "apron", "炼金术工作服", "围裙",
       0, 1, POISON_RES, 11, 0, 10, 50,  9, 1,  CLOTH, CLR_WHITE,
                                                         ALCHEMY_SMOCK),
 CLOAK("leather cloak", NoDes, "皮斗篷", NoDes,
@@ -960,7 +960,7 @@ TOOL("tinning kit",         NoDes, "装罐器", NoDes, 1, 0, 0, 1, 15,100, 30, I
                                                                 TINNING_KIT),
 TOOL("tin opener",          NoDes, "开罐器", NoDes, 1, 0, 0, 0, 35,  4, 30, IRON, HI_METAL,
                                                                 TIN_OPENER),
-TOOL("can of grease",       NoDes, "开罐器", NoDes, 1, 0, 0, 1, 15, 15, 20, IRON, HI_METAL,
+TOOL("can of grease",       NoDes, "涂油罐", NoDes, 1, 0, 0, 1, 15, 15, 20, IRON, HI_METAL,
                                                                 CAN_OF_GREASE),
 TOOL("figurine",            NoDes, "小雕像", NoDes, 1, 0, 1, 0, 25, 50, 80, MINERAL, HI_MINERAL,
                                                                 FIGURINE),
@@ -1004,7 +1004,7 @@ TOOL("leather drum",      "drum", "皮革鼓", "鼓", 0, 0, 0, 0,  4, 25, 25, LE
 TOOL("drum of earthquake","drum", "地震鼓", "鼓", 0, 0, 1, 1,  2, 25, 25, LEATHER, HI_LEATHER,
                                                           DRUM_OF_EARTHQUAKE),
 /* tools useful as weapons */
-WEPTOOL("pick-axe", NoDes, "鹤嘴锄", NoDes,
+WEPTOOL("pick-axe", NoDes, "镐", NoDes,
         1, 0, 0, 20, 100,  50,  6,  3, WHACK,  P_PICK_AXE, IRON, HI_METAL,
                                                                 PICK_AXE),
 WEPTOOL("grappling hook", NoDes, "爪钩", "铁钩",
@@ -1056,7 +1056,7 @@ FOOD("meatball", "肉丸",              0,  1,  1, 0, FLESH,   5, CLR_BROWN,
 FOOD("meat stick", "肉棍",            0,  1,  1, 0, FLESH,   5, CLR_BROWN,
                                                         MEAT_STICK),
 /* formerly "huge chunk of meat" */
-FOOD("enormous meatball", "大块肉",     0, 20,400, 0, FLESH,2000, CLR_BROWN,
+FOOD("enormous meatball", "大肉",     0, 20,400, 0, FLESH,2000, CLR_BROWN,
                                                         ENORMOUS_MEATBALL),
 /* special case because it's not mergeable */
 OBJECT(OBJ("meat ring", NoDes, "肉环", NoDes),
@@ -1064,13 +1064,13 @@ OBJECT(OBJ("meat ring", NoDes, "肉环", NoDes),
        0, FOOD_CLASS, 0, 1, 5, 1, 0, 0, 0, 0, 5, CLR_BROWN, MEAT_RING),
 /* pudding 'corpses' will turn into these and combine;
    must be in same order as the pudding monsters */
-FOOD("glob of gray ooze", "灰色软泥团",     0,  2, 20, 0, FLESH,  20, CLR_GRAY,
+FOOD("glob of gray ooze", "灰色软泥",     0,  2, 20, 0, FLESH,  20, CLR_GRAY,
                                                        GLOB_OF_GRAY_OOZE),
-FOOD("glob of brown pudding", "棕色布丁团", 0,  2, 20, 0, FLESH,  20, CLR_BROWN,
+FOOD("glob of brown pudding", "棕色布丁", 0,  2, 20, 0, FLESH,  20, CLR_BROWN,
                                                        GLOB_OF_BROWN_PUDDING),
-FOOD("glob of green slime", "绿色黏液团",   0,  2, 20, 0, FLESH,  20, CLR_GREEN,
+FOOD("glob of green slime", "绿色黏液",   0,  2, 20, 0, FLESH,  20, CLR_GREEN,
                                                        GLOB_OF_GREEN_SLIME),
-FOOD("glob of black pudding", "黑色布丁团", 0,  2, 20, 0, FLESH,  20, CLR_BLACK,
+FOOD("glob of black pudding", "黑色布丁", 0,  2, 20, 0, FLESH,  20, CLR_BLACK,
                                                        GLOB_OF_BLACK_PUDDING),
 
 /* fruits & veggies */
@@ -1085,9 +1085,9 @@ FOOD("melon", "甜瓜",                10,  1,  5, 0, VEGGY, 100, CLR_BRIGHT_GRE
                                                           MELON),
 FOOD("banana", "香蕉",               10,  1,  2, 0, VEGGY,  80, CLR_YELLOW, BANANA),
 FOOD("carrot", "胡萝卜",               15,  1,  2, 0, VEGGY,  50, CLR_ORANGE, CARROT),
-FOOD("sprig of wolfsbane", "附子草枝",    7,  1,  1, 0, VEGGY,  40, CLR_GREEN,
+FOOD("sprig of wolfsbane", "附子草",    7,  1,  1, 0, VEGGY,  40, CLR_GREEN,
                                                           SPRIG_OF_WOLFSBANE),
-FOOD("clove of garlic", "蒜瓣",       7,  1,  1, 0, VEGGY,  40, CLR_WHITE,
+FOOD("clove of garlic", "大蒜",       7,  1,  1, 0, VEGGY,  40, CLR_WHITE,
                                                           CLOVE_OF_GARLIC),
 /* name of slime mold is changed based on player's OPTION=fruit:something
    and bones data might have differently named ones from prior games */
@@ -1103,7 +1103,7 @@ FOOD("candy bar", "条形糖果",            13,  1,  2, 0, VEGGY, 100, CLR_BRIG
 FOOD("fortune cookie", "幸运饼干",       55,  1,  1, 0, VEGGY,  40, CLR_YELLOW,
                                                               FORTUNE_COOKIE),
 FOOD("pancake", "煎饼",              25,  2,  2, 0, VEGGY, 200, CLR_YELLOW, PANCAKE),
-FOOD("lembas wafer", "兰巴斯片",         20,  2,  5, 0, VEGGY, 800, CLR_WHITE,
+FOOD("lembas wafer", "兰巴斯",         20,  2,  5, 0, VEGGY, 800, CLR_WHITE,
                                                                 LEMBAS_WAFER),
 FOOD("cram ration", "压缩口粮",          20,  3, 15, 0, VEGGY, 600, HI_ORGANIC,
                                                                 CRAM_RATION),
@@ -1435,7 +1435,7 @@ OBJECT(OBJ("novel", "paperback", "小说", "平装本"),
        0, SPBOOK_CLASS, 1, 0, 10, 20, 0, 0, 0, 1, 20, CLR_BRIGHT_BLUE,
                                                         SPE_NOVEL),
 /* a special, one of a kind, spellbook */
-OBJECT(OBJ("Book of the Dead", "papyrus", "死亡之书", "纸莎草"),
+OBJECT(OBJ("Book of the Dead", "papyrus", "死亡之书", "莎草纸"),
        BITS(0, 0, 1, 0, 1, 0, 1, 1, 0, 0, 0, P_NONE, PAPER),
        0, SPBOOK_CLASS, 0, 0, 50, 10000, 0, 0, 0, 7, 20, HI_PAPER,
                                                         SPE_BOOK_OF_THE_DEAD),

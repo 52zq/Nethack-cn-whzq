@@ -1,4 +1,4 @@
-/* NetHack 5.0	muse.c	$NHDT-Date: 1770949988 2026/02/12 18:33:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.241 $ */
+/* NetHack 5.0	muse.c	$NHDT-Date: 1781973057 2026/06/20 16:30:57 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.248 $ */
 /*      Copyright (C) 1990 by Ken Arromdee                         */
 /* NetHack may be freely redistributed.  See license for details.  */
 
@@ -135,8 +135,8 @@ precheck(struct monst *mon, struct obj *obj)
         /* 3.6.1: no Deaf filter; 'if' message doesn't warrant it, 'else'
            message doesn't need it since You_hear() has one of its own */
         if (vis) {
-            pline_mon(mon, "%s挥舞%s, 然后它突然爆炸!", Monnam(mon),
-                  an(xname(obj)));
+            pline_mon(mon, "%s挥舞一%s%s, 然后它突然爆炸!", Monnam(mon),
+                   classifier(obj), xname(obj));
         } else {
             /* same near/far threshold as mzapwand() */
             int range = couldsee(mon->mx, mon->my) /* 9 or 5 */
@@ -180,11 +180,11 @@ mzapwand(
                                  ? "附近的" : "远处的");
         unknow_object(otmp); /* hero loses info when unseen obj is used */
     } else if (self) {
-        pline("%s%s!",
-              monverbself(mtmp, Monnam(mtmp), "挥舞", (char *) 0),
+        pline("%s挥舞%s!",
+              monverbself(mtmp, Monnam(mtmp), "对", (char *) 0),
               doname(otmp));
     } else {
-        pline_mon(mtmp, "%s挥舞%s!", Monnam(mtmp), an(xname(otmp)));
+        pline_mon(mtmp, "%s挥舞一%s%s!", Monnam(mtmp), classifier(otmp), xname(otmp));
         stop_occupation();
     }
     otmp->spe -= 1;
@@ -213,19 +213,19 @@ mplayhorn(
         objnamp = xname(otmp);
         if (strlen(objnamp) >= QBUFSZ)
             objnamp = simpleonames(otmp);
-        Sprintf(objbuf, "一个%s", objnamp);
+        Sprintf(objbuf, "吹奏一%s%s", classifier(otmp), objnamp);
         /* "<mon> plays a <horn> directed at himself!" */
-        pline("%s!", monverbself(mtmp, Monnam(mtmp), "吹奏", objbuf));
+        pline("%s!", monverbself(mtmp, Monnam(mtmp), "对", objbuf));
         makeknown(otmp->otyp); /* (wands handle this slightly differently) */
     } else {
         observe_object(otmp);
         objnamp = xname(otmp);
         if (strlen(objnamp) >= QBUFSZ)
             objnamp = simpleonames(otmp);
-        pline("%s%s%s!",
+        pline("%s对准了你吹奏一%s%s!",
               /* monverbself() would adjust the verb if hallucination made
                  subject plural; stick with singular here, at least for now */
-              Monnam(mtmp), "对准了你吹奏", an(objnamp));
+              Monnam(mtmp), classifier(otmp), objnamp);
         makeknown(otmp->otyp);
         stop_occupation();
     }
@@ -955,7 +955,7 @@ use_defensive(struct monst *mtmp)
         recalc_block_point(mtmp->mx, mtmp->my);
         seetrap(t);
         if (vis) {
-            pline_mon(mtmp, "%s在%s上挖了一个坑.", Monnam(mtmp),
+            pline_mon(mtmp, "%s在%s上挖了一个洞.", Monnam(mtmp),
                   surface(mtmp->mx, mtmp->my));
             pline_mon(mtmp, "%s%s了进去...", Monnam(mtmp),
                   is_flyer(mtmp->data) ? "俯冲" : "掉");
@@ -1073,7 +1073,7 @@ use_defensive(struct monst *mtmp)
         if (Inhell && mon_has_amulet(mtmp) && !rn2(4)
             && (dunlev(&u.uz) < dunlevs_in_dungeon(&u.uz) - 3)) {
             if (vismon)
-                pline("当%s爬上楼梯时, 一股神秘的力量"
+                pline("当%s爬上楼梯时, 一种神秘的力量"
                       "一时环绕着%s...",
                       mon_nam(mtmp), mhim(mtmp));
             /* simpler than for the player; this will usually be
@@ -1622,7 +1622,7 @@ mbhitm(struct monst *mtmp, struct obj *otmp)
                 tmp = d(2, 12);
                 if (Half_spell_damage)
                     tmp = (tmp + 1) / 2;
-                losehp(tmp, "魔杖", KILLED_BY_AN);
+                losehp(tmp, "一根魔杖", KILLED_BY);
                 learnit = TRUE;
             } else {
                 pline_The("魔杖没有击中你.");
@@ -2630,7 +2630,7 @@ RESTORE_WARNINGS
 staticfn void
 you_aggravate(struct monst *mtmp)
 {
-    pline("出于某种原因, %s的存在被你知道了.",
+    pline("出于某种原因, 你知道了%s的存在.",
           s_suffix(noit_mon_nam(mtmp)));
     cls();
 #ifdef CLIPPING
@@ -2638,7 +2638,7 @@ you_aggravate(struct monst *mtmp)
 #endif
     show_glyph(mtmp->mx, mtmp->my, mon_to_glyph(mtmp, rn2_on_display_rng));
     display_self();
-    You_feel("对%s恼火.", noit_mon_nam(mtmp));
+    You_feel("对%s很恼火.", noit_mon_nam(mtmp));
     display_nhwindow(WIN_MAP, TRUE);
     docrt();
     if (unconscious()) {
@@ -2941,7 +2941,7 @@ mon_consume_unstone(
     if (acid && !tinned && !resists_acid(mon)) {
         mon->mhp -= rnd(15);
         if (vis)
-            pline_mon(mon, "%s得了非常严重的胃酸不适.", Monnam(mon));
+            pline_mon(mon, "%s被酸得剧烈反胃.", Monnam(mon));
         if (DEADMONSTER(mon)) {
             pline_mon(mon, "%s死了!", Monnam(mon));
             if (by_you)

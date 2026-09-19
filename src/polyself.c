@@ -1,4 +1,4 @@
-/* NetHack 5.0	polyself.c	$NHDT-Date: 1772101811 2026/02/26 02:30:11 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.227 $ */
+/* NetHack 5.0	polyself.c	$NHDT-Date: 1781973061 2026/06/20 16:31:01 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.233 $ */
 /*      Copyright (C) 1987, 1988, 1989 by Ken Arromdee */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -239,7 +239,7 @@ polyman(const char *fmt, const char *arg)
             svk.killer.format = kptr->format;
             Strcpy(svk.killer.name, kptr->name);
         } else {
-            svk.killer.format = KILLED_BY;
+            svk.killer.format = NO_KILLER_PREFIX;
             Strcpy(svk.killer.name, "自我灭绝");
         }
         dealloc_killer(kptr);
@@ -325,7 +325,7 @@ livelog_newform(boolean viapoly, int oldgend, int newgend)
             Sprintf(buf, "%.10s %.30s", genders[flags.female].adj, newrank);
             livelog_printf(LL_MINORAC, "%s成了%s",
                            viapoly ? "变形" : "转变", /* 注:transform=性别转变, polymorph=变形 */
-                           an(strcmp(newrole, oldrole) ? newrole
+                           (strcmp(newrole, oldrole) ? newrole
                               : strcmp(newrank, oldrank) ? newrank
                                 : buf));
         }
@@ -424,8 +424,8 @@ newman(void)
  dead:      /* we come directly here if experience level went to 0 or less */
             urgent_pline(
                      "你的新形态看上去健康状况不那么好, 难以存活.");
-            svk.killer.format = KILLED_BY_AN;
-            Strcpy(svk.killer.name, "不成功的变形");
+            svk.killer.format = NO_KILLER_PREFIX;
+            Strcpy(svk.killer.name, "死于不成功的变形");
             done(DIED);
             /* must have been life-saved to get here */
             newuhs(FALSE);
@@ -489,7 +489,7 @@ polyself(int psflags)
         && !isvamp) {
         if (rn2(20) > ACURR(A_CON)) {
             You1(shudder_for_moment);
-            losehp(rnd(30), "系统休克", KILLED_BY_AN);
+            losehp(rnd(30), "死于系统休克", NO_KILLER_PREFIX);
             exercise(A_CON, FALSE);
             return;
         }
@@ -526,7 +526,7 @@ polyself(int psflags)
                 }
                 Strcpy(buf, "*"); /* resort to random */
             }
-            if (!strcmp(buf, "*") || !strcmp(buf, "random")) {
+            if (!strcmp(buf, "*") || !strcmp(buf, "random") || !strcmpi(buf, "随机")) {
                 /* explicitly requesting random result */
                 tryct = 0; /* will skip thats_enough_tries */
                 continue;  /* end do-while(--tryct > 0) loop */
@@ -609,7 +609,7 @@ polyself(int psflags)
                 if (the_unique_pm(&mons[mntmp]))
                     pm_name = the(pm_name);
                 else if (!type_is_pname(&mons[mntmp]))
-                    pm_name = an(pm_name);
+                    pm_name = an_pmname(&mons[mntmp], flags.female ? FEMALE : MALE);
                 You_cant("变形为%s.", pm_name);
             } else
                 break;
@@ -645,7 +645,7 @@ polyself(int psflags)
                     /* tricky phrasing; dragon scale mail is singular, dragon
                        scales are plural (note: we don't use "set of scales",
                        which usually overrides the distinction, here) */
-                    Your("在融合的时候, %s恢复成了鳞!", buf);
+                    Your("%s融合时, 恢复成了鳞!", buf);
                     /* uarm->spe enchantment remains unchanged;
                        re-converting scales to mail poses risk
                        of evaporation due to over enchanting */
@@ -680,7 +680,7 @@ polyself(int psflags)
             }
             if (controllable_poly) {
                 Sprintf(buf, "变成%s?",
-                        an(pmname(&mons[mntmp], gvariant)));
+                        an_pmname(&mons[mntmp], gvariant));
                 if (y_n(buf) != 'y')
                     return;
             }
@@ -751,7 +751,7 @@ polymon(int mntmp)
     if (!u.uconduct.polyselfs++)
         livelog_printf(LL_CONDUCT,
                        "第一次变形, 变成了%s",
-                       an(pmname(&mons[mntmp], flags.female ? FEMALE : MALE)));
+                       an_pmname(&mons[mntmp], flags.female ? FEMALE : MALE));
 
     /* exercise used to be at the very end but only Wis was affected
        there since the polymorph was always in effect by then */
@@ -795,14 +795,15 @@ polymon(int mntmp)
 
     Strcpy(ustuckNam, u.ustuck ? Some_Monnam(u.ustuck) : "");
 
-    Strcpy(buf, (u.umonnum != mntmp) ? "" : "新");
+    Strcpy(buf, "");
     if (dochange) {
         flags.female = !flags.female;
         Strcat(buf, (is_male(&mons[mntmp]) || is_female(&mons[mntmp]))
-                       ? "" : flags.female ? "女的" : "男的");
+                       ? "" : flags.female ? "雌性的" : "雄性的");
     }
-    Strcat(buf, pmname(&mons[mntmp], flags.female ? FEMALE : MALE));
-    You("%s%s!", (u.umonnum != mntmp) ? "变成了" : "感觉像是", an(buf));
+    //Strcat(buf, an_pmname(&mons[mntmp], flags.female ? FEMALE : MALE));
+    You("%s%s%s%s%s!", (u.umonnum != mntmp) ? "变成了" : "感觉像是", (u.umonnum != mntmp) ? "一" : "",
+    (u.umonnum != mntmp) ? pm_to_classifier(&mons[mntmp]) : "", buf, pmname(&mons[mntmp], flags.female ? FEMALE : MALE)); //"变成了一头新龙"感觉有点怪怪的
 
     if (Stoned && poly_when_stoned(&mons[mntmp])) {
         /* poly_when_stoned already checked stone golem genocide */
@@ -957,7 +958,7 @@ polymon(int mntmp)
             pline("%s碰到了%s.", no_longer_petrify_resistant,
                   mon_nam(u.usteed));
             Sprintf(buf, "骑乘%s",
-                    an(pmname(u.usteed->data, Mgender(u.usteed))));
+                    an_pmname(u.usteed->data, Mgender(u.usteed)));
             instapetrify(buf);
         }
         if (!can_ride(u.usteed))
@@ -978,7 +979,7 @@ polymon(int mntmp)
         if (u.utraptype == TT_INFLOOR) {
             pline_The("岩石似乎不再困住你了.");
         } else {
-            pline_The("掩埋的球不再束缚你了.");
+            pline_The("埋着的球不再束缚你了.");
             buried_ball_to_freedom();
         }
         reset_utrap(TRUE);
@@ -993,7 +994,7 @@ polymon(int mntmp)
             You("滑脱出了铁链.");
             unpunish();
         } else if (u.utrap && u.utraptype == TT_BURIEDBALL) {
-            You("滑脱出了掩埋的球和链.");
+            You("滑脱出了埋着的球和链.");
             buried_ball_to_freedom();
         }
     }
@@ -1043,7 +1044,7 @@ polymon(int mntmp)
         if (attacktype(uptr, AT_GAZE))
             pline(use_thec, monsterc, "注视怪物");
         if (might_hide && webmaker(uptr))
-            pline(use_thec, monsterc, "藏在网里,或者织网");
+            pline(use_thec, monsterc, "藏在网里, 或者织网");
         else if (might_hide)
             pline(use_thec, monsterc, "躲藏");
         else if (webmaker(uptr))
@@ -1264,7 +1265,7 @@ break_armor(void)
         if ((otmp = uarmh) != 0) {
             if (donning(otmp))
                 cancel_don();
-            Your("%s掉落在了%s上!", helm_simple_name(otmp),
+            Your("%s掉到了%s上!", helm_simple_name(otmp),
                  surface(u.ux, u.uy));
             (void) Helmet_off();
             dropp(otmp);
@@ -1278,7 +1279,7 @@ break_armor(void)
             if (is_whirly(uptr))
                 Your("靴子掉了下来!");
             else
-                Your("靴子从%s的双脚上%s!",
+                Your("靴子从双脚上%s!",
                      verysmall(uptr) ? "滑出" : "被蹬开");
             (void) Boots_off();
             dropp(otmp);
@@ -1398,9 +1399,9 @@ rehumanize(void)
         /* can only happen if some bit of code reduces u.uhp
            instead of u.mh while poly'd */
         Your("旧形态不够健康, 难以存活.");
-        Sprintf(svk.killer.name, "恢复到不健康的%s形态",
+        Sprintf(svk.killer.name, "因恢复到不健康的%s形态而死",
                 gu.urace.adj);
-        svk.killer.format = KILLED_BY;
+        svk.killer.format = NO_KILLER_PREFIX;
         done(DIED);
     }
     nomul(0);
@@ -1755,11 +1756,11 @@ dogaze(void)
                  * effect would be too weird.
                  */
                 if (mtmp->data == &mons[PM_MEDUSA] && !mtmp->mcan) {
-                    pline("注视睁着眼的%s不是一个非常好的主意.",
+                    pline("注视睁着眼的%s不是个非常好的主意.",
                           l_monnam(mtmp));
                     /* as if gazing at a sleeping anything is fruitful... */
                     urgent_pline("你变成了石头...");
-                    svk.killer.format = KILLED_BY;
+                    svk.killer.format = NO_KILLER_PREFIX;
                     Strcpy(svk.killer.name,
                            "故意正视美杜莎的眼睛");
                     done(STONING);
@@ -1782,7 +1783,7 @@ dohide(void)
     /* can't hide while being held (or holding) or while trapped
        (except for floor hiders [trapper or mimic] in pits) */
     if (u.ustuck || (u.utrap && (u.utraptype != TT_PIT || on_ceiling))) {
-        You_cant("在你%s的时候躲藏.",
+        You_cant("在%s时躲藏.",
                  !u.ustuck ? "受困"
                    : u.uswallow ? (digests(u.ustuck->data) ? "被吞咽"
                                                            : "被吞没")
@@ -1828,8 +1829,8 @@ dohide(void)
             /* for the plural case, we'll say "cockatrice corpses" or
                "chickatrice corpses" depending on the top of the pile
                even if both types are present */
-            if (ct == 1)
-                corpse_name = an(corpse_name);
+            //冗余(如果有人看到了这里的注释, 你想写三元表达式就在下面写吧. 不过我觉得这里没必要有"一个". ):if (ct == 1)
+                //corpse_name = corpse_name;
             /* no need to check poly_when_stoned(); no hide-underers can
                turn into stone golems instead of becoming petrified */
             pline("躲在%s%s下面是个致命的错误...",
@@ -1843,13 +1844,13 @@ dohide(void)
     }
     /* Planes of Air and Water */
     if (on_ceiling && !has_ceiling(&u.uz)) {
-        There("上面无处可藏.");
+        There("上方无处可藏.");
         u.uundetected = 0;
         return ECMD_OK;
     }
     if ((is_hider(gy.youmonst.data) && !Flying) /* floor hider */
         && (Is_airlevel(&u.uz) || Is_waterlevel(&u.uz))) {
-        There("下面无处可藏.");
+        There("上方无处可藏.");
         u.uundetected = 0;
         return ECMD_OK;
     }
@@ -1882,7 +1883,7 @@ dopoly(void)
         polyself(POLY_MONSTER);
         if (savedat != gy.youmonst.data) {
             You("转变成了%s.",
-                an(pmname(gy.youmonst.data, Ugender)));
+                an_pmname(gy.youmonst.data, Ugender));
             newsym(u.ux, u.uy);
         }
     }

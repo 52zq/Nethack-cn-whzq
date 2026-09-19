@@ -1,4 +1,4 @@
--- NetHack Healer Hea-goal.lua	$NHDT-Date: 1652196003 2022/05/10 15:20:03 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.2 $
+-- NetHack Healer Hea-goal.lua	$NHDT-Date: 1781994867 2026/06/20 22:34:27 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.3 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991, 1993 by M. Stephenson, P. Winner
 -- NetHack may be freely redistributed.  See license for details.
@@ -31,7 +31,7 @@ des.stair("up", 39,10)
 -- Non diggable walls
 des.non_diggable(selection.area(00,00,40,11))
 -- Objects
-des.object({ id = "quarterstaff", x=20, y=06, buc="blessed", spe=0, name="The Staff of Aesculapius" })
+des.object({ id = "quarterstaff", x=20, y=06, buc="blessed", spe=0, name="阿斯克勒庇俄斯之杖" })
 des.object("wand of lightning", 20, 06)
 des.object()
 des.object()

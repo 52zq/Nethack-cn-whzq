@@ -1,4 +1,4 @@
-/* NetHack 5.0	topten.c	$NHDT-Date: 1606009004 2020/11/22 01:36:44 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.74 $ */
+/* NetHack 5.0	topten.c	$NHDT-Date: 1781973070 2026/06/20 16:31:10 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.111 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -95,67 +95,138 @@ formatkiller(
 {
     static NEARDATA const char *const killed_by_prefix[] = {
         /* DIED, CHOKING, POISONING, STARVING, */
-        "死于", "噎死于", "中毒于", "死于",
+        "b杀死", "b噎死", "b毒死", "死于",
         /* DROWNING, BURNING, DISSOLVED, CRUSHING, */
-        "淹死于", "烧死于", "溶解于", "压死于",
+        "淹死于", "b烧死", "b溶解", "b压死",
         /* STONING, TURNED_SLIME, GENOCIDED, */
-        "石化于", "粘菌化于", "死于",
+        "b变成石头", "b变成黏液", "b杀死",
         /* PANICKED, TRICKED, QUIT, ESCAPED, ASCENDED */
         "", "", "", "", ""
     };
     unsigned l;
     char c, *kname = svk.killer.name;
+    boolean diedof_sfx;
+    static const char *const diedof_suffixes[] = { //死于...而非被...杀死
+        "爆炸", "冻裂", "沸腾", "燃烧", (const char *) 0
+    };
+
+    {
+        size_t klen = strlen(kname);
+        int i;
+
+        diedof_sfx = FALSE;
+        for (i = 0; diedof_suffixes[i]; ++i) {
+            size_t slen = strlen(diedof_suffixes[i]);
+
+            if (klen >= slen
+                && !strcmp(kname + klen - slen, diedof_suffixes[i])) {
+                diedof_sfx = TRUE;
+                break;
+            }
+        }
+    }
+
+    if (diedof_sfx)
+        how = STARVING;
 
     buf[0] = '\0'; /* lint suppression */
+    /* 无助时的具体原因("在...时")放到死亡原因前面 */
+    if (incl_helpless && gm.multi < 0 && gm.multi_reason
+        && strlen(gm.multi_reason) + sizeof "在时" <= siz) {
+        Sprintf(buf, "在%s时", gm.multi_reason);
+        l = Strlen(buf);
+        buf += l, siz -= l;
+        incl_helpless = FALSE; /* 已在前缀中体现, 不再追加", 无力回天" */
+    }
     switch (svk.killer.format) {
     default:
         impossible("bad killer format? (%d)", svk.killer.format);
         FALLTHROUGH;
         /*FALLTHRU*/
     case NO_KILLER_PREFIX:
+        while (--siz > 0) {
+            c = *kname++;
+            if (!c)
+                break;
+            else if (c == ',')
+                c = ';';
+            else if (c == '=')
+                c = '_';
+            else if (c == '\t')
+                c = ' ';
+            *buf++ = c;
+        }
+        *buf = '\0';
         break;
-    case KILLED_BY_AN:
-        kname = an(kname);
+    case KILLED_BY_AN: { //能别用就别用, 这是显式的
+        char tmpname[BUFSZ];
+        int kndx;
+
+        /* 按凶手名字反查怪物, 拼"一+量词+名字", 如"一条小狗" */
+        Strcpy(tmpname, kname);
+        if ((kndx = name_to_mon(tmpname, (int *) 0)) != NON_PM)
+            Sprintf(kname, "一%s%s", pm_to_classifier(&mons[kndx]), tmpname);
+        /* 查不到怪物(如噎死的食物): 保留原名, 不加"一" */
         FALLTHROUGH;
+    }
         /*FALLTHRU*/
     case KILLED_BY:
-        (void) strncat(buf, killed_by_prefix[how], siz - 1);
+        if (killed_by_prefix[how][0] == 'b') {
+            Strcat(buf, "被");
+            l = Strlen(buf);
+            buf += l, siz -= l;
+            /* Copy kname into buf[].
+             * Object names and named fruit have already been sanitized, but
+             * monsters can have "called 'arbitrary text'" attached to them,
+             * so make sure that that text can't confuse field splitting when
+             * record, logfile, or xlogfile is re-read at some later point.
+             */
+            while (--siz > 0) {
+                c = *kname++;
+                if (!c)
+                    break;
+                else if (c == ',')
+                    c = ';';
+                /* 'xlogfile' doesn't really need protection for '=', but
+                   fixrecord.awk for corrupted 3.6.0 'record' does (only
+                   if using xlogfile rather than logfile to repair record) */
+                else if (c == '=')
+                    c = '_';
+                /* tab is not possible due to use of mungspaces() when naming;
+                   it would disrupt xlogfile parsing if it were present */
+                else if (c == '\t')
+                    c = ' ';
+                *buf++ = c;
+            }
+            *buf = '\0';
+            Strcat(buf, killed_by_prefix[how] + 1);
+        } else {
+            (void) strncat(buf, killed_by_prefix[how], siz - 1);
+            l = Strlen(buf);
+            buf += l, siz -= l;
+            while (--siz > 0) {
+                c = *kname++;
+                if (!c)
+                    break;
+                else if (c == ',')
+                    c = ';';
+                else if (c == '=')
+                    c = '_';
+                else if (c == '\t')
+                    c = ' ';
+                *buf++ = c;
+            }
+            *buf = '\0';
+        }
         l = Strlen(buf);
         buf += l, siz -= l;
         break;
     }
-    /* Copy kname into buf[].
-     * Object names and named fruit have already been sanitized, but
-     * monsters can have "called 'arbitrary text'" attached to them,
-     * so make sure that that text can't confuse field splitting when
-     * record, logfile, or xlogfile is re-read at some later point.
-     */
-    while (--siz > 0) {
-        c = *kname++;
-        if (!c)
-            break;
-        else if (c == ',')
-            c = ';';
-        /* 'xlogfile' doesn't really need protection for '=', but
-           fixrecord.awk for corrupted 3.6.0 'record' does (only
-           if using xlogfile rather than logfile to repair record) */
-        else if (c == '=')
-            c = '_';
-        /* tab is not possible due to use of mungspaces() when naming;
-           it would disrupt xlogfile parsing if it were present */
-        else if (c == '\t')
-            c = ' ';
-        *buf++ = c;
-    }
-    *buf = '\0';
+    
 
     if (incl_helpless && gm.multi < 0) {
-        /* X <= siz: 'sizeof "string"' includes 1 for '\0' terminator */
-        if (gm.multi_reason
-            && strlen(gm.multi_reason) + sizeof ", 在时" <= siz)
-            Sprintf(buf, ", 在%s时", gm.multi_reason);
-        /* either gm.multi_reason wasn't specified or wouldn't fit */
-        else if (sizeof ", 无力回天" <= siz)
+        /* 没有具体原因(或原因太长放不下): 在末尾补"无力回天" */
+        if (sizeof ", 无力回天" <= siz)
             Strcpy(buf, ", 无力回天");
         /* else extra death info won't fit, so leave it out */
     }
@@ -828,13 +899,13 @@ topten(int how, time_t when)
         if (!done_stopprint)
             if (rank0 > 0) {
                 if (rank0 <= 10) {
-                    topten_print("You made the top ten list!");
+                    topten_print("你跻身前十之列!");
                 } else {
                     char pbuf[BUFSZ];
 
                     Sprintf(pbuf,
-                            "在前%d名的榜单中, 你达到了排行榜第%d名.",
-                            rank0, sysopt.entrymax); /*危险: 移除复数s后缀*/
+                            "在总共%d名的排行榜中, 你位列第%d.",
+                            sysopt.entrymax, rank0); /*危险: 移除复数s后缀*/
                     topten_print(pbuf);
                 }
                 topten_print("");
@@ -925,21 +996,63 @@ topten(int how, time_t when)
     }
 }
 
+// 排行榜列布局参数
+enum {
+    TOPTEN_COL_GAP = 2,          // 列间距
+    TOPTEN_RANK_COL_WIDTH = 4,   // 排名 列宽度
+    TOPTEN_SCORE_COL_WIDTH = 10, // 分数 列宽度
+    TOPTEN_NAME_COL_START = TOPTEN_RANK_COL_WIDTH + TOPTEN_SCORE_COL_WIDTH
+                            + TOPTEN_COL_GAP * 2, // 姓名列起点
+    TOPTEN_SPACECUT_RANGE = 16, // 空格处断行时与末列的最大距离
+};
+
+static const char topten_head_rank[] = "排名";
+static const char topten_head_score[] = "分数";
+static const char topten_head_name[] = "姓名";
+static const char topten_head_hp[] = "生命值 [上限]";
+
 staticfn void
 outheader(void)
 {
     char linebuf[BUFSZ];
-    char *bp;
-
-    Strcpy(linebuf, "  排名       分数   姓名");
-    bp = eos(linebuf);
-    while (bp < linebuf + COLNO - 9)
-        *bp++ = ' ';
-    Strcpy(bp, "生命值 [上限]");
+    linebuf[0] = '\0';
+    utf8str_append(linebuf, sizeof linebuf, topten_head_rank,
+                   TOPTEN_RANK_COL_WIDTH + TOPTEN_COL_GAP);
+    utf8str_append(linebuf, sizeof linebuf, topten_head_score,
+                   TOPTEN_SCORE_COL_WIDTH);
+    utf8str_append_r(linebuf, sizeof linebuf, topten_head_name,
+                     TOPTEN_COL_GAP + utf8str_width(topten_head_name));
+    utf8str_append_r(linebuf, sizeof linebuf, topten_head_hp,
+                     COLNO - utf8str_width(linebuf));
     topten_print(linebuf);
 }
 
 DISABLE_WARNING_FORMAT_NONLITERAL
+
+const char *
+cfilecode_role(const char *fc)
+{
+    int i = str2role(fc);
+    return (i >= 0 && roles[i].cfilecode) ? roles[i].cfilecode : fc;
+}
+const char *
+cfilecode_race(const char *fc)
+{
+    int i = str2race(fc);
+    return (i >= 0 && races[i].cfilecode) ? races[i].cfilecode : fc;
+}
+const char *
+cfilecode_gend(const char *fc)
+{
+    int i = str2gend(fc);
+    return (i >= 0 && genders[i].cfilecode) ? genders[i].cfilecode : fc;
+}
+const char *
+cfilecode_align(const char *fc)
+{
+    int i = str2align(fc);
+    return (i >= 0 && aligns[i].cfilecode) ? aligns[i].cfilecode : fc;
+}
 
 /* so>0: standout line; so=0: ordinary line */
 staticfn void
@@ -947,29 +1060,28 @@ outentry(int rank, struct toptenentry *t1, boolean so)
 {
     boolean second_line = TRUE;
     char linebuf[BUFSZ];
-    char *bp, hpbuf[24], linebuf3[BUFSZ];
+    char *bp, hpbuf[32], linebuf3[BUFSZ];
     int hppos, lngr;
 
-    linebuf[0] = '\0';
     if (rank)
-        Sprintf(eos(linebuf), "%3d", rank);
+        Sprintf(linebuf, "%*d%*s", TOPTEN_RANK_COL_WIDTH, rank,
+                TOPTEN_COL_GAP, "");
     else
-        Strcat(linebuf, "   ");
-
-    Sprintf(eos(linebuf), " %10ld  %.10s", t1->points ? t1->points : u.urexp,
-            t1->name);
-    Sprintf(eos(linebuf), "-%s", t1->plrole);
+        Sprintf(linebuf, "%*s", TOPTEN_RANK_COL_WIDTH + TOPTEN_COL_GAP, "");
+    Sprintf(eos(linebuf), "%*ld%*s", TOPTEN_SCORE_COL_WIDTH,
+            t1->points ? t1->points : u.urexp, TOPTEN_COL_GAP, "");
+    Strcat(linebuf, t1->name);
+    Sprintf(eos(linebuf), "-%s", cfilecode_role(t1->plrole));
     if (t1->plrace[0] != '?')
-        Sprintf(eos(linebuf), "-%s", t1->plrace);
+        Sprintf(eos(linebuf), "-%s", cfilecode_race(t1->plrace));
     /* Printing of gender and alignment is intentional.  It has been
      * part of the NetHack Geek Code, and illustrates a proper way to
      * specify a character from the command line.
      */
-    Sprintf(eos(linebuf), "-%s", t1->plgend);
+    Sprintf(eos(linebuf), "-%s", cfilecode_gend(t1->plgend));
     if (t1->plalign[0] != '?')
-        Sprintf(eos(linebuf), "-%s", t1->plalign);
-    else
-        Strcat(linebuf, " ");
+        Sprintf(eos(linebuf), "-%s", cfilecode_align(t1->plalign));
+    Strcat(linebuf, " ");
     if (!strncmp("escaped", t1->death, 7)) {
         Sprintf(eos(linebuf), "逃离了地牢 %s[最高等级 %d]",
                 !strncmp("(", t1->death + 7, 2) ? t1->death + 7 + 2 : "",
@@ -979,8 +1091,8 @@ outentry(int rank, struct toptenentry *t1, boolean so)
             *bp = (t1->deathdnum == astral_level.dnum) ? '\0' : ' ';
         second_line = FALSE;
     } else if (!strncmp("ascended", t1->death, 8)) {
-        Sprintf(eos(linebuf), "升为半神%s",
-                (t1->plgend[0] == 'F') ? "" : "");
+        Sprintf(eos(linebuf), "升为半神"
+                /*冗余:(t1->plgend[0] == 'F') ? "" : ""*/);
         second_line = FALSE;
     } else {
         if (!strncmp(t1->death, "quit", 4) || !cnstrcmp(t1->death, "退出")) { /*待写:if (!cnstrncmp(t1->death, "退出", 2))*/
@@ -1027,18 +1139,21 @@ outentry(int rank, struct toptenentry *t1, boolean so)
             }
             Sprintf(eos(linebuf), fmt, arg);
         } else {
-            Sprintf(eos(linebuf), " 于%s中", svd.dungeons[t1->deathdnum].dname);
+            Sprintf(eos(linebuf), "在%s", svd.dcname[t1->deathdnum]);
             if (t1->deathdnum != knox_level.dnum)
-                Sprintf(eos(linebuf), " 于第%d层", t1->deathlev);
+                Sprintf(eos(linebuf), "第%d层", t1->deathlev);
             if (t1->deathlev != t1->maxlvl)
-                Sprintf(eos(linebuf), " [最大%d]", t1->maxlvl);
+                Sprintf(eos(linebuf), "[最大%d]", t1->maxlvl);
         }
 
         /* kludge for "quit while already on Charon's boat" */
-        if (!strncmp(t1->death, "quit ", 5) || !cnstrcmp(t1->death, "退出"))
+        if (!strncmp(t1->death, "quit ", 5))
             Strcat(linebuf, t1->death + 4);
+        else if (!cnstrcmp(t1->death, "退出")
+                 && strcmp(t1->death, "退出游戏"))
+            Strcat(linebuf, t1->death + 6);
     }
-    Strcat(linebuf, ".");
+    Strcat(linebuf, ". ");
 
     /* Quit, starved, ascended, and escaped contain no second line */
     if (second_line) {
@@ -1050,59 +1165,76 @@ outentry(int rank, struct toptenentry *t1, boolean so)
         (void) strsubst(bp, "; the ", ", the ");
     }
 
-    lngr = (int) strlen(linebuf);
     if (t1->hp <= 0)
-        hpbuf[0] = '-', hpbuf[1] = '\0';
+        Strcpy(hpbuf, "- ");
     else
-        Sprintf(hpbuf, "%d", t1->hp);
-    /* beginning of hp column after padding (not actually padded yet) */
-    hppos = COLNO - (int) (sizeof "  生命值 [上限]" - sizeof "");
-    while (lngr >= hppos) {
-        for (bp = eos(linebuf); !(*bp == ' ' && bp - linebuf < hppos); bp--)
-            ;
-        /* special case: word is too long, wrap in the middle */
-        if (linebuf + 15 >= bp)
-            bp = linebuf + hppos - 1;
-        /* special case: if about to wrap in the middle of maximum
-           dungeon depth reached, wrap in front of it instead */
-        if (bp > linebuf + (int) (sizeof " [上限" - 1)
-            && !strncmp(bp - (sizeof " [上限" - 1), " [上限",
-                        sizeof " [上限" - 1))
-            bp -= (sizeof " [上限" - 1);
-        if (*bp != ' ')
-            Strcpy(linebuf3, bp);
-        else
-            Strcpy(linebuf3, bp + 1);
-        *bp = '\0';
+        Sprintf(hpbuf, "%d ", t1->hp);
+    Sprintf(eos(hpbuf), "%s[%d]",
+            (t1->maxhp < 10)    ? "  "
+            : (t1->maxhp < 100) ? " "
+                                : "",
+            t1->maxhp);
+    hppos = COLNO - utf8str_width(hpbuf);
+
+    // 存储 姓名 列的最大列号，超出的部分需要换行
+    static int name_colmax = 0;
+    if (name_colmax == 0)
+        name_colmax =
+            COLNO - utf8str_width(topten_head_hp) - TOPTEN_COL_GAP - 1;
+    const char *p_name_col = linebuf + TOPTEN_NAME_COL_START;
+    lngr = utf8str_width(linebuf);
+    while (lngr >= name_colmax) {
+        const char *p_cut = NULL, *p_space = NULL;
+        uint8 clen, cw;
+        int col = TOPTEN_NAME_COL_START, space_col = 0;
+
+        // 寻找换行点
+        for (const char *p = p_name_col; *p && col < name_colmax;
+             p += clen, col += cw) {
+            utf8char_info(p, &clen, &cw);
+            if (*p == ' ') {
+                p_space = p;
+                space_col = col;
+            }
+        }
+
+        // 在空格处换行
+        if (p_space && p_space > p_name_col
+            && name_colmax - space_col <= TOPTEN_SPACECUT_RANGE)
+            p_cut = p_space;
+        // 在当前列末尾换行
+        if (!p_cut)
+            p_cut = utf8str_at_col(linebuf, name_colmax);
+        const char *newline = p_cut;
+        while (*newline == ' ')
+            newline++;
+        Strcpy(linebuf3, newline);
+        linebuf[p_cut - linebuf] = '\0';
+
         if (so) {
-            while (bp < linebuf + (COLNO - 1))
-                *bp++ = ' ';
-            *bp = '\0';
+            int padn = (COLNO - 1) - utf8str_width(linebuf);
+            if (padn > 0)
+                Sprintf(eos(linebuf), "%*s", padn, "");
             topten_print_bold(linebuf);
         } else
             topten_print(linebuf);
-        Snprintf(linebuf, sizeof(linebuf), "%15s %s", "", linebuf3);
-        lngr = Strlen(linebuf);
-    }
-    /* beginning of hp column not including padding */
-    hppos = COLNO - 7 - (int) strlen(hpbuf);
-    bp = eos(linebuf);
 
-    if (bp <= linebuf + hppos) {
-        /* pad any necessary blanks to the hit point entry */
-        while (bp < linebuf + hppos)
-            *bp++ = ' ';
-        Strcpy(bp, hpbuf);
-        Sprintf(eos(bp), " %s[%d]",
-                (t1->maxhp < 10) ? "  " : (t1->maxhp < 100) ? " " : "",
-                t1->maxhp);
+        // 续行缩进与姓名列起点对齐
+        Snprintf(linebuf, sizeof linebuf, "%*s%s", TOPTEN_NAME_COL_START, "",
+                 linebuf3);
+        lngr = utf8str_width(linebuf);
+    }
+
+    // 补空格到 hp 列起点
+    if (utf8str_width(linebuf) < hppos) {
+        utf8str_append_r(linebuf, sizeof linebuf, hpbuf,
+                         COLNO - utf8str_width(linebuf));
     }
 
     if (so) {
-        bp = eos(linebuf);
-        while (bp < linebuf + (COLNO - 1))
-            *bp++ = ' ';
-        *bp = '\0';
+        int padn = (COLNO - 1) - utf8str_width(linebuf);
+        if (padn > 0)
+            Sprintf(eos(linebuf), "%*s", padn, "");
         topten_print_bold(linebuf);
     } else
         topten_print(linebuf);

@@ -1,4 +1,4 @@
-/* NetHack 5.0	role.c	$NHDT-Date: 1737607158 2025/01/22 20:39:18 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.107 $ */
+/* NetHack 5.0	role.c	$NHDT-Date: 1781973065 2026/06/20 16:31:05 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.111 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985-1999. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -41,7 +41,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "收藏家", 0 },
         { "馆长", 0 } },
       "羽蛇神", "米斯科瓦特尔", "修特库特利", /* Central American */
-      "考", "Arc",
+      "Arc", "考",
       "考古学院",
       "托尔特克诸王之墓",
       PM_ARCHEOLOGIST,
@@ -82,7 +82,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "首领", 0 },
         { "征服者", 0 } },
       "密特拉", "克罗姆", "赛特", /* Hyborian */
-      "蛮", "Bar",
+      "Bar", "蛮",
       "杜阿利部落营地",
       "杜阿利绿洲",
       PM_BARBARIAN,
@@ -123,7 +123,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "探险者", 0 },
         { "先驱者", 0 } },
       "安努", "_伊什塔尔", "安沙尔", /* Babylonian */
-      "穴", "Cav",
+      "Cav", "穴",
       "祖先之穴",
       "龙巢",
       PM_CAVE_DWELLER,
@@ -153,8 +153,8 @@ const struct Role roles[NUM_ROLES+1] = {
       A_INT,
       SPE_DIG,
       -4 },
-    { { "治疗师", 0 },
-      { { "根切术师", 0 },
+    { { "医生", 0 },
+      { { "采药师", 0 },
         { "经验医师", 0 },
         { "防腐师", 0 },
         { "护理", 0 },
@@ -164,7 +164,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "医师", 0 },
         { "外科医生", 0 } },
       "_雅典娜", "赫尔墨斯", "波塞冬", /* Greek */
-      "医", "Hea",
+      "Hea", "医",
       "埃皮达鲁斯神庙",
       "科俄斯神庙",
       PM_HEALER,
@@ -204,7 +204,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "庄园主", 0 },
         { "圣骑士", 0 } },
       "鲁格", "_布里吉特", "马纳南·麦克·利尔", /* Celtic */
-      "骑", "Kni",
+      "Kni", "骑",
       "亚瑟王的城堡",
       "玻璃岛",
       PM_KNIGHT,
@@ -243,8 +243,8 @@ const struct Role roles[NUM_ROLES+1] = {
         { "风之学徒", 0 },
         { "火之学徒", 0 },
         { "长老", 0 } },
-      "哪吒", "太上老君", "混世四猴", /* Chinese */
-      "禅", "Mon",
+      "哪吒", "太上老君", "混世四猴", /* Chinese */ //没错我故意改的，跟dNetHack一样。你知道Shan Lai Ching是什么神吗？你知道黄帝为什么是混沌吗？
+      "Mon", "禅",
       "禅顺寺", /*待写:我不知道Chan-Sune是什么，翻遍了所有我能查到的汉语方言和外语汉字音都不知道是什么，姑且这么猜吧*/
       "土地庙", /*这真的是土地庙吗？？？*/
       PM_MONK,
@@ -274,10 +274,10 @@ const struct Role roles[NUM_ROLES+1] = {
       A_WIS,
       SPE_RESTORE_ABILITY,
       -4 },
-    { { "祭司", 0 },
+    { { "牧师", 0 },
       { { "修道者", 0 },
-        { "教士助手", 0 },
-        { "熟练助手", 0 },
+        { "侍祭", 0 },
+        { "高级侍祭", 0 },
         { "祭司", 0 },
         { "副牧师", 0 },
         { "教区牧师", 0 },
@@ -285,7 +285,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "牧首", 0 },
         { "高阶祭司", 0 } },
       0, 0, 0, /* deities from a randomly chosen other role will be used */
-      "牧", "Pri",
+      "Pri", "牧",
       "大神殿",
       "纳尔佐克的神殿",
       PM_CLERIC,
@@ -328,7 +328,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "欺诈者", 0 },
         { "大盗", 0 } },
       "伊塞克", "莫格", "科斯", /* Nehwon */
-      "盗", "Rog",
+      "Rog", "盗",
       "盗贼公会大厅",
       "刺客公会大厅",
       PM_ROGUE,
@@ -382,7 +382,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "狙击手", 0 },
         { "神枪手", 0 } },
       "墨丘利", "_维纳斯", "玛尔斯", /* Roman/planets */
-      "侠", "Ran",
+      "Ran", "侠",
       "俄里翁的营地",
       "狮头象之穴",
       PM_RANGER,
@@ -413,7 +413,7 @@ const struct Role roles[NUM_ROLES+1] = {
       SPE_INVISIBILITY,
       -4 },
     { { "武士", 0 },
-      { { "旗本", 0 },       /* Banner Knight */
+      { { "旗本", 0 },       /* Banner Knight */ //译者问:旗本<浪人<忍者???
         { "浪人", 0 },          /* no allegiance */
         { "忍者", "くノ一" }, /* secret society */ /*待写:くノ一（kunoichi）三笔连在一起为“女”*/
         { "城主", 0 },          /* heads a castle */
@@ -423,7 +423,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "公家", 0 },           /* Noble of the Court */
         { "将军", 0 } },       /* supreme commander, warlord */
       "_天照大御神", "雷神", "须佐之男", /* Japanese */
-      "侍", "Sam",
+      "Sam", "侍",
       "太郎氏的城堡", /*待写:？？？*/
       "将军的城堡",
       PM_SAMURAI,
@@ -463,7 +463,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "考察者", 0 },
         { "探险家", 0 } },
       "空眼爱奥", "_圣夫人", "奥夫勒", /* Discworld */
-      "旅", "Tou",
+      "Tou", "旅",
       "安科–莫波克",
       "盗贼公会大厅",
       PM_TOURIST,
@@ -503,9 +503,9 @@ const struct Role roles[NUM_ROLES+1] = {
         { "豪杰", 0 },
         { "殿下", 0 } },
       "提尔", "奥丁", "洛基", /* Norse */
-      "瓦", "Val", /*待写:不知道咋简称。。。*/
+      "Val", "瓦", /*待写:不知道咋简称。。。*/
       "命运神殿",
-      "苏尔特尔之穴",
+      "苏尔特之穴",
       PM_VALKYRIE,
       NON_PM /*PM_WINTER_WOLF_CUB*/,
       PM_NORN,
@@ -543,7 +543,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "大魔法师", 0 },
         { "智者", 0 } },
       "普塔", "托特", "安赫", /* Egyptian */ /*待写:或者是荷鲁斯？安赫？*/
-      "巫", "Wiz",
+      "Wiz", "巫",
       "孤独之塔",
       "黑暗之塔",
       PM_WIZARD,
@@ -585,7 +585,7 @@ const struct Race races[NUM_RACES + 1] = {
         "人类",
         "人类",
         "人类",
-        "人", "Hum",
+        "Hum", "人",
         { "男人", "女人" },
         PM_HUMAN,
         PM_HUMAN_MUMMY,
@@ -606,7 +606,7 @@ const struct Race races[NUM_RACES + 1] = {
         "精灵",
         "精灵",
         "精灵",
-        "精", "Elf",
+        "Elf", "精",
         { 0, 0 },
         PM_ELF,
         PM_ELF_MUMMY,
@@ -626,7 +626,7 @@ const struct Race races[NUM_RACES + 1] = {
         "矮人",
         "矮人",
         "矮人",
-        "矮", "Dwa",
+        "Dwa", "矮",
         { 0, 0 },
         PM_DWARF,
         PM_DWARF_MUMMY,
@@ -646,7 +646,7 @@ const struct Race races[NUM_RACES + 1] = {
         "侏儒",
         "侏儒",
         "侏儒",
-        "侏", "Gno",
+        "Gno", "侏",
         { 0, 0 },
         PM_GNOME,
         PM_GNOME_MUMMY,
@@ -666,14 +666,14 @@ const struct Race races[NUM_RACES + 1] = {
         "兽人",
         "兽人",
         "兽人",
-        "兽", "Orc",
+        "Orc", "兽",
         { 0, 0 },
         PM_ORC,
         PM_ORC_MUMMY,
         PM_ORC_ZOMBIE,
         MH_ORC | ROLE_MALE | ROLE_FEMALE | ROLE_CHAOTIC,
         MH_ORC,
-        0,
+        0, 
         MH_HUMAN | MH_ELF | MH_DWARF,
         /*  Str    Int Wis Dex Con Cha */
         { 3, 3, 3, 3, 3, 3 },
@@ -688,19 +688,19 @@ const struct Race races[NUM_RACES + 1] = {
 
 /* Table of all genders */
 const struct Gender genders[] = {
-    { "男性", "他", "他", "他", "男", "Mal", ROLE_MALE },
-    { "女性", "她", "她", "她", "女", "Fem", ROLE_FEMALE },
-    { "中性", "它", "它", "它", "中", "Ntr", ROLE_NEUTER },
+    { "男性", "他", "他", "他", "Mal", "男", ROLE_MALE },
+    { "女性", "她", "她", "她", "Fem", "女", ROLE_FEMALE },
+    { "中性", "它", "它", "它", "Ntr", "中", ROLE_NEUTER },
     /* used by pronoun_gender() when hallucinating */
-    { "一群", "它们", "它们", "它们", "群", "Grp", 0 },
+    { "一群", "它们", "它们", "它们", "Grp", "群", 0 },
 };
 
 /* Table of all alignments */
 const struct Align aligns[] = {
-    { "秩序", "秩序", "秩", "Law", ROLE_LAWFUL, A_LAWFUL },
-    { "中立", "中立", "中", "Neu", ROLE_NEUTRAL, A_NEUTRAL },
-    { "混沌", "混沌", "混", "Cha", ROLE_CHAOTIC, A_CHAOTIC },
-    { "邪恶", "无阵营", "无", "Una", 0, A_NONE }
+    { "秩序", "秩序", "Law", "秩", ROLE_LAWFUL, A_LAWFUL },
+    { "中立", "中立", "Neu", "中", ROLE_NEUTRAL, A_NEUTRAL },
+    { "混沌", "混沌", "Cha", "混", ROLE_CHAOTIC, A_CHAOTIC },
+    { "邪恶", "无阵营", "Una", "无", 0, A_NONE }
 };
 
 staticfn int randrole_filtered(void);
@@ -764,7 +764,7 @@ str2role(const char *str)
         if (roles[i].name.f && !strncmpi(str, roles[i].name.f, len))
             return i;
         /* Or the filecode? */
-        if (!strcmpi(str, roles[i].efilecode))
+        if (!strcmpi(str, roles[i].filecode))
             return i;
     }
 
@@ -830,7 +830,7 @@ str2race(const char *str)
         if (races[i].adj && !strncmpi(str, races[i].adj, len))
             return i;
         /* Or the filecode? */
-        if (!strcmpi(str, races[i].efilecode))
+        if (!strcmpi(str, races[i].filecode))
             return i;
     }
 
@@ -894,7 +894,7 @@ str2gend(const char *str)
         if (!strncmpi(str, genders[i].adj, len))
             return i;
         /* Or the filecode? */
-        if (!strcmpi(str, genders[i].efilecode))
+        if (!strcmpi(str, genders[i].filecode))
             return i;
     }
     if ((len == 1 && (*str == '*' || *str == '@'))
@@ -957,7 +957,7 @@ str2align(const char *str)
         if (!strncmpi(str, aligns[i].adj, len))
             return i;
         /* Or the filecode? */
-        if (!strcmpi(str, aligns[i].efilecode))
+        if (!strcmpi(str, aligns[i].filecode))
             return i;
     }
     if ((len == 1 && (*str == '*' || *str == '@'))
@@ -1389,8 +1389,8 @@ promptsep(char *buf, int num_post_attribs)
 
     if (num_post_attribs > 1 && gr.role_post_attribs < num_post_attribs
         && gr.role_post_attribs > 1)
-        Strcat(buf, ",");
-    Strcat(buf, "");
+        Strcat(buf, ", ");
+    //冗余: Strcat(buf, "");
     --gr.role_post_attribs;
     if (!gr.role_post_attribs && num_post_attribs > 1)
         Strcat(buf, conjuct);
@@ -1586,7 +1586,7 @@ build_plselection_prompt(
     char *buf, int buflen,
     int rolenum, int racenum, int gendnum, int alignnum)
 {
-    const char *defprompt = "需要我帮你选好一个角色吗? [ynaq] ";
+    const char *defprompt = "需要我帮你选好角色吗? [ynaq] ";
     int num_post_attribs = 0;
     char tmpbuf[BUFSZ], *p;
 
@@ -1597,7 +1597,7 @@ build_plselection_prompt(
     if (racenum != ROLE_NONE || validrole(rolenum))
         Strcat(tmpbuf, "选择你的");
     else
-        Strcat(tmpbuf, "选择一个");
+        Strcat(tmpbuf, "选择");
     /* <your> */
 
     (void) root_plselection_prompt(eos(tmpbuf), buflen - Strlen(tmpbuf),
@@ -1672,7 +1672,14 @@ plnamesuffix(void)
     /* some generic user names will be ignored in favor of prompting */
     if (sysopt.genericusers) {
         if (*sysopt.genericusers == '*') {
-            svp.plname[0] = '\0';
+            /* '*' = always ask, but role_init() calls plnamesuffix()
+               again on newgame/restore; asking once is enough */
+            static boolean generic_prompted = FALSE;
+
+            if (!generic_prompted) {
+                svp.plname[0] = '\0';
+                generic_prompted = TRUE;
+            }
         } else {
             /* need to ignore appended '-role-race-gender-alignment';
                'plnamelen' is non-zero when dealing with plname[] value that
@@ -2126,8 +2133,8 @@ Hello(struct monst *mtmp)
         return "向你致敬"; /* Olde English */
     case PM_SAMURAI:
         return (mtmp && mtmp->data == &mons[PM_SHOPKEEPER])
-                    ? "いらっしゃいませ"
-                    : "こんにちは"; /* Japanese */
+                    ? "いらっしゃいませ(欢迎光临)"
+                    : "こんにちは(你好)"; /* Japanese */
     case PM_TOURIST:
         return "阿罗哈"; /* Hawaiian */
     case PM_VALKYRIE:
@@ -2135,7 +2142,7 @@ Hello(struct monst *mtmp)
 #ifdef MAIL_STRUCTURES
                (mtmp && mtmp->data == &mons[PM_MAIL_DAEMON]) ? "你好啊" :
 #endif
-               "来了啊"; /* Norse */
+               "幸会"; /* Norse */
     default:
         return "你好";
     }
@@ -2148,7 +2155,7 @@ Goodbye(void)
     case PM_KNIGHT:
         return "一路顺风"; /* Olde English */
     case PM_SAMURAI:
-        return "さようなら"; /* Japanese */
+        return "さようなら(再见)"; /* Japanese */
     case PM_TOURIST:
         return "阿罗哈"; /* Hawaiian */
     case PM_VALKYRIE:
@@ -2322,7 +2329,7 @@ genl_player_setup(int screenheight)
                     role_menu_extra(RS_ALGNMNT, win, FALSE);
                     role_menu_extra(RS_filter, win, FALSE);
                     role_menu_extra(ROLE_NONE, win, FALSE); /* quit */
-                    Strcpy(pbuf, "选择一个职业");
+                    Strcpy(pbuf, "选择职业");
                     end_menu(win, pbuf);
                     n = select_menu(win, PICK_ONE, &selected);
                     /*
@@ -2416,7 +2423,7 @@ genl_player_setup(int screenheight)
                         role_menu_extra(RS_ALGNMNT, win, FALSE);
                         role_menu_extra(RS_filter, win, FALSE);
                         role_menu_extra(ROLE_NONE, win, FALSE); /* quit */
-                        Strcpy(pbuf, "选择一个种族");
+                        Strcpy(pbuf, "选择种族");
                         end_menu(win, pbuf);
                         n = select_menu(win, PICK_ONE, &selected);
                         if (n > 0) {
@@ -2504,7 +2511,7 @@ genl_player_setup(int screenheight)
                         role_menu_extra(RS_ALGNMNT, win, FALSE);
                         role_menu_extra(RS_filter, win, FALSE);
                         role_menu_extra(ROLE_NONE, win, FALSE); /* quit */
-                        Strcpy(pbuf, "选择一个性别");
+                        Strcpy(pbuf, "选择性别");
                         end_menu(win, pbuf);
                         n = select_menu(win, PICK_ONE, &selected);
                         if (n > 0) {
@@ -2862,7 +2869,7 @@ setup_rolemenu(
     anything any;
     int i;
     boolean role_ok;
-    char thisch, lastch = '\0', rolenamebuf[50];
+    char rolenamebuf[50];
     int clr = NO_COLOR;
 
     any = cg.zeroany; /* zero out all bits */
@@ -2878,10 +2885,6 @@ setup_rolemenu(
             any.a_int = i + 1;
         else
             any.a_string = roles[i].name.m;
-            thisch = '\0';
-        /*危险，冗余:thisch = lowc(*roles[i].name.m);*/
-        /*危险，冗余:if (thisch == lastch)
-            thisch = highc(thisch);*/
         Strcpy(rolenamebuf, roles[i].name.m);
         if (roles[i].name.f) {
             /* role has distinct name for female (C,P) */
@@ -2900,7 +2903,6 @@ setup_rolemenu(
                  ATR_NONE, clr, rolenamebuf,
                  (!filtering && !role_ok)
                     ? MENU_ITEMFLAGS_SELECTED : MENU_ITEMFLAGS_NONE);
-        //lastch = thisch;
     }
 }
 
@@ -2913,7 +2915,6 @@ setup_racemenu(
     anything any;
     boolean race_ok;
     int i;
-    char this_ch;
     int clr = NO_COLOR;
 
     any = cg.zeroany;
@@ -2928,7 +2929,6 @@ setup_racemenu(
             any.a_int = i + 1;
         else
             any.a_string = races[i].noun;
-        this_ch = *races[i].noun;
         /* filtering: picking race, so choose by first letter, with
            capital letter as unseen accelerator;
            !filtering: resetting filter rather than picking, choose by
@@ -2951,7 +2951,6 @@ setup_gendmenu(
     anything any;
     boolean gend_ok;
     int i;
-    char this_ch;
     int clr = NO_COLOR;
 
     any = cg.zeroany;
@@ -2966,7 +2965,6 @@ setup_gendmenu(
             any.a_int = i + 1;
         else
             any.a_string = genders[i].adj;
-        this_ch = *genders[i].adj;
         /* (see setup_racemenu for explanation of selector letters
            and setup_rolemenu for preselection) */
         add_menu(win, &nul_glyphinfo, &any,
@@ -2987,7 +2985,6 @@ setup_algnmenu(
     anything any;
     boolean algn_ok;
     int i;
-    char this_ch;
     int clr = NO_COLOR;
 
     any = cg.zeroany;
@@ -3002,7 +2999,6 @@ setup_algnmenu(
             any.a_int = i + 1;
         else
             any.a_string = aligns[i].adj;
-        this_ch = *aligns[i].adj;
         /* (see setup_racemenu for explanation of selector letters
            and setup_rolemenu for preselection) */
         add_menu(win, &nul_glyphinfo, &any,

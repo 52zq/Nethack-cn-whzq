@@ -43,7 +43,6 @@ staticfn char *minimal_xname(struct obj *);
 staticfn char *minimal_xename(struct obj *);
 staticfn void add_erosion_words(struct obj *, char *);
 staticfn char *doname_base(struct obj *obj, unsigned);
-staticfn char *doename_base(struct obj *obj, unsigned);
 staticfn boolean singplur_lookup(char *, char *, boolean,
                                const char *const *);
 staticfn char *singplur_compound(char *);
@@ -107,8 +106,8 @@ struct Jitem {
 
 /* true for gems/rocks that should have " stone" appended to their names */
 #define GemStone(typ)                                                  \
-    (typ == FLINT                                                      \
-     || (objects[typ].oc_material == GEMSTONE                          \
+    (/*typ == FLINT                                                      \
+     || */(objects[typ].oc_material == GEMSTONE                          \
          && (typ != DILITHIUM_CRYSTAL && typ != RUBY && typ != DIAMOND \
              && typ != SAPPHIRE && typ != BLACK_OPAL && typ != EMERALD \
              && typ != OPAL)))
@@ -126,7 +125,7 @@ static const struct Jitem Japanese_items[] = {
     { HELMET, "兜" },
     { LEATHER_GLOVES, "弽" },
     { FOOD_RATION, "兵粮" },
-    { POT_BOOZE, "烧酒" },
+    { POT_BOOZE, "清酒" },
     { 0, "" }
 };
 
@@ -273,7 +272,13 @@ obj_typename(int otyp)
 
     buf[0] = '\0'; /* redundant */
     /* here for ring/scroll/potion/wand */
-    if (nn) {
+    if (un) /* 3: length of " (" + ")" which will enclose 'dn' */
+        xcalled(buf, BUFSZ - (dn ? (int) strlen(dn) + 3 : 0), "", un);
+    if (nn && (ocl->oc_class == RING_CLASS || 
+               ocl->oc_class == SCROLL_CLASS || 
+               ocl->oc_class == POTION_CLASS || 
+               ocl->oc_class == WAND_CLASS || 
+               ocl->oc_class == SPBOOK_CLASS)) {
         Sprintf(eos(buf), "%s", actualn);
     }
     switch (ocl->oc_class) {
@@ -304,26 +309,20 @@ obj_typename(int otyp)
             Strcat(buf, actualn);
         else
             Strcat(buf, "护身符");
-        if (un)
-            xcalled(buf, BUFSZ - (dn ? (int) strlen(dn) + 3 : 0), "", un);
         if (dn)
             Sprintf(eos(buf), " (%s)", dn);
         return buf;
     case ARMOR_CLASS:
-        if (objects[otyp].oc_armcat == ARM_GLOVES
+        /*if (objects[otyp].oc_armcat == ARM_GLOVES
             || objects[otyp].oc_armcat == ARM_BOOTS)
             Strcpy(buf, "一双");
         else if (otyp >= GRAY_DRAGON_SCALES && otyp <= YELLOW_DRAGON_SCALES)
-            Strcpy(buf, "一套");
+            Strcpy(buf, "一套");*/
         FALLTHROUGH;
         /*FALLTHRU*/
     default:
         if (nn) {
             Strcat(buf, actualn);
-            if (GemStone(otyp))
-                Strcat(buf, "石头");
-            if (un) /* 3: length of " (" + ")" which will enclose 'dn' */
-                xcalled(buf, BUFSZ - (dn ? (int) strlen(dn) + 3 : 0), "", un);
             if (dn)
                 Sprintf(eos(buf), " (%s)", dn);
         } else {
@@ -331,8 +330,6 @@ obj_typename(int otyp)
             if (ocl->oc_class == GEM_CLASS)
                 Strcat(buf,
                        (ocl->oc_material == MINERAL) ? "石头" : "宝石");
-            if (un)
-                xcalled(buf, BUFSZ, "", un);
         }
         return buf;
     }
@@ -342,8 +339,6 @@ obj_typename(int otyp)
             Strcpy(buf, actualn);
         }
     }
-    if (un) /* 3: length of " (" + ")" which will enclose 'dn' */
-        xcalled(buf, BUFSZ - (dn ? (int) strlen(dn) + 3 : 0), "", un);
     if (dn)
         Sprintf(eos(buf), " (%s)", dn);
     return buf;
@@ -515,6 +510,167 @@ safe_etypename(int otyp)
     return res;
 }
 
+const char *
+classifier(struct obj *obj)
+{
+    switch (obj->otyp)
+    {
+        case DART:
+        case SHURIKEN:
+        case LAND_MINE:
+        case MEAT_RING:
+        case GOLD_PIECE:
+            return "枚";
+        case UNICORN_HORN:
+        case TALLOW_CANDLE:
+        case WAX_CANDLE:
+        case TOWEL:
+        case WOODEN_FLUTE:
+        case MAGIC_FLUTE:
+        case MEAT_STICK:
+        case BANANA:
+        case CARROT:
+        case CANDY_BAR:
+            return "根";
+        case CANDELABRUM_OF_INVOCATION:
+            return "座";
+        case CREDIT_CARD:
+            return "张";
+        case BRASS_LANTERN:
+        case OIL_LAMP:
+        case MAGIC_LAMP:
+            return "盏";
+        case MIRROR:
+            return "面";
+        case LEASH:
+            return "条";
+        case LENSES:
+        case BLINDFOLD:
+            return "副";
+        case MAGIC_MARKER:
+        case BUGLE:
+        case TOOLED_HORN:
+        case FROST_HORN:
+        case FIRE_HORN:
+        case HORN_OF_PLENTY:
+            return "支";
+        case CORPSE:
+            return "具";
+        case WOODEN_HARP:
+        case MAGIC_HARP:
+        case SKELETON_KEY:
+            return "把";
+        case BELL:
+            return "只";
+        case GLOB_OF_GRAY_OOZE:
+        case GLOB_OF_BROWN_PUDDING:
+        case GLOB_OF_GREEN_SLIME:
+        case GLOB_OF_BLACK_PUDDING:
+            return "团";
+        case SPRIG_OF_WOLFSBANE:
+            return "枝";
+        case CLOVE_OF_GARLIC:
+            return "瓣";
+        case LUMP_OF_ROYAL_JELLY:
+        case FORTUNE_COOKIE:
+        case ENORMOUS_MEATBALL:
+        case PANCAKE:
+        case BOULDER:
+            return "块";
+        case LEMBAS_WAFER:
+        case KELP_FROND:
+        case EUCALYPTUS_LEAF:
+            return "片";
+        case CRAM_RATION:
+        case FOOD_RATION:
+        case K_RATION:
+        case C_RATION:
+            return "份";
+        case SPE_NOVEL:
+        case SPE_BOOK_OF_THE_DEAD:
+            return "本";
+        case DWARVISH_MITHRIL_COAT:
+        case ELVEN_MITHRIL_COAT:
+        case LEATHER_JACKET:
+            return "件";
+        case MUMMY_WRAPPING:
+            return "卷";
+        case STATUE:
+            return "个";
+    }
+    switch(obj->oclass)
+    {
+        case RING_CLASS:
+            return "枚";
+        case SCROLL_CLASS:
+            return "张";
+        case POTION_CLASS:
+            return "瓶";
+        case SPBOOK_CLASS:
+            return "本";
+        case WAND_CLASS:
+            return "根";
+        case GEM_CLASS:
+        case ROCK_CLASS:
+            return "块";
+        case ARMOR_CLASS:
+            switch (objects[obj->otyp].oc_armcat)
+            {
+                case ARM_HELM:
+                    return "顶";
+                case ARM_SUIT:
+                    return "套";
+                case ARM_SHIRT:
+                case ARM_CLOAK:
+                    return "件";
+                case ARM_SHIELD:
+                    return "面";
+                case ARM_GLOVES:
+                case ARM_BOOTS:
+                    return "双";
+            }
+            break;
+        case WEAPON_CLASS:
+        case TOOL_CLASS:
+            switch(objects[obj->otyp].oc_skill)
+            {
+                case -P_BOW:
+                case -P_CROSSBOW:
+                    return "支";
+                case P_SPEAR:
+                case P_TRIDENT:
+                case P_CLUB:
+                case P_WHIP:
+                case P_QUARTERSTAFF:
+                    return "根";
+                case P_DAGGER:
+                case P_KNIFE:
+                case P_AXE:
+                case P_SHORT_SWORD:
+                case P_SABER:
+                case P_BROAD_SWORD:
+                case P_LONG_SWORD:
+                case P_TWO_HANDED_SWORD:
+                case P_PICK_AXE:
+                case P_HAMMER:
+                case P_BOW:
+                case P_CROSSBOW:
+                    return "把";
+                case P_POLEARMS:
+                case P_MACE:
+                    return "柄";
+                case P_MORNING_STAR:
+                case P_FLAIL:
+                    return "副";
+            }
+            break;
+    }
+    return "个";
+}
+
+static const char* classifiers[] = {"块", "双", "柄", "片", "根", "把", "个", "件", "盏", "卷", "枝", "本", "面", "座", "枚", "只", "套", "副", "团", "份", "具", "支", "瓶", "瓣", "张", "顶", "条", "\0"};
+static const char* one_classifiers[] = {"一块", "一双", "一柄", "一片", "一根", "一把", "一个", "一件", "一盏", "一卷", "一枝", "一本", "一面", "一座", "一枚", "一只", "一套", "一副", "一团", "一份", "一具", "一支", "一瓶", "一瓣", "一张", "一顶", "一条", "\0"};
+
 boolean
 obj_is_pname(struct obj *obj)
 {
@@ -608,7 +764,7 @@ fruitname(
     else
         fruit_nam = svp.pl_fruit; /* use it as is */
 
-    Sprintf(buf, "%s%s", makesingular(fruit_nam), juice ? " 汁" : "");
+    Sprintf(buf, "%s%s", makesingular(fruit_nam), juice ? "汁" : "");
     return buf;
 }
 
@@ -754,7 +910,7 @@ xcalled(
         panic("xcalled: not enough room for prefix (%d > %d)",
               pfxlen, bufsiz);
 
-    Sprintf(eos(buf), "%s被称为%.*s", pfx, bufsiz - pfxlen, sfx);
+    Snprintf(eos(buf), (size_t) (bufsiz + 1), "叫做%.*s的%s", bufsiz - pfxlen, sfx, pfx);
 }
 
 staticfn void
@@ -868,9 +1024,25 @@ xname_flags(
      */
     if (obj->oartifact && obj->dknown)
         find_artifact(obj);
+    if (obj_is_pname(obj)) {
+        /* 有个人命名的神器: 只显示名字, 跳过"名为...的"及职业名称 */
+        obufp = eos(buf); /* remember where the name will start */
+        Concat(buf, 0, ONAME(obj));
+        /* downcase "The" in "<quest-artifact-item> named The ..." */
+        if (obj->oartifact && !strncmp(obufp, "The ", 4))
+            *obufp = lowc(*obufp); /* change 'T' in "The " to 't' */
+        goto namefinish;
+    }
 
-    if (obj_is_pname(obj))
-        goto nameit;
+    if (has_oname(obj) && dknown) {
+        Concat(buf, 0, "名为");
+        obufp = eos(buf); /* remember where the name will start */
+        Concat(buf, 0, ONAME(obj));
+        /* downcase "The" in "<quest-artifact-item> named The ..." */
+        if (obj->oartifact && !strncmp(obufp, "The ", 4))
+            *obufp = lowc(*obufp); /* change 'T' in "The " to 't' */
+        Concat(buf, 0, "的");
+    }
 
     /* Some classes use strcpy(buf, something)+strcat(buf, otherthing).
        In those cases, ConcUpdate() is needed in between if Concat()
@@ -879,47 +1051,65 @@ xname_flags(
        until after the switch. */
     switch (obj->oclass) {
     case AMULET_CLASS:
-        if (!dknown)
+        if (!dknown){
             Strcpy(buf, "护身符");
-        else if (typ == AMULET_OF_YENDOR || typ == FAKE_AMULET_OF_YENDOR)
+        }
+        else if (typ == AMULET_OF_YENDOR || typ == FAKE_AMULET_OF_YENDOR){
             /* each must be identified individually */
-            Strcpy(buf, known ? actualn : dn);
-        else if (nn)
-            Strcpy(buf, actualn);
-        else if (un)
+            Strcat(buf, known ? actualn : dn);
+        }
+        else if (nn){
+            Strcat(buf, actualn);
+        }
+        else if (un){
             xcalled(buf, BUFSZ - PREFIX, "护身符", un);
-        else
-            Sprintf(buf, "%s护身符", dn);
+        }
+        else{
+            Sprintf(buf, "%s%s护身符", buf, dn);
+        }
         break;
     case WEAPON_CLASS:
-        if (is_poisonable(obj) && obj->opoisoned)
-            Strcpy(buf, "有毒的");
+        if (is_poisonable(obj) && obj->opoisoned){
+            Strcat(buf, "有毒的");
+        }
         FALLTHROUGH;
         /*FALLTHRU*/
     case VENOM_CLASS:
     case TOOL_CLASS:
         /* note: lenses or towel prefix would overwrite poisoned weapon
            prefix if both were simultaneously possible, but they aren't */
-        if (typ == LENSES)
-            Strcpy(buf, "一对");
-        else if (is_wet_towel(obj))
-            Strcpy(buf, (obj->spe < 3) ? "湿润的" : "湿的");
+        /*if (typ == LENSES){
+            Strcat(buf, "一对");
+        }
+        else*/if (is_wet_towel(obj)){
+            Strcat(buf, (obj->spe < 3) ? "湿润的" : "湿的");
+        }
 
-        if (!dknown)
-            Strcat(buf, dn);
-        else if (nn)
+        if (!dknown){
+            Strcpy(buf, dn);
+        }
+        else if (nn){
             Strcat(buf, actualn);
-        else if (un)
+        }
+        else if (un){
             xcalled(buf, BUFSZ - PREFIX, dn, un);
-        else
+        }
+        else{
             Strcat(buf, dn);
+        }
         ConcUpdate(buf);
 
         if (typ == FIGURINE && omndx != NON_PM) {
-            char anbuf[10]; /* [4] would be enough: 'a','n',' ','\0' */
+            char tmpbuf[BUFSZ];
             const char *pm_name = obj_pmname(obj);
+            const char *oname = nn ? actualn : dn;
+            size_t blen = strlen(buf), olen = strlen(oname);
 
-            Sprintf(buf, "%s的%s", pm_name, actualn); /*危险:ConcatF2(buf, 0, " of %s%s", just_an(anbuf, pm_name), pm_name);*/
+            if (blen >= olen) {
+                Strcpy(tmpbuf, buf);
+                tmpbuf[blen - olen] = '\0';
+                Sprintf(buf, "%s%s的%s", tmpbuf, pm_name, oname);
+            }
         } else if (is_wet_towel(obj)) {
             if (wizard)
                 ConcatF1(buf, 0, " (%d)", obj->spe);
@@ -928,28 +1118,31 @@ xname_flags(
     case ARMOR_CLASS:
         /* depends on order of the dragon scales objects */
         if (typ >= GRAY_DRAGON_SCALES && typ <= YELLOW_DRAGON_SCALES) {
-            Sprintf(buf, "一套%s", actualn);
+            Sprintf(buf, "%s", actualn);
             break;
         } else if (is_boots(obj) || is_gloves(obj)) {
-            Strcpy(buf, "一双");
+            Strcat(buf, "");;//Strcat(buf, "一双");
             /*FALLTHRU*/
         } else if (is_shield(obj) && !dknown) {
             if (obj->otyp >= ELVEN_SHIELD && obj->otyp <= ORCISH_SHIELD) {
                 Strcpy(buf, "盾牌");
                 break;
             } else if (obj->otyp == SHIELD_OF_REFLECTION) {
-                Strcpy(buf, "平滑的盾");
+                Strcat(buf, "平滑的盾");
                 break;
             }
         }
         ConcUpdate(buf);
 
-        if (nn)
+        if (nn){
             Concat(buf, 0, actualn);
-        else if (un)
+        }
+        else if (un){
             xcalled(buf, BUFSZ - PREFIX, armor_simple_name(obj), un);
-        else
+        }
+        else{
             Concat(buf, 0, dn);
+        }
         break;
     case FOOD_CLASS:
         /* we could include partly-eaten-hack on fruit but don't need to */
@@ -958,12 +1151,12 @@ xname_flags(
 
             if (!f) {
                 impossible("Bad fruit #%d?", obj->spe);
-                Strcpy(buf, "水果");
+                Strcat(buf, "水果");
             } else {
                 /* fruit name is limited in length to PL_FSIZ; converting
                    to/from singular/plural might increase the length a
                    little but not enough to pose a risk of overflowing buf */
-                Strcpy(buf, f->fname);
+                Strcat(buf, f->fname);
                 if (pluralize) {
                     /* ick: already pluralized fruit names are allowed--we
                        want to try to avoid adding a redundant plural suffix;
@@ -972,10 +1165,10 @@ xname_flags(
                        xname() call to consume more than one of those
                        [note: makeXXX() will be fully evaluated and done with
                        'buf' before strcpy() touches its output buffer] */
-                    Strcpy(buf, obufp = makesingular(buf));
+                    /*冗余(不然你会看到: 2 黏菌黏菌黏菌黏菌):Strcat(buf, obufp = makesingular(buf));
                     releaseobuf(obufp);
-                    Strcpy(buf, obufp = makeplural(buf));
-                    releaseobuf(obufp);
+                    Strcat(buf, obufp = makeplural(buf));
+                    releaseobuf(obufp);*/
 
                     pluralize = FALSE;
                 }
@@ -998,9 +1191,13 @@ xname_flags(
             break;
         }
 
-        Concat(buf, 0, actualn);
+        //危险:Concat(buf, 0, actualn);
         if (typ == TIN && known)
+        {
             tin_details(obj, omndx, buf);
+        } else { //谁要再写if后面跟着一行不带大括号我真得拿一根冲击魔杖放ta嘴里折断了
+            Concat(buf, 0, actualn);
+        }
         break;
     case COIN_CLASS:
     case CHAIN_CLASS:
@@ -1008,10 +1205,10 @@ xname_flags(
         break;
     case ROCK_CLASS:
         if (typ == STATUE && omndx != NON_PM) {
-            char anbuf[10];
+            /*冗余:char anbuf[10];*/
             const char *statue_pmname = obj_pmname(obj);
 
-            Snprintf(buf, bufspaceleft, "%s%s%s的%s",
+            Snprintf(buf, bufspaceleft, "%s%s%s%s%s", buf,
                      (Role_if(PM_ARCHEOLOGIST)
                       && (obj->spe & CORPSTAT_HISTORIC) != 0) ? "历史感的"
                        : "",
@@ -1031,16 +1228,17 @@ xname_flags(
                use ordinary "boulder" */
             obj->next_boulder = 0;
         } else {
-            Strcpy(buf, actualn); /* "boulder" or "statue" */
+            Strcat(buf, actualn); /* "boulder" or "statue" */
         }
         break;
     case BALL_CLASS:
-        Sprintf(buf, "%s沉重的铁球",
+        Sprintf(buf, "%s%s沉重的铁球", buf,
                 (obj->owt > ocl->oc_weight) ? "非常 " : "");
         break;
     case POTION_CLASS:
-        if (dknown && obj->odiluted)
-            Strcpy(buf, "稀释的");
+        if (dknown && obj->odiluted){
+            Strcat(buf, "稀释的");
+        }
         if (nn || un || !dknown) {
             if (!dknown) {
                 Strcpy(buf, "药水");
@@ -1054,8 +1252,7 @@ xname_flags(
                 Strcat(buf, actualn);
                 Strcat(buf, "药水");
             } else {
-                xcalled(buf, BUFSZ - PREFIX, "", un);
-                Strcat(buf, "药水");
+                xcalled(buf, BUFSZ - PREFIX, "药水", un);
             }
         } else {
             Strcat(buf, dn);
@@ -1072,59 +1269,71 @@ xname_flags(
             /*Strcat(buf, "之");*/
             Strcat(buf, "卷轴");
         } else if (un) {
-            xcalled(buf, BUFSZ - PREFIX, "", un);
+            xcalled(buf, BUFSZ - PREFIX, "卷轴", un);
         } else if (ocl->oc_magic) {
-            Strcpy(buf, "写着");
+            Strcat(buf, "写着");
             Strcat(buf, dn);
             Strcat(buf, "的卷轴");
         } else {
-            Strcpy(buf, dn);
+            Strcat(buf, dn);
             Strcat(buf, "卷轴");
         }
         break;
     case WAND_CLASS:
-        if (!dknown)
+        if (!dknown){
             Strcpy(buf, "魔杖");
-        else if (nn)
-            Sprintf(buf, "%s魔杖", actualn);
-        else if (un)
+        }
+        else if (nn){
+            Sprintf(buf, "%s%s魔杖", buf, actualn);
+        }
+        else if (un){
             xcalled(buf, BUFSZ - PREFIX, "魔杖", un);
-        else
-            Sprintf(buf, "%s魔杖", dn);
+        }
+        else{
+            Sprintf(buf, "%s%s魔杖", buf, dn);
+        }
         break;
     case SPBOOK_CLASS:
         if (typ == SPE_NOVEL) { /* 3.6 tribute */
-            if (!dknown)
+            if (!dknown){
                 Strcpy(buf, "书");
-            else if (nn)
-                Strcpy(buf, actualn);
-            else if (un)
+            }
+            else if (nn){
+                Strcat(buf, actualn);
+            }
+            else if (un){
                 xcalled(buf, BUFSZ - PREFIX, "小说", un);
-            else
+            }
+            else{
                 Sprintf(buf, "%s书", dn);
+            }
             break;
             /* end of tribute */
         } else if (!dknown) {
             Strcpy(buf, "魔法书");
         } else if (nn) {
             if (typ != SPE_BOOK_OF_THE_DEAD)
-                Sprintf(buf, "%s魔法书", actualn);
+                Sprintf(buf, "%s%s魔法书", buf, actualn);
             else
                 Strcat(buf, actualn);
         } else if (un) {
             xcalled(buf, BUFSZ - PREFIX, "魔法书", un);
         } else
-            Sprintf(buf, "%s魔法书", dn);
+            Sprintf(buf, "%s%s魔法书", buf, dn);
         break;
     case RING_CLASS:
-        if (!dknown)
+        if (!dknown){
             Strcpy(buf, "戒指");
-        else if (nn)
-            Sprintf(buf, "%s戒指", actualn);
-        else if (un)
+        }
+        else if (nn){
+            Sprintf(buf, "%s%s戒指", buf, actualn);
+        }
+        else if (un){
             xcalled(buf, BUFSZ - PREFIX, "戒指", un);
-        else
-            Sprintf(buf, "%s戒指", dn);
+        }
+        else{
+            Sprintf(buf, "%s%s戒指", buf, dn);
+        }
         break;
     case GEM_CLASS: {
         const char *rock = (ocl->oc_material == MINERAL) ? "石头" : "宝石";
@@ -1132,14 +1341,14 @@ xname_flags(
         if (!dknown) {
             Strcpy(buf, rock);
         } else if (!nn) {
-            if (un)
+            if (un){
                 xcalled(buf, BUFSZ - PREFIX, rock, un);
-            else
-                Sprintf(buf, "%s%s", dn, rock);
+            }
+            else{
+                Sprintf(buf, "%s%s%s", buf, dn, rock);
+            }
         } else {
-            Strcpy(buf, actualn);
-            if (GemStone(typ))
-                Strcat(buf, "石头");
+            Strcat(buf, actualn);
         }
         break;
     } /* gem */
@@ -1172,7 +1381,7 @@ xname_flags(
         Concat(buf, 0, obufp);
         releaseobuf(obufp);
     }
-
+namefinish:
     /* give some extra information when game is over; for end-of-game
        attribute disclosure in wizard mode, ysimple_name() calls
        minimal_xname() which passes us a dummy object with o_id==0;
@@ -1192,37 +1401,24 @@ xname_flags(
         switch (obj->otyp) {
         case T_SHIRT:
         case ALCHEMY_SMOCK:
-            ConcatF1(buf, 0, ",上面写着\"%s\"",
+            ConcatF1(buf, 0, ", 上面写着\"%s\"",
                      (obj->otyp == T_SHIRT) ? tshirt_text(obj, tmpbuf)
                                             : apron_text(obj, tmpbuf));
             break;
         case CANDY_BAR:
             lbl = candy_wrapper_text(obj);
             if (*lbl)
-                ConcatF1(buf, 0, ",上面写着\"%s\"", lbl);
+                ConcatF1(buf, 0, ", 上面写着\"%s\"", lbl);
             break;
         case HAWAIIAN_SHIRT:
-            ConcatF1(buf, 0, ",上面有%s",
-                     an(hawaiian_motif(obj, tmpbuf)));
+            ConcatF1(buf, 0, ", 上面有%s",
+                     hawaiian_motif(obj, tmpbuf));
             break;
         default:
             break;
         }
     }
 
-    if (has_oname(obj) && dknown) {
-        Concat(buf, 0, "(被称为"); /*冗余:你懂吧*/
-
-        /* jump directly here if obj passes the has-personal-name test */
- nameit:
-        /*assert(has_oname(obj));*/
-        obufp = eos(buf); /* remember where the name will start */
-        Concat(buf, 0, ONAME(obj));
-        /* downcase "The" in "<quest-artifact-item> named The ..." */
-        if (obj->oartifact && !strncmp(obufp, "The ", 4))
-            *obufp = lowc(*obufp); /* change 'T' in "The " to 't' */
-        Concat(buf, 0, ")");
-    }
     /*冗余:
     if (!strncmpi(buf, "the ", 4))
         buf += 4;
@@ -1327,8 +1523,15 @@ xename_flags(
     if (obj->oartifact && obj->dknown)
         find_artifact(obj);
 
-    if (obj_is_pname(obj))
+    if (obj_is_pname(obj)) {
+        /* 有个人命名的神器: 只显示名字, 跳过职业名称和 "named" 前缀 */
+        obufp = eos(buf); /* remember where the name will start */
+        Concat(buf, 0, ONAME(obj));
+        /* downcase "The" in "<quest-artifact-item> named The ..." */
+        if (obj->oartifact && !strncmp(obufp, "The ", 4))
+            *obufp = lowc(*obufp); /* change 'T' in "The " to 't' */
         goto nameit;
+    }
 
     /* Some classes use strcpy(buf, something)+strcat(buf, otherthing).
        In those cases, ConcUpdate() is needed in between if Concat()
@@ -1664,17 +1867,13 @@ xename_flags(
 
     if (has_oname(obj) && dknown) {
         Concat(buf, 0, " named ");
-
-        /* jump directly here if obj passes the has-personal-name test */
- nameit:
-        /*assert(has_oname(obj));*/
         obufp = eos(buf); /* remember where the name will start */
         Concat(buf, 0, ONAME(obj));
         /* downcase "The" in "<quest-artifact-item> named The ..." */
         if (obj->oartifact && !strncmp(obufp, "The ", 4))
             *obufp = lowc(*obufp); /* change 'T' in "The " to 't' */
     }
-
+ nameit:
     if (!strncmpi(buf, "the ", 4))
         buf += 4;
 
@@ -1813,7 +2012,7 @@ mshot_xname(struct obj *obj)
     if (gm.m_shot.n > 1 && gm.m_shot.o == obj->otyp) {
         /* "the Nth arrow"; value will eventually be passed to an() or
            The(), both of which correctly handle this "the " prefix */
-        Sprintf(tmpbuf, "第%d个", gm.m_shot.i);
+        Sprintf(tmpbuf, "第%d%s", gm.m_shot.i, classifier(obj));
         onm = strprepend(onm, tmpbuf);
     }
     return onm;
@@ -1998,9 +2197,12 @@ erosion_matters(struct obj *obj)
     return FALSE;
 }
 
-#define DONAME_WITH_PRICE 1
-#define DONAME_VAGUE_QUAN 2
-#define DONAME_FOR_MENU   4 /* [not used anywhere yet] */
+#define DONAME_WITH_PRICE   1
+#define DONAME_VAGUE_QUAN   2
+#define DONAME_FOR_MENU     4 /* [not used anywhere yet] */
+#define DONAME_FORCE_GENDER 8 /* always add male or female */
+#define DONAME_WITH_SPACE 64 /* 官方的下一个bitmask肯定是16, 留个位置 */
+#define DONAME_FORCE_CLASS 128 /* "1个foo"而非"一个foo"/"foo" */
 
 /* core of doname() */
 staticfn char *
@@ -2011,7 +2213,10 @@ doname_base(
     boolean ispoisoned = FALSE,
             with_price = (doname_flags & DONAME_WITH_PRICE) != 0,
             vague_quan = (doname_flags & DONAME_VAGUE_QUAN) != 0,
-            for_menu = (doname_flags & DONAME_FOR_MENU) != 0;
+            for_menu = (doname_flags & DONAME_FOR_MENU) != 0,
+            with_corpse_genders = (doname_flags & DONAME_FORCE_GENDER) != 0,
+            with_space = (doname_flags & DONAME_WITH_SPACE) != 0,
+            force_class = (doname_flags & DONAME_FORCE_CLASS) != 0;
     boolean known, dknown, cknown, bknown, lknown,
             fake_arti, force_the;
     char prefix[PREFIX];
@@ -2064,11 +2269,28 @@ doname_base(
     force_the = (fake_arti && !strncmpi(aname, "the ", 4));
 
     prefix[0] = '\0';
-    if (obj->quan != 1L) {
-        if (dknown || !vague_quan)
-            Sprintf(prefix, "%ld ", obj->quan);
-        else
-            Strcpy(prefix, "几个");
+    if (obj->quan /*!= 1L*/) {
+        if (dknown || !vague_quan) {
+            /* 独特怪/人名怪物(岩德巫师等)尸体只有一个, 不显示数量 */
+            if (obj->otyp != CORPSE || !ismnum(obj->corpsenm)
+                || !(the_unique_pm(&mons[obj->corpsenm])
+                     || type_is_pname(&mons[obj->corpsenm]))) {
+                if (with_space) {
+                    if (obj->quan != 1L || force_class) {
+                        Sprintf(prefix, "%ld %s", obj->quan, classifier(obj));
+                    }
+                } else {
+                    if (obj->quan != 1L || force_class) {
+                        Sprintf(prefix, "%ld%s", obj->quan, classifier(obj));
+                    } else if (obj->quan == 1L) {
+                        Sprintf(prefix, "一%s", classifier(obj));
+                    }
+                }
+            }
+        }
+        else {
+            Strcpy(prefix, "");
+        }
     } else if (obj->otyp == CORPSE) {
         /* skip article prefix for corpses [else corpse_xname()
            would have to be taught how to strip it off again] */
@@ -2108,7 +2330,7 @@ doname_base(
         if (obj->cursed)
             Strcat(prefix, "被诅咒的");
         else if (obj->blessed)
-            Strcat(prefix, "被祝福的");
+            Strcat(prefix, "受祝福的");
         else if (!flags.implicit_uncursed
             /* For most items with charges or +/-, if you know how many
              * charges are left or what the +/- is, then you must have
@@ -2160,7 +2382,7 @@ doname_base(
            everything out if no merges occur */
         long itemcount = count_contents(obj, FALSE, FALSE, TRUE, FALSE);
 
-        ConcatF2(bp, 0, ",包含%ld个物品%s", itemcount, plur(itemcount)); /*危险:ConcatF2(bp, 0, " containing %ld item%s", itemcount, plur(itemcount)); ConcatF1(prefix, 0, "包含%ld个物品的", itemcount);*/
+        ConcatF2(bp, 0, ", 包含%ld个物品%s", itemcount, plur(itemcount)); /*危险:ConcatF2(bp, 0, " containing %ld item%s", itemcount, plur(itemcount)); ConcatF1(prefix, 0, "包含%ld个物品的", itemcount);*/
     }
 
     switch (is_weptool(obj) ? WEAPON_CLASS : obj->oclass) {
@@ -2205,11 +2427,15 @@ doname_base(
         add_erosion_words(obj, prefix);
         if (known) {
             char *prefix_end = eos(prefix);
-
-            if (prefix_end == prefix || prefix_end[-1] == ' ')
-                Sprintf(prefix_end, "%+d ", obj->spe);
-            else
-                Sprintf(prefix_end, " %+d ", obj->spe);
+            if (with_space) {
+                if (prefix_end == prefix || prefix_end[-1] == ' ') {
+                    Sprintf(prefix_end, "%+d ", obj->spe);
+                } else {
+                    Sprintf(prefix_end, " %+d ", obj->spe);
+                }
+            } else {
+                Sprintf(prefix_end, "%+d", obj->spe);
+            }
         }
         break;
     case TOOL_CLASS:
@@ -2239,7 +2465,7 @@ doname_base(
             /* separately formatted suffix avoids need for ConcatF3() */
             Sprintf(suffix, "%s%s", plur(obj->spe),
                     !obj->lamplit ? "已插上" : "已点燃");
-            ConcatF2(bp, 0, " (7个蜡烛中%d个%s)", obj->spe, suffix);
+            ConcatF2(bp, 0, " (7根蜡烛中%d根%s)", obj->spe, suffix);
             break;
         } else if (obj->otyp == OIL_LAMP || obj->otyp == MAGIC_LAMP
                    || obj->otyp == BRASS_LANTERN || Is_candle(obj)) {
@@ -2283,16 +2509,21 @@ doname_base(
         if (obj->owornmask & W_RINGR)
             Concat(bp, 0, " (在右");
         if (obj->owornmask & W_RINGL)
-            Concat(bp, 0, " (在右");
+            Concat(bp, 0, " (在左");
         if (obj->owornmask & W_RING) /* either left or right */
             ConcatF1(bp, 0,"%s上)", body_part(HAND));
         if (known && objects[obj->otyp].oc_charged) {
             char *prefix_end = eos(prefix);
 
-            if (prefix_end == prefix || prefix_end[-1] == ' ')
-                Sprintf(prefix_end, "%+d ", obj->spe);
-            else
-                Sprintf(prefix_end, " %+d ", obj->spe);
+            if (with_space) {
+                if (prefix_end == prefix || prefix_end[-1] == ' ') {
+                    Sprintf(prefix_end, "%+d ", obj->spe);
+                } else {
+                    Sprintf(prefix_end, " %+d ", obj->spe);
+                }
+            } else {
+                Sprintf(prefix_end, "%+d", obj->spe);
+            }
         }
         break;
     case FOOD_CLASS:
@@ -2305,16 +2536,45 @@ doname_base(
             unsigned cxarg = (((obj->quan != 1L) ? 0 : CXN_ARTICLE)
                               | CXN_NOCORPSE);
             char *cxstr, *save_xnamep;
+            int puzzidx = (obj->invlet >= 'A' && obj->invlet <= 'Z')
+                          ? obj->invlet - 'A'
+                      : (obj->invlet >= 'a' && obj->invlet <= 'z')
+                          ? obj->invlet - 'a' + 26
+                          : invlet_basic;  /* valid index, but always holds zero */
 
-            /* corpse_xname() sets xnamep; callers other than doname_base()
-               itself shouldn't care about xnamep (pointer to start of
-               current obuf[]) but keep it accurate anyway */
-            save_xnamep = gx.xnamep;
-            cxstr = corpse_xname(obj, prefix, cxarg);
-            Sprintf(prefix, "%s", cxstr);
-            /* avoid having doname(corpse) consume an extra obuf */
-            releaseobuf(cxstr);
-            gx.xnamep = save_xnamep;
+            if (with_corpse_genders && puzzidx < invlet_basic
+                && gp.puzzling_criteria == 411 && gp.puzzling_ilets[puzzidx])
+                cxarg |= CXN_ADDGNDR;
+
+            if (has_oname(obj) && dknown) {
+                /* 有名字的尸体: xname() 已经把 "名为<名字>的" 拼到 bp 开头,
+                   corpse_xname() 则把物种名加到 prefix 末尾, 二者一拼就成了
+                   "一具地精" + "名为X的尸体" = "一具地精名为X的尸体"。
+                   修正: 不把物种名放进 prefix, 而是把它插到 bp 里 "尸体" 之前,
+                   得到 "一具" + "名为X的地精尸体"。 */
+                const char *pmname = obj_pmname(obj);
+                const char *corpsestr = OBJ_NAME(objects[CORPSE]);
+                size_t pmname_len = strlen(pmname),
+                       corpse_len = strlen(corpsestr);
+                char *body = bp_eos - corpse_len; /* 指向 "尸体" */
+
+                /* 把物种名插到 "尸体" 前面 */
+                memmove(body + pmname_len, body, corpse_len + 1);
+                (void) memcpy(body, pmname, pmname_len);
+                /* bp 变长了, 刷新结尾指针与剩余空间供后续 Concat() 使用 */
+                bp_eos = eos(bp);
+                bpspaceleft = (size_t) (bp_end - bp_eos);
+            } else {
+                /* corpse_xname() sets xnamep; callers other than doname_base()
+                   itself shouldn't care about xnamep (pointer to start of
+                   current obuf[]) but keep it accurate anyway */
+                save_xnamep = gx.xnamep;
+                cxstr = corpse_xname(obj, prefix, cxarg);
+                Sprintf(prefix, "%s", cxstr);
+                /* avoid having doname(corpse) consume an extra obuf */
+                releaseobuf(cxstr);
+                gx.xnamep = save_xnamep;
+            }
         } else if (obj->otyp == EGG) {
 #if 0 /* corpses don't tell if they're stale either */
             if (known && stale_egg(obj))
@@ -2323,7 +2583,7 @@ doname_base(
             if (ismnum(omndx)
                 && (known || (svm.mvitals[omndx].mvflags & MV_KNOWS_EGG))) {
                 Strcat(prefix, mons[omndx].pmnames[NEUTRAL]);
-                Strcat(prefix, " ");
+                //冗余:Strcat(prefix, " ");
                 if (obj->spe == 1)
                     Concat(bp, 0, " (你下的)");
             }
@@ -2370,11 +2630,15 @@ doname_base(
             Concat(bp, 0, " (已装备)");
         } else {
             const char *hand_s = body_part(HAND);
-            char *obufp, handsbuf[40];
+            char /*冗余:*obufp,*/ handsbuf[40];
 
             if (bimanual(obj)) { /* "hands" */
+                /*危险,冗余:
                 hand_s = strcpy(handsbuf, obufp = makeplural(hand_s));
                 releaseobuf(obufp);
+                */
+                Sprintf(handsbuf, "双%s", hand_s); /*是不是很危险?我也觉得*/
+                hand_s = handsbuf;
             } else { /* "right hand" or "left hand" */
                 Sprintf(handsbuf, "%s%s",
                         URIGHTY ? "右" : "左", hand_s);
@@ -2399,7 +2663,7 @@ doname_base(
                              glow_color(obj->oartifact));
                 else if (obj->lamplit && artifact_light(obj))
                     /* as above, overwrite known closing paren */
-                    ConcatF1(bp, 1, ",发出%s的光芒)",
+                    ConcatF1(bp, 1, ", 发出%s的光芒)",
                              arti_light_description(obj));
             }
         }
@@ -2410,7 +2674,7 @@ doname_base(
                      URIGHTY ? "左" : "右", body_part(HAND));
         else
             /* TODO: rephrase this when obj isn't a weapon or weptool */
-            ConcatF1(bp, 0, " (副武器%s;未装备)",
+            ConcatF1(bp, 0, " (副武器%s; 未装备)",
                      plur(obj->quan));
     }
     if (obj->owornmask & W_QUIVER) {
@@ -2544,752 +2808,10 @@ doname_base(
     return bp;
 }
 
-/* format a corpse name (xname() omits monster type; doname() calls us);
-   eatcorpse() also uses us for death reason when eating tainted glob */
-char *
-corpse_xname(
-    struct obj *otmp,
-    const char *adjective,
-    unsigned cxn_flags) /* bitmask of CXN_xxx values */
-{
-    char *nambuf;
-    int omndx = otmp->corpsenm;
-    boolean ignore_quan = (cxn_flags & CXN_SINGULAR) != 0,
-            /* suppress "the" from "the unique monster corpse" */
-        no_prefix = (cxn_flags & CXN_NO_PFX) != 0,
-            /* include "the" for "the woodchuck corpse */
-        the_prefix = (cxn_flags & CXN_PFX_THE) != 0,
-            /* include "an" for "an ogre corpse */
-        any_prefix = (cxn_flags & CXN_ARTICLE) != 0,
-            /* leave off suffix (do_name() appends "corpse" itself) */
-        omit_corpse = (cxn_flags & CXN_NOCORPSE) != 0,
-        possessive = FALSE,
-        glob = (otmp->otyp != CORPSE && otmp->globby);
-    const char *mnam;
-
-    /* some callers [aobjnam()] rely on prefix area that xname() sets aside */
-    gx.xnamep = nextobuf();
-    nambuf = gx.xnamep + PREFIX;
-
-    if (glob) {
-        mnam = OBJ_NAME(objects[otmp->otyp]); /* "glob of <monster>" */
-    } else if (omndx == NON_PM) { /* paranoia */
-        mnam = "thing";
-    } else {
-        mnam = obj_pmname(otmp);
-        if (the_unique_pm(&mons[omndx]) || type_is_pname(&mons[omndx])) {
-            mnam = s_suffix(mnam);
-            possessive = TRUE;
-            /* don't precede personal name like "Medusa" with an article */
-            if (type_is_pname(&mons[omndx]))
-                no_prefix = TRUE;
-            /* always precede non-personal unique monster name like
-               "Oracle" with "the" unless explicitly overridden */
-            else if (the_unique_pm(&mons[omndx]) && !no_prefix)
-                the_prefix = TRUE;
-        }
-    }
-    if (no_prefix)
-        the_prefix = any_prefix = FALSE;
-    else if (the_prefix)
-        any_prefix = FALSE; /* mutually exclusive */
-
-    *nambuf = '\0';
-    /* can't use the() the way we use an() below because any capitalized
-       Name causes it to assume a personal name and return Name as-is;
-       that's usually the behavior wanted, but here we need to force "the"
-       to precede capitalized unique monsters (pnames are handled above) */
-    if (the_prefix)
-        Strcat(nambuf, "");
-    /* note: over time, various instances of the(mon_name()) have crept
-       into the code, so the() has been modified to deal with capitalized
-       monster names; we could switch to using it below like an() */
-
-    if (!adjective || !*adjective) {
-        /* normal case:  newt corpse */
-        Strcat(nambuf, mnam);
-    } else {
-        /* adjective positioning depends upon format of monster name */
-        if (possessive) /* Medusa's cursed partly eaten corpse */
-            Sprintf(eos(nambuf), "%s的%s", mnam, adjective);
-        else /* cursed partly eaten troll corpse */
-            Sprintf(eos(nambuf), "%s的%s", adjective, mnam);
-        /* in case adjective has a trailing space, squeeze it out */
-        mungspaces(nambuf);
-        /* doname() might include a count in the adjective argument;
-           if so, don't prepend an article */
-        if (digit(*adjective))
-            any_prefix = FALSE;
-    }
-    if (otmp->quan > 1L && !ignore_quan) {
-            Strcat(nambuf, "");
-            any_prefix = FALSE; /* avoid "a newt corpses" */
-    }
-
-    /* it's safe to overwrite our nambuf[] after an() has copied its
-       old value into another buffer; and once _that_ has been copied,
-       the obuf[] returned by an() can be made available for re-use */
-    if (any_prefix) {
-        char *obufp;
-
-        Strcpy(nambuf, obufp = one(nambuf));
-        releaseobuf(obufp);
-    }
-
-    if (glob) {
-        ; /* omit_corpse doesn't apply; quantity is always 1 */
-    } else if (!omit_corpse) {
-        Strcat(nambuf, "尸体");
-        /* makeplural(nambuf) => append "s" to "corpse" */
-        if (otmp->quan > 1L && !ignore_quan) {
-            Strcat(nambuf, "");
-            any_prefix = FALSE; /* avoid "a newt corpses" */
-        }
-    }
-
-    return nambuf;
-}
-
-char *
-corpse_xename(
-    struct obj *otmp,
-    const char *adjective,
-    unsigned cxn_flags) /* bitmask of CXN_xxx values */
-{
-    char *nambuf;
-    int omndx = otmp->corpsenm;
-    boolean ignore_quan = (cxn_flags & CXN_SINGULAR) != 0,
-            /* suppress "the" from "the unique monster corpse" */
-        no_prefix = (cxn_flags & CXN_NO_PFX) != 0,
-            /* include "the" for "the woodchuck corpse */
-        the_prefix = (cxn_flags & CXN_PFX_THE) != 0,
-            /* include "an" for "an ogre corpse */
-        any_prefix = (cxn_flags & CXN_ARTICLE) != 0,
-            /* leave off suffix (do_name() appends "corpse" itself) */
-        omit_corpse = (cxn_flags & CXN_NOCORPSE) != 0,
-        possessive = FALSE,
-        glob = (otmp->otyp != CORPSE && otmp->globby);
-    const char *mnam;
-
-    /* some callers [aobjnam()] rely on prefix area that xname() sets aside */
-    gx.xnamep = nextobuf();
-    nambuf = gx.xnamep + PREFIX;
-
-    if (glob) {
-        mnam = OBJ_ENAME(objects[otmp->otyp]); /* "glob of <monster>" */
-    } else if (omndx == NON_PM) { /* paranoia */
-        mnam = "thing";
-    } else {
-        mnam = obj_pmname(otmp);
-        if (the_unique_pm(&mons[omndx]) || type_is_pname(&mons[omndx])) {
-            mnam = s_suffix(mnam);
-            possessive = TRUE;
-            /* don't precede personal name like "Medusa" with an article */
-            if (type_is_pname(&mons[omndx]))
-                no_prefix = TRUE;
-            /* always precede non-personal unique monster name like
-               "Oracle" with "the" unless explicitly overridden */
-            else if (the_unique_pm(&mons[omndx]) && !no_prefix)
-                the_prefix = TRUE;
-        }
-    }
-    if (no_prefix)
-        the_prefix = any_prefix = FALSE;
-    else if (the_prefix)
-        any_prefix = FALSE; /* mutually exclusive */
-
-    *nambuf = '\0';
-    /* can't use the() the way we use an() below because any capitalized
-       Name causes it to assume a personal name and return Name as-is;
-       that's usually the behavior wanted, but here we need to force "the"
-       to precede capitalized unique monsters (pnames are handled above) */
-    if (the_prefix)
-        Strcat(nambuf, "the ");
-    /* note: over time, various instances of the(mon_name()) have crept
-       into the code, so the() has been modified to deal with capitalized
-       monster names; we could switch to using it below like an() */
-
-    if (!adjective || !*adjective) {
-        /* normal case:  newt corpse */
-        Strcat(nambuf, mnam);
-    } else {
-        /* adjective positioning depends upon format of monster name */
-        if (possessive) /* Medusa's cursed partly eaten corpse */
-            Sprintf(eos(nambuf), "%s %s", mnam, adjective);
-        else /* cursed partly eaten troll corpse */
-            Sprintf(eos(nambuf), "%s %s", adjective, mnam);
-        /* in case adjective has a trailing space, squeeze it out */
-        mungspaces(nambuf);
-        /* doname() might include a count in the adjective argument;
-           if so, don't prepend an article */
-        if (digit(*adjective))
-            any_prefix = FALSE;
-    }
-
-    if (glob) {
-        ; /* omit_corpse doesn't apply; quantity is always 1 */
-    } else if (!omit_corpse) {
-        Strcat(nambuf, " corpse");
-        /* makeplural(nambuf) => append "s" to "corpse" */
-        if (otmp->quan > 1L && !ignore_quan) {
-            Strcat(nambuf, "s");
-            any_prefix = FALSE; /* avoid "a newt corpses" */
-        }
-    }
-
-    /* it's safe to overwrite our nambuf[] after an() has copied its
-       old value into another buffer; and once _that_ has been copied,
-       the obuf[] returned by an() can be made available for re-use */
-    if (any_prefix) {
-        char *obufp;
-
-        Strcpy(nambuf, obufp = an(nambuf));
-        releaseobuf(obufp);
-    }
-    return nambuf;
-}
-
-staticfn char *
-doename_base(
-    struct obj *obj,       /* object to format */
-    unsigned doname_flags) /* special case requests */
-{
-    boolean ispoisoned = FALSE,
-            with_price = (doname_flags & DONAME_WITH_PRICE) != 0,
-            vague_quan = (doname_flags & DONAME_VAGUE_QUAN) != 0,
-            for_menu = (doname_flags & DONAME_FOR_MENU) != 0;
-    boolean known, dknown, cknown, bknown, lknown,
-            fake_arti, force_the;
-    char prefix[PREFIX];
-    char tmpbuf[PREFIX + 1]; /* for when we have to add something at
-                              * the start of prefix instead of the
-                              * end (Strcat is used on the end) */
-    const char *aname = 0;
-    int omndx = obj->corpsenm;
-    char *bp;
-    char *bp_eos, *bp_end;
-    size_t bpspaceleft;
-
-    /* 'bp' will be within an obuf[] rather than at the start of one,
-       usually (but not always) pointing at &obuf[PREFIX];
-       gx.xnamep always points to the start of that buffer;
-       'bp_eos' and 'bpspaceleft' are used and updated by Concat*() macros */
-    bp = xename(obj);
-    bp_end = gx.xnamep + BUFSZ - 1;
-    bp_eos = eos(bp);
-    assert(bp_end >= bp_eos); /* ok provided xname() bounds checking works */
-    /* size_t cast: convert signed ptrdiff_t to unsigned size_t */
-    bpspaceleft = (size_t) (bp_end - bp_eos);
-
-    if (iflags.override_ID) {
-        known = dknown = cknown = bknown = lknown = TRUE;
-    } else {
-        known = obj->known;
-        dknown = obj->dknown;
-        cknown = obj->cknown;
-        bknown = obj->bknown;
-        lknown = obj->lknown;
-    }
-
-    /* When using xname, we want "poisoned arrow", and when using
-     * doname, we want "poisoned +0 arrow".  This kludge is about the only
-     * way to do it, at least until someone overhauls xname() and doname(),
-     * combining both into one function taking a parameter.
-     */
-    /* must check opoisoned--someone can have a weirdly-named fruit */
-    if (!strncmp(bp, "poisoned ", 9) && obj->opoisoned) {
-        bp += 9; /* doesn't affect bp_eos or bpspaceleft */
-        ispoisoned = TRUE;
-    }
-
-    /* fruits are allowed to be given artifact names; when that happens,
-       format the name like the corresponding artifact, which may or may not
-       want "the" prefix and when it doesn't, avoid "a"/"an" prefix too */
-    fake_arti = (obj->otyp == SLIME_MOLD
-                 && (aname = artifact_ename(bp, (short *) 0, FALSE)) != 0);
-    force_the = (fake_arti && !strncmpi(aname, "the ", 4));
-
-    prefix[0] = '\0';
-    if (obj->quan != 1L) {
-        if (dknown || !vague_quan)
-            Sprintf(prefix, "%ld ", obj->quan);
-        else
-            Strcpy(prefix, "some ");
-    } else if (obj->otyp == CORPSE) {
-        /* skip article prefix for corpses [else corpse_xname()
-           would have to be taught how to strip it off again] */
-        ;
-    } else if (force_the || obj_is_pname(obj) || the_unique_obj(obj)) {
-        if (!strncmpi(bp, "the ", 4))
-            bp += 4; /* doesn't affect bp_eos or bpspaceleft */
-        Strcpy(prefix, "the ");
-    } else if (!fake_arti) {
-        /* default prefix */
-        Strcpy(prefix, "a ");
-    }
-
-    /* "empty" goes at the beginning, but item count goes at the end */
-    if (cknown
-        /* bag of tricks: include "empty" prefix if it's known to
-           be empty but its precise number of charges isn't known
-           (when that is known, suffix of "(n:0)" will be appended,
-           making the prefix be redundant; note that 'known' flag
-           isn't set when emptiness gets discovered because then
-           charging magic would yield known number of new charges);
-           horn of plenty isn't a container but is close enough */
-        && ((obj->otyp == BAG_OF_TRICKS || obj->otyp == HORN_OF_PLENTY)
-             ? (obj->spe == 0 && !known)
-             /* not a bag of tricks or horn of plenty: it's empty if
-                it is a container that has no contents */
-             : ((Is_container(obj) || obj->otyp == STATUE)
-                && !Has_contents(obj))))
-        Strcat(prefix, "empty ");
-
-    if (bknown && obj->oclass != COIN_CLASS
-        && (obj->otyp != POT_WATER || !objects[POT_WATER].oc_name_known
-            || (!obj->cursed && !obj->blessed))) {
-        /* allow 'blessed clear potion' if we don't know it's holy water;
-         * always allow "uncursed potion of water"
-         */
-        if (obj->cursed)
-            Strcat(prefix, "cursed ");
-        else if (obj->blessed)
-            Strcat(prefix, "blessed ");
-        else if (!flags.implicit_uncursed
-            /* For most items with charges or +/-, if you know how many
-             * charges are left or what the +/- is, then you must have
-             * totally identified the item, so "uncursed" is unnecessary,
-             * because an identified object not described as "blessed" or
-             * "cursed" must be uncursed.
-             *
-             * If the charges or +/- is not known, "uncursed" must be
-             * printed to avoid ambiguity between an item whose curse
-             * status is unknown, and an item known to be uncursed.
-             */
-                 || ((!known || !objects[obj->otyp].oc_charged
-                      || obj->oclass == ARMOR_CLASS
-                      || obj->oclass == RING_CLASS)
-#ifdef MAIL_STRUCTURES
-                     && obj->otyp != SCR_MAIL
-#endif
-                     && obj->otyp != FAKE_AMULET_OF_YENDOR
-                     && obj->otyp != AMULET_OF_YENDOR
-                     && !Role_if(PM_CLERIC)))
-            Strcat(prefix, "uncursed ");
-    }
-
-    /* "a large trapped box" would perhaps be more correct; [no!]
-       what about ``(obj->tknown && !obj->otrapped)''? shouldn't that
-       yield "a non-trapped large box"? (not "an untrapped large box");
-       TODO: this should be ``(Is_box(obj) || obj->otyp == TIN) && ...''
-       but at present there's no way to set obj->tknown for tins */
-    if (Is_box(obj) && obj->otrapped && obj->tknown && obj->dknown)
-        Strcat(prefix,"trapped ");
-    if (lknown && Is_box(obj)) {
-        if (obj->obroken)
-            /* 3.6.0 used "unlockable" here but that could be misunderstood
-               to mean "capable of being unlocked" rather than the intended
-               "not capable of being locked" */
-            Strcat(prefix, "broken ");
-        else if (obj->olocked)
-            Strcat(prefix, "locked ");
-        else
-            Strcat(prefix, "unlocked ");
-    }
-
-    if (obj->greased)
-        Strcat(prefix, "greased ");
-
-    if (cknown && Has_contents(obj) && bpspaceleft > 0) {
-        /* we count the number of separate stacks, which corresponds
-           to the number of inventory slots needed to be able to take
-           everything out if no merges occur */
-        long itemcount = count_contents(obj, FALSE, FALSE, TRUE, FALSE);
-
-        ConcatF2(bp, 0, " containing %ld item%s", itemcount, plur(itemcount));
-    }
-
-    switch (is_weptool(obj) ? WEAPON_CLASS : obj->oclass) {
-    case AMULET_CLASS:
-        if (obj->owornmask & W_AMUL)
-            Concat(bp, 0, " (being worn)");
-        break;
-    case ARMOR_CLASS:
-        if (obj->owornmask & W_ARMOR) {
-            Concat(bp, 0,
-                   (obj == uskin) ? " (embedded in your skin)"
-                   /* in case of perm_invent update while Wear/Takeoff
-                      is in progress; check doffing() before donning()
-                      because donning() returns True for both cases */
-                   : doffing(obj) ? " (being doffed)"
-                     : donning(obj) ? " (being donned)"
-                       : " (being worn)");
-            /* we just added a parenthesized phrase, but the right paren
-               might be absent if the appended string got truncated */
-            if (bp_eos[-1] == ')') {
-                /* slippery fingers is an intrinsic condition of the hero
-                   rather than extrinsic condition of objects, but gloves
-                   are described as slippery when hero has slippery fingers */
-                if (obj == uarmg && Glib) /* just appended "(something)",
-                                           * replace paren, changing that
-                                           * to be "(something; slippery)" */
-                    Concat(bp,  1, "; slippery)");
-            }
-            if (bp_eos[-1] == ')') {
-                /* there could be light-emitting artifact gloves someday,
-                   so add 'lit' separately from 'slippery' rather than via
-                   'else if' after uarmg+Glib */
-                if (!Blind && obj->lamplit && artifact_light(obj))
-                    ConcatF1(bp, 1, ", %s lit)", arti_light_description(obj));
-            }
-        }
-        FALLTHROUGH;
-        /*FALLTHRU*/
-    case WEAPON_CLASS:
-        if (ispoisoned)
-            Strcat(prefix, "poisoned ");
-        add_erosion_words(obj, prefix);
-        if (known) {
-            Sprintf(eos(prefix), "%+d ", obj->spe); /* sitoa(obj->spe)+" " */
-        }
-        break;
-    case TOOL_CLASS:
-        if (obj->owornmask & (W_TOOL | W_SADDLE)) { /* blindfold */
-            Concat(bp, 0, " (being worn)");
-            break;
-        }
-        if (obj->otyp == LEASH && obj->leashmon != 0) {
-            struct monst *mlsh = find_mid(obj->leashmon, FM_FMON);
-
-            if (mlsh && !DEADMONSTER(mlsh)) {
-                ConcatF1(bp, 0, " (attached to %s)", noit_mon_nam(mlsh));
-            } else {
-                if (mlsh) /*&& DEADMONSTER(mlsh)*/
-                    impossible("leashed %s #%u is dead",
-                               mon_pmname(mlsh), (unsigned) obj->leashmon);
-                else
-                    impossible("leashed monster #%u not found",
-                               (unsigned) obj->leashmon);
-                obj->leashmon = 0;
-            }
-            break;
-        }
-        if (obj->otyp == CANDELABRUM_OF_INVOCATION) {
-            char suffix[20]; /* longest value is "s attached" */
-
-            /* separately formatted suffix avoids need for ConcatF3() */
-            Sprintf(suffix, "%s%s", plur(obj->spe),
-                    !obj->lamplit ? " attached" : ", lit");
-            ConcatF2(bp, 0, " (%d of 7 candle%s)", obj->spe, suffix);
-            break;
-        } else if (obj->otyp == OIL_LAMP || obj->otyp == MAGIC_LAMP
-                   || obj->otyp == BRASS_LANTERN || Is_candle(obj)) {
-            if (Is_candle(obj)) {
-                anything timer;
-                long full_burn_time = 20L * (long) objects[obj->otyp].oc_cost,
-                     turns_left = obj->age;
-
-                if (obj->lamplit) {
-                    timer = cg.zeroany;
-                    timer.a_obj = obj;
-                    /* without this, wishing for "lit candle" yields
-                       "partly used candle (lit)" because the time it can
-                       burn gets adjusted when it becomes lit; matters for
-                       the message as it gets added to invent and also if it
-                       gets snuffed out immediately (where it will end up as
-                       not partly used after all) */
-                    turns_left += peek_timer(BURN_OBJECT, &timer) - svm.moves;
-                }
-                if (turns_left < full_burn_time)
-                    Strcat(prefix, "partly used ");
-            }
-            if (obj->lamplit)
-                Concat(bp, 0, " (lit)");
-            break;
-        }
-        if (objects[obj->otyp].oc_charged)
-            goto charges;
-        break;
-    case WAND_CLASS:
- charges:
-        if (known)
-            ConcatF2(bp, 0, " (%d:%d)", (int) obj->recharged, obj->spe);
-        break;
-    case POTION_CLASS:
-        if (obj->otyp == POT_OIL && obj->lamplit)
-            Concat(bp, 0, " (lit)");
-        break;
-    case RING_CLASS:
- ring:  /* normal rings reach here 'naturally'; meat ring jumps here */
-        if (obj->owornmask & W_RINGR)
-            Concat(bp, 0, " (on right ");
-        if (obj->owornmask & W_RINGL)
-            Concat(bp, 0, " (on left ");
-        if (obj->owornmask & W_RING) /* either left or right */
-            ConcatF1(bp, 0,"%s)", body_part(HAND));
-        if (known && objects[obj->otyp].oc_charged) {
-            Sprintf(eos(prefix), "%+d ", obj->spe); /* sitoa(obj->spe)+" " */
-        }
-        break;
-    case FOOD_CLASS:
-        if (obj->oeaten)
-            Strcat(prefix, "partly eaten ");
-        if (obj->otyp == CORPSE) {
-            /* (quan == 1) => want corpse_xname() to supply article,
-               (quan != 1) => already have count or "some" as prefix;
-               "corpse" is already in the buffer returned by xname() */
-            unsigned cxarg = (((obj->quan != 1L) ? 0 : CXN_ARTICLE)
-                              | CXN_NOCORPSE);
-            char *cxstr, *save_xnamep;
-
-            /* corpse_xname() sets xnamep; callers other than doname_base()
-               itself shouldn't care about xnamep (pointer to start of
-               current obuf[]) but keep it accurate anyway */
-            save_xnamep = gx.xnamep;
-            cxstr = corpse_xename(obj, prefix, cxarg);
-            Sprintf(prefix, "%s ", cxstr);
-            /* avoid having doname(corpse) consume an extra obuf */
-            releaseobuf(cxstr);
-            gx.xnamep = save_xnamep;
-        } else if (obj->otyp == EGG) {
-#if 0 /* corpses don't tell if they're stale either */
-            if (known && stale_egg(obj))
-                Strcat(prefix, "stale ");
-#endif
-            if (ismnum(omndx)
-                && (known || (svm.mvitals[omndx].mvflags & MV_KNOWS_EGG))) {
-                Strcat(prefix, mons[omndx].pmnames[NEUTRAL]);
-                Strcat(prefix, " ");
-                if (obj->spe == 1)
-                    Concat(bp, 0, " (laid by you)");
-            }
-        } else if (obj->otyp == MEAT_RING) {
-            goto ring;
-        }
-        break;
-    case BALL_CLASS:
-    case CHAIN_CLASS:
-        add_erosion_words(obj, prefix);
-        if (obj->owornmask & (W_BALL | W_CHAIN))
-            ConcatF1(bp, 0, " (%s to you)",
-                     (obj->owornmask & W_BALL) ? "chained" : "attached");
-        break;
-    }
-
-    if ((obj->otyp == STATUE || obj->otyp == CORPSE || obj->otyp == FIGURINE)
-        && wizard && iflags.wizmgender) {
-        int cgend = (obj->spe & CORPSTAT_GENDER),
-            mgend = ((cgend == CORPSTAT_MALE) ? MALE
-                     : (cgend == CORPSTAT_FEMALE) ? FEMALE
-                       : NEUTRAL);
-
-        ConcatF1(bp, 0, " (%s)",
-                 (cgend != CORPSTAT_RANDOM) ? genders[mgend].adj
-                                            : "unspecified gender");
-    }
-
-    if ((obj->owornmask & W_WEP) && !gm.mrg_to_wielded) {
-        boolean twoweap_primary = (obj == uwep && u.twoweap),
-                tethered = (obj->otyp == AKLYS);
-
-
-        /* use alternate phrasing for non-weapons and for wielded ammo
-           (arrows, bolts), or missiles (darts, shuriken, boomerangs)
-           except when those are being actively dual-wielded where the
-           regular phrasing will list them as "in right hand" to
-           contrast with secondary weapon's "in left hand" */
-        if ((obj->quan != 1L
-             || ((obj->oclass == WEAPON_CLASS)
-                 ? (is_ammo(obj) || is_missile(obj))
-                 : !is_weptool(obj)))
-            && !twoweap_primary) {
-            Concat(bp, 0, " (wielded)");
-        } else {
-            const char *hand_s = body_part(HAND);
-            char *obufp, handsbuf[40];
-
-            if (bimanual(obj)) { /* "hands" */
-                hand_s = strcpy(handsbuf, obufp = makeplural(hand_s));
-                releaseobuf(obufp);
-            } else { /* "right hand" or "left hand" */
-                Sprintf(handsbuf, "%s %s",
-                        URIGHTY ? "right" : "left", hand_s);
-                hand_s = handsbuf;
-            }
-            /* note: Sting's glow message, if added, will insert text
-               in front of "(weapon in hand)"'s closing paren */
-            ConcatF2(bp, 0, " (%s %s)",
-                     tethered ? "tethered to"
-                     : twoweap_primary ? "wielded in"
-                       : "weapon in",
-                     hand_s);
-
-            /* we just added a parenthesized phrase, but the right paren
-               might be absent if the appended string got truncated */
-            if (!Blind && bpspaceleft && bp_eos[-1] == ')') {
-                if (gw.warn_obj_cnt && obj == uwep
-                    && (EWarn_of_mon & W_WEP) != 0L)
-                    /* we know bp[] ends with ')'; overwrite that */
-                    ConcatF2(bp, 1, ", %s %s)",
-                             glow_verb(gw.warn_obj_cnt, TRUE),
-                             glow_color(obj->oartifact));
-                else if (obj->lamplit && artifact_light(obj))
-                    /* as above, overwrite known closing paren */
-                    ConcatF1(bp, 1, ", %s lit)",
-                             arti_light_description(obj));
-            }
-        }
-    }
-    if (obj->owornmask & W_SWAPWEP) {
-        if (u.twoweap)
-            ConcatF2(bp, 0, " (wielded in %s %s)",
-                     URIGHTY ? "left" : "right", body_part(HAND));
-        else
-            /* TODO: rephrase this when obj isn't a weapon or weptool */
-            ConcatF1(bp, 0, " (alternate weapon%s; not wielded)",
-                     plur(obj->quan));
-    }
-    if (obj->owornmask & W_QUIVER) {
-        int Qtyp;
-
-        switch (obj->oclass) {
-        case WEAPON_CLASS:
-            Qtyp = !is_ammo(obj) ? 3 /* not ammo: "at the ready" */
-                   : (objects[obj->otyp].oc_skill != -P_BOW) ? 2 /* non-bow */
-                     : 1; /* ammo for a bow: "in quiver" */
-            break;
-        case RING_CLASS:
-        case AMULET_CLASS:
-        case WAND_CLASS:
-        case COIN_CLASS:
-        case GEM_CLASS:
-            Qtyp = 2; /* small, non-bow: "in quiver pouch" */
-            break;
-        default: /* odd things */
-            Qtyp = 3; /* "at the ready" */
-            break;
-        }
-        ConcatF1(bp, 0, " (%s)",
-                 (Qtyp == 1) ? "in quiver"
-                 : (Qtyp == 2) ? "in quiver pouch"
-                   : "at the ready");
-    }
-
-    /* treat 'restoring' like suppress_price because shopkeeper and
-       bill might not be available yet while restore is in progress
-       (objects won't normally be formatted during that time, but if
-       'perm_invent' is enabled then they might be [not any more...]) */
-    if (iflags.suppress_price || program_state.restoring) {
-        ; /* don't attempt to obtain any shop pricing, even if 'with_price' */
-    } else if (is_unpaid(obj)) { /* in inventory or in container in invent */
-        char pricebuf[40];
-        long quotedprice = unpaid_cost(obj, COST_CONTENTS);
-
-        /* separately formatted suffix avoids need for ConcatF3() */
-        Sprintf(pricebuf, "%ld %s", quotedprice, currency(quotedprice));
-        ConcatF2(bp, 0, " (%s, %s)",
-                 obj->unpaid ? "unpaid" : "contents", pricebuf);
-
-        record_price_quote(obj->otyp, quotedprice / obj->quan, TRUE);
-    } else if (with_price) { /* on floor or in container on floor */
-        int nochrg = 0;
-        long price = get_cost_of_shop_item(obj, &nochrg);
-
-        if (price > 0L) {
-            char pricebuf[40];
-
-            Sprintf(pricebuf, "%ld %s", price, currency(price));
-            ConcatF2(bp, 0, " (%s, %s)",
-                     nochrg ? "contents" : "for sale", pricebuf);
-        } else if (nochrg > 0) {
-            Concat(bp, 0, " (no charge)");
-        } else if (iflags.pricequotes && !objects[obj->otyp].oc_name_known) {
-            append_price_quote(bp, &bp_eos, obj->otyp);
-        }
-
-        if (price > 0L)
-            record_price_quote(obj->otyp, price / obj->quan, TRUE);
-    } else if (iflags.pricequotes && !objects[obj->otyp].oc_name_known) {
-        append_price_quote(bp, &bp_eos, obj->otyp);
-    }
-
-    if (!strncmp(prefix, "a ", 2)) {
-        /* save current prefix, without "a "; might be empty */
-        Strcpy(tmpbuf, prefix + 2);
-        /* set prefix[] to "", "a ", or "an " */
-        (void) just_an(prefix, *tmpbuf ? tmpbuf : bp);
-        /* append remainder of original prefix */
-        Strcat(prefix, tmpbuf);
-    }
-
-    /* show weight for items (debug tourist info);
-       "aum" is stolen from Crawl's "Arbitrary Unit of Measure" */
-    if (wizard && iflags.wizweight) {
-        /* wizard mode user has asked to see object weights */
-        if (with_price && bp_eos[-1] == ')')
-            ConcatF1(bp, 1, ", %u aum)", obj->owt);
-        else
-            ConcatF1(bp, 0, " (%u aum)", obj->owt);
-
-        /* ConcatF1(bp) updates bp_eos and bpspaceleft but we're done
-           with them now; add a fake use so compiler won't complain
-           about a variable assignment that won't be subsequently used */
-        nhUse(bp_eos);
-        nhUse(bpspaceleft);
-    }
-
-    bp = strprepend(bp, prefix);
-
-    /*
-     * Last gasp bounds check.
-     *
-     * If caller intends this to be for a menu entry, make sure that
-     * there is some room to combine with menu selector prefix without
-     * exceeding BUFSZ-1.
-     *
-     * offsetbp=4: width of menu entry selector text: "c - " for tty.
-     * For curses, that wastes a char since it only needs 3: "c) ".
-     *
-     * Reaching full BUFSZ-1 length can't happen unless both doname
-     * (BUFSZ-PREFIX) and strprepend (PREFIX) use up all available
-     * space or one of them overflows without being detected.
-     */
-    if (strlen(bp) > BUFSZ - 1) {
-        paniclog("doname", bp);
-        /* ideally this will never happen; if xnamep is any obuf[]
-           other than the last, overflow here would be relatively
-           benign and we could probably keep going */
-        panic("doname: long object description overflow.");
-        /*NOTREACHED*/
-    } else {
-        static int doname_full = 0;
-        int offsetbp = for_menu ? 4 : 0;
-
-        if (strlen(bp) + offsetbp >= BUFSZ - 1) {
-            /* for !offsetbp, we'll only get here if strlen(bp)==BUFSZ-1 */
-            if (!doname_full++) {
-                paniclog("doname", bp);
-                Sprintf(tmpbuf, "long object description%s.",
-                        offsetbp ? " truncated for menu use" : "");
-                paniclog("doname", tmpbuf);
-            }
-            bp[BUFSZ - 1 - offsetbp] = '\0';
-        }
-    }
-
-    return bp;
-}
-
 char *
 doname(struct obj *obj)
 {
     return doname_base(obj, (unsigned) 0);
-}
-
-char *
-doename(struct obj *obj)
-{
-    return doename_base(obj, (unsigned) 0);
 }
 
 /* Name of object including price. */
@@ -3299,10 +2821,80 @@ doname_with_price(struct obj *obj)
     return doname_base(obj, DONAME_WITH_PRICE);
 }
 
+/* Name of object including corpse genders. */
 char *
-doename_with_price(struct obj *obj)
+doname_with_cgender(struct obj *obj)
 {
-    return doename_base(obj, DONAME_WITH_PRICE);
+    return doname_base(obj, DONAME_FORCE_GENDER);
+}
+
+/* doname with both price and corpse gender */
+char *
+doname_with_price_and_cgender(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_PRICE | DONAME_FORCE_GENDER);
+}
+
+/* doname with space, for invent menu */
+char *
+doname_with_space(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE);
+}
+
+char *
+doname_force_class(struct obj *obj)
+{
+    return doname_base(obj, DONAME_FORCE_CLASS);
+}
+
+/* 排列组合... */
+char *
+doname_with_space_force_class(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE | DONAME_FORCE_CLASS);
+}
+
+char *
+doname_with_space_and_cgender(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE | DONAME_FORCE_GENDER);
+}
+
+char *
+doname_with_price_and_space(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE | DONAME_WITH_PRICE);
+}
+
+char *
+doname_with_price_and_cgender_and_space(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE | DONAME_FORCE_GENDER | DONAME_WITH_PRICE);
+}
+
+char *
+doname_with_price_force_class(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_PRICE | DONAME_FORCE_CLASS);
+}
+
+char *
+doname_with_price_and_cgender_force_class(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_PRICE | DONAME_FORCE_GENDER | DONAME_FORCE_CLASS);
+}
+
+char *
+doname_with_price_and_space_force_class(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE | DONAME_WITH_PRICE | DONAME_FORCE_CLASS);
+}
+
+char *
+doname_with_price_and_cgender_and_space_force_class(struct obj *obj)
+{
+    return doname_base(obj, DONAME_WITH_SPACE | DONAME_WITH_PRICE | DONAME_FORCE_GENDER | DONAME_FORCE_CLASS);
 }
 
 /* "some" instead of precise quantity if obj->dknown not set */
@@ -3322,24 +2914,6 @@ doname_vague_quan(struct obj *obj)
      * items; it could overlay obj->cknown since no containers stack.
      */
     return doname_base(obj, DONAME_VAGUE_QUAN);
-}
-
-char *
-doename_vague_quan(struct obj *obj)
-{
-    /* Used by farlook.
-     * If it hasn't been seen up close and quantity is more than one,
-     * use "some" instead of the quantity: "some gold pieces" rather
-     * than "25 gold pieces".  This is suboptimal, to put it mildly,
-     * because lookhere and pickup report the precise amount.
-     * Picking the item up while blind also shows the precise amount
-     * for inventory display, then dropping it while still blind leaves
-     * obj->dknown unset so the count reverts to "some" for farlook.
-     *
-     * TODO: add obj->qknown flag for 'quantity known' on stackable
-     * items; it could overlay obj->cknown since no containers stack.
-     */
-    return doename_base(obj, DONAME_VAGUE_QUAN);
 }
 
 /* used from invent.c */
@@ -3378,6 +2952,114 @@ not_fully_identified(struct obj *otmp)
         return (boolean) is_damageable(otmp);
 }
 
+/* format a corpse name (xname() omits monster type; doname() calls us);
+   eatcorpse() also uses us for death reason when eating tainted glob */
+char *
+corpse_xname(
+    struct obj *otmp,
+    const char *adjective,
+    unsigned cxn_flags) /* bitmask of CXN_xxx values */
+{
+    char *nambuf;
+    int omndx = otmp->corpsenm;
+    boolean ignore_quan = (cxn_flags & CXN_SINGULAR) != 0,
+            /* suppress "the" from "the unique monster corpse" */
+        no_prefix = (cxn_flags & CXN_NO_PFX) != 0,
+            /* include "the" for "the woodchuck corpse */
+        the_prefix = (cxn_flags & CXN_PFX_THE) != 0,
+            /* include "an" for "an ogre corpse */
+        any_prefix = (cxn_flags & CXN_ARTICLE) != 0,
+            /* leave off suffix (do_name() appends "corpse" itself) */
+        omit_corpse = (cxn_flags & CXN_NOCORPSE) != 0,
+        gndr_prefix = (cxn_flags & CXN_ADDGNDR) != 0,
+        possessive = FALSE,
+        glob = (otmp->otyp != CORPSE && otmp->globby);
+    const char *mnam, *gndr;
+
+    /* some callers [aobjnam()] rely on prefix area that xname() sets aside */
+    gx.xnamep = nextobuf();
+    nambuf = gx.xnamep + PREFIX;
+
+    if (glob) {
+        mnam = OBJ_NAME(objects[otmp->otyp]); /* "glob of <monster>" */
+    } else if (omndx == NON_PM) { /* paranoia */
+        mnam = "thing";
+    } else {
+        mnam = obj_pmname(otmp);
+        if (the_unique_pm(&mons[omndx]) || type_is_pname(&mons[omndx])) {
+            mnam = s_suffix(mnam);
+            possessive = TRUE;
+            /* don't precede personal name like "Medusa" with an article */
+            if (type_is_pname(&mons[omndx]))
+                no_prefix = TRUE;
+            /* always precede non-personal unique monster name like
+               "Oracle" with "the" unless explicitly overridden */
+            else if (the_unique_pm(&mons[omndx]) && !no_prefix)
+                the_prefix = TRUE;
+        }
+    }
+    if (no_prefix)
+        the_prefix = any_prefix = FALSE;
+    else if (the_prefix)
+        any_prefix = FALSE; /* mutually exclusive */
+
+    *nambuf = '\0';
+    /* can't use the() the way we use an() below because any capitalized
+       Name causes it to assume a personal name and return Name as-is;
+       that's usually the behavior wanted, but here we need to force "the"
+       to precede capitalized unique monsters (pnames are handled above) */
+    /*冗余:if (the_prefix)
+        Strcat(nambuf, "the "); */
+    /* note: over time, various instances of the(mon_name()) have crept
+       into the code, so the() has been modified to deal with capitalized
+       monster names; we could switch to using it below like an() */
+
+    gndr = (gndr_prefix && otmp->spe & CORPSTAT_MALE) != 0     ? "雄性"
+           : (gndr_prefix && otmp->spe & CORPSTAT_FEMALE) != 0 ? "雌性"
+                                                               : "";
+    if (!adjective || !*adjective) {
+        Strcat(nambuf, gndr);
+        /* normal case:  newt corpse; 专有名词补"的" */
+        Strcat(nambuf, mnam);
+        if (possessive)
+            Strcat(nambuf, "的");
+    } else {
+        /* adjective positioning depends upon format of monster name */
+        if (possessive) /* 专有名词(独特怪/人名): "岩德巫师的尸体", 计数已在doname避免 */
+            Sprintf(eos(nambuf), "%s%s%s%s", mnam, gndr, "的", adjective);
+        else /* cursed partly eaten troll corpse */
+            Sprintf(eos(nambuf), "%s%s%s", adjective, gndr, mnam);
+        /* in case adjective has a trailing space, squeeze it out */
+        mungspaces(nambuf);
+        /* doname() might include a count in the adjective argument;
+           if so, don't prepend an article */
+        if (digit(*adjective))
+            any_prefix = FALSE;
+    }
+
+    if (glob) {
+        ; /* omit_corpse doesn't apply; quantity is always 1 */
+    } else if (!omit_corpse) {
+        Strcat(nambuf, "尸体");
+        /* makeplural(nambuf) => append "s" to "corpse" */
+        if (otmp->quan > 1L && !ignore_quan) {
+            //Strcat(nambuf, "s");
+            any_prefix = FALSE; /* avoid "a newt corpses" */
+        }
+    }
+
+    /* it's safe to overwrite our nambuf[] after an() has copied its
+       old value into another buffer; and once _that_ has been copied,
+       the obuf[] returned by an() can be made available for re-use */
+    /*冗余: 应该不用1 XX尸体
+    if (any_prefix) {
+        char *obufp;
+        strcpy(nambuf, obufp = an(nambuf));
+        releaseobuf(obufp);
+    }/*/
+    return nambuf;
+}
+
 /* xname doesn't include monster type for "corpse"; cxname does */
 char *
 cxname(struct obj *obj)
@@ -3387,14 +3069,6 @@ cxname(struct obj *obj)
     return xname(obj);
 }
 
-char *
-cxename(struct obj *obj)
-{
-    if (obj->otyp == CORPSE)
-        return corpse_xename(obj, (const char *) 0, CXN_NORMAL);
-    return xename(obj);
-}
-
 /* like cxname, but ignores quantity */
 char *
 cxname_singular(struct obj *obj)
@@ -3402,14 +3076,6 @@ cxname_singular(struct obj *obj)
     if (obj->otyp == CORPSE)
         return corpse_xname(obj, (const char *) 0, CXN_SINGULAR);
     return xname_flags(obj, CXN_SINGULAR);
-}
-
-char *
-cxename_singular(struct obj *obj)
-{
-    if (obj->otyp == CORPSE)
-        return corpse_xename(obj, (const char *) 0, CXN_SINGULAR);
-    return xename_flags(obj, CXN_SINGULAR);
 }
 
 /* treat an object as fully ID'd when it might be used as reason for death */
@@ -3467,9 +3133,9 @@ killer_xname(struct obj *obj)
         buf = xname(obj);
     }
     /* apply an article if appropriate; caller should always use KILLED_BY */
-    if (obj->quan == 1L && !strstri(buf, "'s ") && !strstri(buf, "s' "))
-        buf = (obj_is_pname(obj) || the_unique_obj(obj)) ? the(buf) : an(buf);
-
+    if (obj->quan == 1L && !strstri(buf, "'s ") && !strstri(buf, "s' ")){
+        Sprintf(buf, "一%s%s", classifier(obj), buf);//危险:buf = (obj_is_pname(obj) || the_unique_obj(obj)) ? the(buf) : an(buf);
+    }
     objects[obj->otyp].oc_name_known = save_ocknown;
     objects[obj->otyp].oc_uname = save_ocuname;
     *obj = save_obj; /* restore object's core settings */
@@ -3715,11 +3381,11 @@ aobjnam(struct obj *otmp, const char *verb)
     char *bp = cxname(otmp);
 
     if (otmp->quan != 1L) {
-        Sprintf(prefix, "%ld个", otmp->quan);
+        Sprintf(prefix, "%ld%s", otmp->quan, classifier(otmp));
         bp = strprepend(bp, prefix);
     }
     if (verb) {
-        Strcat(bp, "");
+        //冗余:Strcat(bp, "");
         Strcat(bp, otense(otmp, verb));
     }
     return bp;
@@ -3805,7 +3471,7 @@ paydoname(struct obj *obj)
                 p += strlen("一个");
             /*冗余:else if (!strncmp(p, "an ", 3))
                 p += 3;*/
-            p = strprepend(p, obj->unpaid ? "一个未付款的" : "你的");
+            p = strprepend(p, obj->unpaid ? "未付款的" : "你的");
         }
 
         if (!obj->cknown) {
@@ -3945,11 +3611,10 @@ ansimpleoname(struct obj *obj)
         Strcpy(simpleoname, obufp);
         releaseobuf(obufp);
     } else if (obj->quan == 1L) {
-        /* simpleoname[] is singular if quan==1, plural otherwise;
-           an() will allocate another obuf[]; we want to avoid using two */
-        obufp = an(simpleoname);
-        Strcpy(simpleoname, obufp);
-        releaseobuf(obufp);
+        char namebuf[BUFSZ];
+
+        Strcpy(namebuf, simpleoname);
+        Sprintf(simpleoname, "一%s%s", classifier(obj), namebuf);
     }
     return simpleoname;
 }
@@ -5079,6 +4744,8 @@ static const struct alt_spellings {
     { "silver shield", SHIELD_OF_REFLECTION },
     { "potion of sleep", POT_SLEEPING },
     { "scroll of recharging", SCR_CHARGING },
+    { "scroll of identification", SCR_IDENTIFY },
+    { "spellbook of identification", SPE_IDENTIFY },
     { "recharging", SCR_CHARGING },
     { "stone", ROCK },
     { "camera", EXPENSIVE_CAMERA },
@@ -5100,6 +4767,9 @@ static const struct alt_spellings {
     { "grapple", GRAPPLING_HOOK },
     { "protection from shape shifters", RIN_PROTECTION_FROM_SHAPE_CHAN },
     { "accuracy", RIN_INCREASE_ACCURACY },
+    { "ring of constitution", RIN_GAIN_CONSTITUTION },
+    { "ring of strength", RIN_GAIN_STRENGTH },
+    { "ring of damage", RIN_INCREASE_DAMAGE },
     /* if we ever add other sizes, move this to o_ranges[] with "bag" */
     { "box", LARGE_BOX },
     /* normally we wouldn't have to worry about unnecessary <space>, but
@@ -5164,666 +4834,9 @@ static const struct alt_spellings {
 static const struct monster_spellings {
     const char *sp;
     int itsmonster; /*monster name*/
-    int itsgender; /*neutral0, female1, male2*/
+    enum mgender itsgender;
 } monster_aliases[] = {
-    { "巨型蚂蚁", PM_GIANT_ANT, 0 },
-    { "巨蚂蚁", PM_GIANT_ANT, 0 },
-    { "巨蚁", PM_GIANT_ANT, 0 },
-    { "杀人蜂", PM_KILLER_BEE, 0 },
-    { "巨蜂", PM_KILLER_BEE, 0 },
-    { "兵蚁", PM_SOLDIER_ANT, 0 },
-    { "火蚁", PM_FIRE_ANT, 0 },
-    { "巨型甲虫", PM_GIANT_BEETLE, 0 },
-    { "巨甲虫", PM_GIANT_BEETLE, 0 },
-    { "蜂后", PM_QUEEN_BEE, 0 },
-    { "酸滴", PM_ACID_BLOB, 0 },
-    { "酸性团块", PM_ACID_BLOB, 0 },
-    { "强酸团怪", PM_ACID_BLOB, 0 },
-    { "酸块", PM_ACID_BLOB, 0 },
-    { "颤抖的斑点", PM_QUIVERING_BLOB, 0 },
-    { "颤抖斑点", PM_QUIVERING_BLOB, 0 },
-    { "颤抖的团块", PM_QUIVERING_BLOB, 0 },
-    { "颤抖团块", PM_QUIVERING_BLOB, 0 },
-    { "颤动团怪", PM_QUIVERING_BLOB, 0 },
-    { "黏胶立方怪", PM_GELATINOUS_CUBE, 0 },
-    { "黏胶立方", PM_GELATINOUS_CUBE, 0 },
-    { "凝胶方块", PM_GELATINOUS_CUBE, 0 },
-    { "小鸡蛇", PM_CHICKATRICE, 0 },
-    { "鸡蛇", PM_COCKATRICE, 0 },
-    { "火鸡蛇", PM_PYROLISK, 0 },
-    { "豺狼", PM_JACKAL, 0 },
-    { "狐狸", PM_FOX, 0 },
-    { "土狼", PM_COYOTE, 0 },
-    { "郊狼", PM_COYOTE, 0 },
-    { "豺狼人", PM_WEREJACKAL, 0 },
-    { "小狗", PM_LITTLE_DOG, 0 },
-    { "澳洲野狗", PM_DINGO, 0 },
-    { "狗", PM_DOG, 0 },
-    { "大狗", PM_LARGE_DOG, 0 },
-    { "狼", PM_WOLF, 0 },
-    { "狼人", PM_WEREWOLF, 0 },
-    { "冬狼崽", PM_WINTER_WOLF_CUB, 0 },
-    { "小冬狼", PM_WINTER_WOLF_CUB, 0 },
-    { "座狼", PM_WARG, 0 },
-    { "冬狼", PM_WINTER_WOLF, 0 },
-    { "地狱小猎犬", PM_HELL_HOUND_PUP, 0 },
-    { "地狱小狗", PM_HELL_HOUND_PUP, 0 },
-    { "小地狱猎犬", PM_HELL_HOUND_PUP, 0 },
-    { "小地狱狗", PM_HELL_HOUND_PUP, 0 },
-    { "地狱猎犬", PM_HELL_HOUND, 0 },
-    { "地狱狗", PM_HELL_HOUND, 0 },
-    { "气体孢子", PM_GAS_SPORE, 0 },
-    { "浮眼", PM_FLOATING_EYE, 0 },
-    { "悬浮眼", PM_FLOATING_EYE, 0 },
-    { "浮空眼", PM_FLOATING_EYE, 0 },
-    { "漂浮眼", PM_FLOATING_EYE, 0 },
-    { "悬浮的眼", PM_FLOATING_EYE, 0 },
-    { "悬浮之眼", PM_FLOATING_EYE, 0 },
-    { "悬浮的眼睛", PM_FLOATING_EYE, 0 },
-    { "浮空的眼", PM_FLOATING_EYE, 0 },
-    { "浮空之眼", PM_FLOATING_EYE, 0 },
-    { "浮空的眼睛", PM_FLOATING_EYE, 0 },
-    { "漂浮的眼", PM_FLOATING_EYE, 0 },
-    { "漂浮之眼", PM_FLOATING_EYE, 0 },
-    { "漂浮的眼睛", PM_FLOATING_EYE, 0 },
-    { "冻结球", PM_FREEZING_SPHERE, 0 },
-    { "冰球", PM_FREEZING_SPHERE, 0 },
-    { "火焰球", PM_FLAMING_SPHERE, 0 },
-    { "火球", PM_FLAMING_SPHERE, 0 },
-    { "电球", PM_SHOCKING_SPHERE, 0 },
-    { "小猫", PM_KITTEN, 0 },
-    { "家猫", PM_HOUSECAT, 0 },
-    { "美洲豹", PM_JAGUAR, 0 },
-    { "猞猁", PM_LYNX, 0 },
-    { "黑豹", PM_PANTHER, 0 },
-    { "大猫", PM_LARGE_CAT, 0 },
-    { "老虎", PM_TIGER, 0 },
-    { "幻影兽", PM_DISPLACER_BEAST, 0 },
-    { "移位兽", PM_DISPLACER_BEAST, 0 },
-    { "小鬼", PM_GREMLIN, 0 },
-    { "石像鬼", PM_GARGOYLE, 0 },
-    { "飞翼石像鬼", PM_WINGED_GARGOYLE, 0 },
-    { "霍比特人", PM_HOBBIT, 0 },
-    { "矮人", PM_DWARF, 0 },
-    { "熊地精", PM_BUGBEAR, 0 },
-    { "矮人领主", PM_DWARF_LEADER, 2 },
-    { "矮人女领主", PM_DWARF_LEADER, 1 },
-    { "矮人领袖", PM_DWARF_LEADER, 0 },
-    { "矮人王", PM_DWARF_RULER, 2 },
-    { "矮人女王", PM_DWARF_RULER, 1 },
-    { "矮人统治者", PM_DWARF_RULER, 0 },
-    { "夺心魔", PM_MIND_FLAYER, 0 },
-    { "夺心魔大师", PM_MASTER_MIND_FLAYER, 0 },
-    { "主宰夺心魔", PM_MASTER_MIND_FLAYER, 0 },
-    { "高阶夺心魔", PM_MASTER_MIND_FLAYER, 0 },
-    { "灵魂", PM_MANES, 0 },
-    { "幽魂", PM_MANES, 0 },
-    { "雏形人", PM_HOMUNCULUS, 0 },
-    { "人造人", PM_HOMUNCULUS, 0 },
-    { "造妖", PM_HOMUNCULUS, 0 },
-    { "小恶魔", PM_IMP, 0 },
-    { "劣魔", PM_LEMURE, 0 },
-    { "夸塞魔", PM_QUASIT, 0 },
-    { "天狗", PM_TENGU, 0 },
-    { "蓝色果冻", PM_BLUE_JELLY, 0 },
-    { "蓝冻怪", PM_BLUE_JELLY, 0 },
-    { "珍珠果冻", PM_SPOTTED_JELLY, 0 },
-    { "斑点凝胶怪", PM_SPOTTED_JELLY, 0 },
-    { "斑冻怪", PM_SPOTTED_JELLY, 0 },
-    { "赭冻怪", PM_OCHRE_JELLY, 0 },
-    { "赭色凝胶怪", PM_OCHRE_JELLY, 0 },
-    { "狗头人", PM_KOBOLD, 0 },
-    { "大狗头人", PM_LARGE_KOBOLD, 0 },
-    { "狗头人领主", PM_KOBOLD_LEADER, 2 },
-    { "狗头人女领主", PM_KOBOLD_LEADER, 1 },
-    { "狗头人领袖", PM_KOBOLD_LEADER, 0 },
-    { "狗头人萨满", PM_KOBOLD_SHAMAN, 0 },
-    { "小矮妖", PM_LEPRECHAUN, 0 },
-    { "小拟形怪", PM_SMALL_MIMIC, 0 },
-    { "小拟身怪", PM_SMALL_MIMIC, 0 },
-    { "大拟形怪", PM_LARGE_MIMIC, 0 },
-    { "大拟身怪", PM_LARGE_MIMIC, 0 },
-    { "巨型拟形怪", PM_GIANT_MIMIC, 0 },
-    { "巨型拟身怪", PM_GIANT_MIMIC, 0 },
-    { "木仙女", PM_WOOD_NYMPH, 0 },
-    { "水仙女", PM_WATER_NYMPH, 0 },
-    { "山仙女", PM_MOUNTAIN_NYMPH, 0 },
-    { "木仙子", PM_WOOD_NYMPH, 0 },
-    { "水仙子", PM_WATER_NYMPH, 0 },
-    { "山仙子", PM_MOUNTAIN_NYMPH, 0 },
-    { "木妖精", PM_WOOD_NYMPH, 0 },
-    { "水妖精", PM_WATER_NYMPH, 0 },
-    { "山妖精", PM_MOUNTAIN_NYMPH, 0 },
-    { "木宁芙", PM_WOOD_NYMPH, 0 },
-    { "水宁芙", PM_WATER_NYMPH, 0 },
-    { "山宁芙", PM_MOUNTAIN_NYMPH, 0 },
-    { "地精", PM_GOBLIN, 0 },
-    { "哥布林", PM_GOBLIN, 0 },
-    { "大地精", PM_HOBGOBLIN, 0 },
-    { "大哥布林", PM_HOBGOBLIN, 0 },
-    { "兽人", PM_ORC, 0 },
-    { "丘陵兽人", PM_HILL_ORC, 0 },
-    { "魔多兽人", PM_MORDOR_ORC, 0 },
-    { "强兽人", PM_URUK_HAI, 0 },
-    { "乌鲁克", PM_URUK_HAI, 0 },
-    { "兽人萨满", PM_ORC_SHAMAN, 0 },
-    { "兽人队长", PM_ORC_CAPTAIN, 0 },
-    { "岩石锥子", PM_ROCK_PIERCER, 0 },
-    { "岩石锥怪", PM_ROCK_PIERCER, 0 },
-    { "铁锥子", PM_IRON_PIERCER, 0 },
-    { "铁锥怪", PM_IRON_PIERCER, 0 },
-    { "玻璃锥子", PM_GLASS_PIERCER, 0 },
-    { "玻璃锥怪", PM_GLASS_PIERCER, 0 },
-    { "洛斯兽", PM_ROTHE, 0 },
-    { "猛犸", PM_MUMAK, 0 },
-    { "狼狗", PM_LEOCROTTA, 0 },
-    { "狮头象", PM_WUMPUS, 0 },
-    { "雷兽", PM_TITANOTHERE, 0 },
-    { "俾路支兽", PM_BALUCHITHERIUM, 0 },
-    { "巨犀", PM_BALUCHITHERIUM, 0 },
-    { "乳齿象", PM_MASTODON, 0 },
-    { "褐鼠", PM_SEWER_RAT, 0 },
-    { "巨鼠", PM_GIANT_RAT, 0 },
-    { "狂鼠", PM_RABID_RAT, 0 },
-    { "鼠人", PM_WERERAT, 0 },
-    { "岩石鼹鼠", PM_ROCK_MOLE, 0 },
-    { "岩鼹鼠", PM_ROCK_MOLE, 0 },
-    { "土拨鼠", PM_WOODCHUCK, 0 },
-    { "洞穴蜘蛛", PM_CAVE_SPIDER, 0 },
-    { "蜈蚣", PM_CENTIPEDE, 0 },
-    { "巨型蜘蛛", PM_GIANT_SPIDER, 0 },
-    { "巨蜘蛛", PM_GIANT_SPIDER, 0 },
-    { "巨蛛", PM_GIANT_SPIDER, 0 },
-    { "蝎子", PM_SCORPION, 0 },
-    { "潜伏者", PM_LURKER_ABOVE, 0 },
-    { "蛰伏怪", PM_LURKER_ABOVE, 0 },
-    { "捕兽者", PM_TRAPPER, 0 },
-    { "诱陷者", PM_TRAPPER, 0 },
-    { "小马", PM_PONY, 0 },
-    { "白色独角兽", PM_WHITE_UNICORN, 0 },
-    { "白独角兽", PM_WHITE_UNICORN, 0 },
-    { "灰色独角兽", PM_GRAY_UNICORN, 0 },
-    { "灰独角兽", PM_GRAY_UNICORN, 0 },
-    { "黑色独角兽", PM_BLACK_UNICORN, 0 },
-    { "黑独角兽", PM_BLACK_UNICORN, 0 },
-    { "马", PM_HORSE, 0 },
-    { "战马", PM_WARHORSE, 0 },
-    { "雾云", PM_FOG_CLOUD, 0 },
-    { "云雾", PM_FOG_CLOUD, 0 },
-    { "尘埃漩涡", PM_DUST_VORTEX, 0 },
-    { "尘埃旋涡", PM_DUST_VORTEX, 0 },
-    { "冰漩涡", PM_ICE_VORTEX, 0 },
-    { "冰旋涡", PM_ICE_VORTEX, 0 },
-    { "寒冰漩涡", PM_ICE_VORTEX, 0 },
-    { "寒冰旋涡", PM_ICE_VORTEX, 0 },
-    { "能量漩涡", PM_ENERGY_VORTEX, 0 },
-    { "能量旋涡", PM_ENERGY_VORTEX, 0 },
-    { "蒸汽漩涡", PM_STEAM_VORTEX, 0 },
-    { "蒸汽旋涡", PM_STEAM_VORTEX, 0 },
-    { "火焰漩涡", PM_FIRE_VORTEX, 0 },
-    { "火焰旋涡", PM_FIRE_VORTEX, 0 },
-    { "火漩涡", PM_FIRE_VORTEX, 0 },
-    { "火旋涡", PM_FIRE_VORTEX, 0 },
-    { "幼长蠕虫", PM_BABY_LONG_WORM, 0 },
-    { "长蠕虫幼体", PM_BABY_LONG_WORM, 0 },
-    { "幼紫蠕虫", PM_BABY_PURPLE_WORM, 0 },
-    { "紫蠕虫幼体", PM_BABY_PURPLE_WORM, 0 },
-    { "长蠕虫", PM_LONG_WORM, 0 },
-    { "紫蠕虫", PM_PURPLE_WORM, 0 },
-    { "幼长虫", PM_BABY_LONG_WORM, 0 },
-    { "长虫幼体", PM_BABY_LONG_WORM, 0 },
-    { "幼紫虫", PM_BABY_PURPLE_WORM, 0 },
-    { "紫虫幼体", PM_BABY_PURPLE_WORM, 0 },
-    { "长虫", PM_LONG_WORM, 0 },
-    { "紫虫", PM_PURPLE_WORM, 0 },
-    { "电子虫", PM_GRID_BUG, 0 },
-    { "玄蚊", PM_XAN, 0 },
-    { "黄光", PM_YELLOW_LIGHT, 0 },
-    { "黑光", PM_BLACK_LIGHT, 0 },
-    { "山区巨人", PM_ZRUTY, 0 },
-    { "羽蛇", PM_COUATL, 0 },
-    { "亚历克斯", PM_ALEAX, 0 },
-    { "神罚化身", PM_ALEAX, 0 },
-    { "天使", PM_ANGEL, 0 },
-    { "麒麟", PM_KI_RIN, 0 },
-    { "执政官", PM_ARCHON, 0 },
-    { "亚空天族", PM_ARCHON, 0 },
-    { "蝙蝠", PM_BAT, 0 },
-    { "巨型蝙蝠", PM_GIANT_BAT, 0 },
-    { "巨蝙蝠", PM_GIANT_BAT, 0 },
-    { "巨蝠", PM_GIANT_BAT, 0 },
-    { "乌鸦", PM_RAVEN, 0 },
-    { "吸血蝙蝠", PM_VAMPIRE_BAT, 0 },
-    { "平原半人马", PM_PLAINS_CENTAUR, 0 },
-    { "森林半人马", PM_FOREST_CENTAUR, 0 },
-    { "山地半人马", PM_MOUNTAIN_CENTAUR, 0 },
-    { "山半人马", PM_MOUNTAIN_CENTAUR, 0 },
-    { "幼灰龙", PM_BABY_GRAY_DRAGON, 0 },
-    { "幼金龙", PM_BABY_GOLD_DRAGON, 0 },
-    { "幼银龙", PM_BABY_SILVER_DRAGON, 0 },
-    { "幼红龙", PM_BABY_RED_DRAGON, 0 },
-    { "幼白龙", PM_BABY_WHITE_DRAGON, 0 },
-    { "幼橙龙", PM_BABY_ORANGE_DRAGON, 0 },
-    { "幼黑龙", PM_BABY_BLACK_DRAGON, 0 },
-    { "幼蓝龙", PM_BABY_BLUE_DRAGON, 0 },
-    { "幼绿龙", PM_BABY_GREEN_DRAGON, 0 },
-    { "幼黄龙", PM_BABY_YELLOW_DRAGON, 0 },
-    { "小灰龙", PM_BABY_GRAY_DRAGON, 0 },
-    { "小金龙", PM_BABY_GOLD_DRAGON, 0 },
-    { "小银龙", PM_BABY_SILVER_DRAGON, 0 },
-    { "小红龙", PM_BABY_RED_DRAGON, 0 },
-    { "小白龙", PM_BABY_WHITE_DRAGON, 0 },
-    { "小橙龙", PM_BABY_ORANGE_DRAGON, 0 },
-    { "小黑龙", PM_BABY_BLACK_DRAGON, 0 },
-    { "小蓝龙", PM_BABY_BLUE_DRAGON, 0 },
-    { "小绿龙", PM_BABY_GREEN_DRAGON, 0 },
-    { "小黄龙", PM_BABY_YELLOW_DRAGON, 0 },
-    { "灰龙宝宝", PM_BABY_GRAY_DRAGON, 0 },
-    { "金龙宝宝", PM_BABY_GOLD_DRAGON, 0 },
-    { "银龙宝宝", PM_BABY_SILVER_DRAGON, 0 },
-    { "红龙宝宝", PM_BABY_RED_DRAGON, 0 },
-    { "白龙宝宝", PM_BABY_WHITE_DRAGON, 0 },
-    { "橙龙宝宝", PM_BABY_ORANGE_DRAGON, 0 },
-    { "黑龙宝宝", PM_BABY_BLACK_DRAGON, 0 },
-    { "蓝龙宝宝", PM_BABY_BLUE_DRAGON, 0 },
-    { "绿龙宝宝", PM_BABY_GREEN_DRAGON, 0 },
-    { "黄龙宝宝", PM_BABY_YELLOW_DRAGON, 0 },
-    { "灰龙", PM_GRAY_DRAGON, 0 },
-    { "金龙", PM_GOLD_DRAGON, 0 },
-    { "银龙", PM_SILVER_DRAGON, 0 },
-    { "红龙", PM_RED_DRAGON, 0 },
-    { "白龙", PM_WHITE_DRAGON, 0 },
-    { "橙龙", PM_ORANGE_DRAGON, 0 },
-    { "黑龙", PM_BLACK_DRAGON, 0 },
-    { "蓝龙", PM_BLUE_DRAGON, 0 },
-    { "绿龙", PM_GREEN_DRAGON, 0 },
-    { "黄龙", PM_YELLOW_DRAGON, 0 },
-    { "潜行者", PM_STALKER, 0 },
-    { "气元素", PM_AIR_ELEMENTAL, 0 },
-    { "空气元素", PM_AIR_ELEMENTAL, 0 },
-    { "火元素", PM_FIRE_ELEMENTAL, 0 },
-    { "土元素", PM_EARTH_ELEMENTAL, 0 },
-    { "水元素", PM_WATER_ELEMENTAL, 0 },
-    { "地衣", PM_LICHEN, 0 },
-    { "棕霉菌", PM_BROWN_MOLD, 0 },
-    { "黄霉菌", PM_YELLOW_MOLD, 0 },
-    { "绿霉菌", PM_GREEN_MOLD, 0 },
-    { "红霉菌", PM_RED_MOLD, 0 },
-    { "棕色霉菌", PM_BROWN_MOLD, 0 },
-    { "黄色霉菌", PM_YELLOW_MOLD, 0 },
-    { "绿色霉菌", PM_GREEN_MOLD, 0 },
-    { "红色霉菌", PM_RED_MOLD, 0 },
-    { "尖叫蕈", PM_SHRIEKER, 0 },
-    { "紫真菌", PM_VIOLET_FUNGUS, 0 },
-    { "紫色真菌", PM_VIOLET_FUNGUS, 0 },
-    { "侏儒", PM_GNOME, 0 },
-    { "侏儒领主", PM_GNOME_LEADER, 2 },
-    { "侏儒女领主", PM_GNOME_LEADER, 1 },
-    { "侏儒领袖", PM_GNOME_LEADER, 0 },
-    { "侏儒巫师", PM_GNOMISH_WIZARD, 0 },
-    { "侏儒王", PM_GNOME_RULER, 2 },
-    { "侏儒女王", PM_GNOME_RULER, 1 },
-    { "侏儒统治者", PM_GNOME_RULER, 0 },
-    { "巨人", PM_GIANT, 0 },
-    { "石头巨人", PM_STONE_GIANT, 0 },
-    { "石巨人", PM_STONE_GIANT, 0 },
-    { "丘陵巨人", PM_HILL_GIANT, 0 },
-    { "火巨人", PM_FIRE_GIANT, 0 },
-    { "火焰巨人", PM_FIRE_GIANT, 0 },
-    { "冰巨人", PM_FROST_GIANT, 0 },
-    { "雪巨人", PM_FROST_GIANT, 0 },
-    { "霜巨人", PM_FROST_GIANT, 0 },
-    { "冰霜巨人", PM_FROST_GIANT, 0 },
-    { "双头巨人", PM_ETTIN, 0 },
-    { "风巨人", PM_STORM_GIANT, 0 },
-    { "风暴巨人", PM_STORM_GIANT, 0 },
-    { "提坦", PM_TITAN, 0 },
-    { "泰坦", PM_TITAN, 0 },
-    { "弥诺陶洛斯", PM_MINOTAUR, 0 },
-    { "米诺陶洛斯", PM_MINOTAUR, 0 },
-    { "米诺陶", PM_MINOTAUR, 0 },
-    { "牛头人", PM_MINOTAUR, 0 },
-    { "颊脖龙", PM_JABBERWOCK, 0 },
-    { "炸脖龙", PM_JABBERWOCK, 0 },
-    { "贾巴沃克", PM_JABBERWOCK, 0 },
-    { "吉斯通警察", PM_KEYSTONE_KOP, 0 },
-    { "吉斯通警司", PM_KOP_SERGEANT, 0 },
-    { "吉斯通警督", PM_KOP_LIEUTENANT, 0 },
-    { "吉斯通警监", PM_KOP_KAPTAIN, 0 },
-    { "巫妖", PM_LICH, 0 },
-    { "半巫妖", PM_DEMILICH, 0 },
-    { "巫妖大师", PM_MASTER_LICH, 0 },
-    { "主宰巫妖", PM_MASTER_LICH, 0 },
-    { "高阶巫妖", PM_MASTER_LICH, 0 },
-    { "大巫妖", PM_ARCH_LICH, 0 },
-    { "狗头人木乃伊", PM_KOBOLD_MUMMY, 0 },
-    { "侏儒木乃伊", PM_GNOME_MUMMY, 0 },
-    { "兽人木乃伊", PM_ORC_MUMMY, 0 },
-    { "矮人木乃伊", PM_DWARF_MUMMY, 0 },
-    { "精灵木乃伊", PM_ELF_MUMMY, 0 },
-    { "人类木乃伊", PM_HUMAN_MUMMY, 0 },
-    { "双头木乃伊", PM_ETTIN_MUMMY, 0 },
-    { "双头巨人木乃伊", PM_ETTIN_MUMMY, 0 },
-    { "巨人木乃伊", PM_GIANT_MUMMY, 0 },
-    { "红幼纳迦", PM_RED_NAGA_HATCHLING, 0 },
-    { "黑幼纳迦", PM_BLACK_NAGA_HATCHLING, 0 },
-    { "金幼纳迦", PM_GOLDEN_NAGA_HATCHLING, 0 },
-    { "幼纳迦守卫", PM_GUARDIAN_NAGA_HATCHLING, 0 },
-    { "幼红纳迦", PM_RED_NAGA_HATCHLING, 0 },
-    { "幼黑纳迦", PM_BLACK_NAGA_HATCHLING, 0 },
-    { "幼金纳迦", PM_GOLDEN_NAGA_HATCHLING, 0 },
-    { "幼纳迦守卫", PM_GUARDIAN_NAGA_HATCHLING, 0 },
-    { "小红纳迦", PM_RED_NAGA_HATCHLING, 0 },
-    { "小黑纳迦", PM_BLACK_NAGA_HATCHLING, 0 },
-    { "小金纳迦", PM_GOLDEN_NAGA_HATCHLING, 0 },
-    { "小纳迦守卫", PM_GUARDIAN_NAGA_HATCHLING, 0 },
-    { "红纳迦宝宝", PM_RED_NAGA_HATCHLING, 0 },
-    { "黑纳迦宝宝", PM_BLACK_NAGA_HATCHLING, 0 },
-    { "金纳迦宝宝", PM_GOLDEN_NAGA_HATCHLING, 0 },
-    { "纳迦守卫宝宝", PM_GUARDIAN_NAGA_HATCHLING, 0 },
-    { "红纳迦", PM_RED_NAGA, 0 },
-    { "黑纳迦", PM_BLACK_NAGA, 0 },
-    { "金纳迦", PM_GOLDEN_NAGA, 0 },
-    { "纳迦守卫", PM_GUARDIAN_NAGA, 0 },
-    { "食人魔", PM_OGRE, 0 },
-    { "食人魔领主", PM_OGRE_LEADER, 2 },
-    { "食人魔女领主", PM_OGRE_LEADER, 1 },
-    { "食人魔领袖", PM_OGRE_LEADER, 0 },
-    { "食人魔王", PM_OGRE_TYRANT, 2 },
-    { "食人魔女王", PM_OGRE_TYRANT, 1 },
-    { "食人魔暴君", PM_OGRE_TYRANT, 0 },
-    { "食人魔统治者", PM_OGRE_TYRANT, 0 },
-    { "灰色软泥", PM_GRAY_OOZE, 0 },
-    { "灰泥怪", PM_GRAY_OOZE, 0 },
-    { "棕色布丁", PM_BROWN_PUDDING, 0 },
-    { "棕布丁", PM_BROWN_PUDDING, 0 },
-    { "绿色黏液", PM_GREEN_SLIME, 0 },
-    { "绿黏液", PM_GREEN_SLIME, 0 },
-    { "绿色史莱姆", PM_GREEN_SLIME, 0 },
-    { "绿史莱姆", PM_GREEN_SLIME, 0 },
-    { "黑色布丁", PM_BLACK_PUDDING, 0 },
-    { "黑布丁", PM_BLACK_PUDDING, 0 },
-    { "量子力学", PM_QUANTUM_MECHANIC, 0 },
-    { "量子技工", PM_QUANTUM_MECHANIC, 0 },
-    { "量子工程师", PM_QUANTUM_MECHANIC, 0 },
-    { "基因工程师", PM_GENETIC_ENGINEER, 0 },
-    { "锈怪", PM_RUST_MONSTER, 0 },
-    { "锈蚀怪", PM_RUST_MONSTER, 0 },
-    { "解魔怪", PM_DISENCHANTER, 0 },
-    { "祛魔怪", PM_DISENCHANTER, 0 },
-    { "束带蛇", PM_GARTER_SNAKE, 0 },
-    { "蛇", PM_SNAKE, 0 },
-    { "水蝮蛇", PM_WATER_MOCCASIN, 0 },
-    { "巨蟒", PM_PYTHON, 0 },
-    { "响尾蛇", PM_PIT_VIPER, 0 },
-    { "眼镜蛇", PM_COBRA, 0 },
-    { "巨魔", PM_TROLL, 0 },
-    { "冰巨魔", PM_ICE_TROLL, 0 },
-    { "寒冰巨魔", PM_ICE_TROLL, 0 },
-    { "岩石巨魔", PM_ROCK_TROLL, 0 },
-    { "石巨魔", PM_ROCK_TROLL, 0 },
-    { "水巨魔", PM_WATER_TROLL, 0 },
-    { "欧罗海", PM_OLOG_HAI, 0 },
-    { "奥洛格", PM_OLOG_HAI, 0 },
-    { "土巨怪", PM_UMBER_HULK, 0 },
-    { "吸血鬼", PM_VAMPIRE, 0 },
-    { "吸血鬼领主", PM_VAMPIRE_LEADER, 2 },
-    { "吸血鬼女领主", PM_VAMPIRE_LEADER, 1 },
-    { "吸血鬼领袖", PM_VAMPIRE_LEADER, 0 },
-    { "穿刺者弗拉德", PM_VLAD_THE_IMPALER, 0 },
-    { "弗拉德", PM_VLAD_THE_IMPALER, 0 },
-    { "古墓尸妖", PM_BARROW_WIGHT, 0 },
-    { "古冢尸妖", PM_BARROW_WIGHT, 0 },
-    { "尸妖", PM_BARROW_WIGHT, 0 },
-    { "幽灵", PM_WRAITH, 0 },
-    { "戒灵", PM_NAZGUL, 0 },
-    { "索尔石怪", PM_XORN, 0 },
-    { "猴子", PM_MONKEY, 0 },
-    { "猴", PM_MONKEY, 0 },
-    { "猿", PM_APE, 0 },
-    { "枭熊", PM_OWLBEAR, 0 },
-    { "雪人", PM_YETI, 0 },
-    { "食肉猿", PM_CARNIVOROUS_APE, 0 },
-    { "北美野人", PM_SASQUATCH, 0 },
-    { "狗头人僵尸", PM_KOBOLD_ZOMBIE, 0 },
-    { "侏儒僵尸", PM_GNOME_ZOMBIE, 0 },
-    { "兽人僵尸", PM_ORC_ZOMBIE, 0 },
-    { "矮人僵尸", PM_DWARF_ZOMBIE, 0 },
-    { "精灵僵尸", PM_ELF_ZOMBIE, 0 },
-    { "人类僵尸", PM_HUMAN_ZOMBIE, 0 },
-    { "双头僵尸", PM_ETTIN_ZOMBIE, 0 },
-    { "双头巨人僵尸", PM_ETTIN_ZOMBIE, 0 },
-    { "食尸鬼", PM_GHOUL, 0 },
-    { "巨人僵尸", PM_GIANT_ZOMBIE, 0 },
-    { "骷髅", PM_SKELETON, 0 },
-    { "稻草魔像", PM_STRAW_GOLEM, 0 },
-    { "纸魔像", PM_PAPER_GOLEM, 0 },
-    { "绳子魔像", PM_ROPE_GOLEM, 0 },
-    { "金魔像", PM_GOLD_GOLEM, 0 },
-    { "皮革魔像", PM_LEATHER_GOLEM, 0 },
-    { "皮魔像", PM_LEATHER_GOLEM, 0 },
-    { "木魔像", PM_WOOD_GOLEM, 0 },
-    { "肉魔像", PM_FLESH_GOLEM, 0 },
-    { "土魔像", PM_CLAY_GOLEM, 0 },
-    { "石魔像", PM_STONE_GOLEM, 0 },
-    { "玻璃魔像", PM_GLASS_GOLEM, 0 },
-    { "铁魔像", PM_IRON_GOLEM, 0 },
-    { "稻草傀儡", PM_STRAW_GOLEM, 0 },
-    { "纸傀儡", PM_PAPER_GOLEM, 0 },
-    { "绳子傀儡", PM_ROPE_GOLEM, 0 },
-    { "金傀儡", PM_GOLD_GOLEM, 0 },
-    { "皮革傀儡", PM_LEATHER_GOLEM, 0 },
-    { "皮傀儡", PM_LEATHER_GOLEM, 0 },
-    { "木傀儡", PM_WOOD_GOLEM, 0 },
-    { "肉傀儡", PM_FLESH_GOLEM, 0 },
-    { "土傀儡", PM_CLAY_GOLEM, 0 },
-    { "石傀儡", PM_STONE_GOLEM, 0 },
-    { "玻璃傀儡", PM_GLASS_GOLEM, 0 },
-    { "铁傀儡", PM_IRON_GOLEM, 0 },
-    { "人", PM_HUMAN, 0 },
-    { "人类", PM_HUMAN, 0 },
-    { "智人", PM_HUMAN, 0 },
-    { "鼠人", PM_HUMAN_WERERAT, 0 },
-    { "豺狼人", PM_HUMAN_WEREJACKAL, 0 },
-    { "狼人", PM_HUMAN_WEREWOLF, 0 },
-    { "精灵", PM_ELF, 0 },
-    { "伍德兰精灵", PM_WOODLAND_ELF, 0 },
-    { "林地精灵", PM_WOODLAND_ELF, 0 },
-    { "西尔凡精灵", PM_WOODLAND_ELF, 0 },
-    { "绿精灵", PM_GREEN_ELF, 0 },
-    { "绿色精灵", PM_GREEN_ELF, 0 },
-    { "灰精灵", PM_GREY_ELF, 0 },
-    { "灰色精灵", PM_GREY_ELF, 0 },
-    { "精灵领主", PM_ELF_NOBLE, 2 },
-    { "精灵女领主", PM_ELF_NOBLE, 1 },
-    { "精灵贵族", PM_ELF_NOBLE, 0 },
-    { "精灵王", PM_ELVEN_MONARCH, 2 },
-    { "精灵女王", PM_ELVEN_MONARCH, 1 },
-    { "精灵统治者", PM_ELVEN_MONARCH, 0 },
-    { "变形人", PM_DOPPELGANGER, 0 },
-    { "二重身", PM_DOPPELGANGER, 0 },
-    { "店主", PM_SHOPKEEPER, 0 },
-    { "警卫", PM_GUARD, 0 },
-    { "警官", PM_GUARD, 0 },
-    { "囚犯", PM_PRISONER, 0 },
-    { "神谕", PM_ORACLE, 0 },
-    { "神谕者", PM_ORACLE, 0 },
-    { "男牧师", PM_ALIGNED_CLERIC, 2 },
-    { "女牧师", PM_ALIGNED_CLERIC, 1 },
-    { "阵营牧师", PM_ALIGNED_CLERIC, 0 },
-    { "牧师", PM_ALIGNED_CLERIC, 0 },
-    { "男祭司", PM_ALIGNED_CLERIC, 2 },
-    { "女祭司", PM_ALIGNED_CLERIC, 1 },
-    { "阵营祭司", PM_ALIGNED_CLERIC, 0 },
-    { "祭司", PM_ALIGNED_CLERIC, 0 },
-    { "高阶男牧师", PM_HIGH_CLERIC, 2 },
-    { "高阶女牧师", PM_HIGH_CLERIC, 1 },
-    { "高阶牧师", PM_HIGH_CLERIC, 0 },
-    { "高阶男祭司", PM_HIGH_CLERIC, 2 },
-    { "高阶女祭司", PM_HIGH_CLERIC, 1 },
-    { "高阶祭司", PM_HIGH_CLERIC, 0 },
-    { "高级男牧师", PM_HIGH_CLERIC, 2 },
-    { "高级女牧师", PM_HIGH_CLERIC, 1 },
-    { "高级牧师", PM_HIGH_CLERIC, 0 },
-    { "高级男祭司", PM_HIGH_CLERIC, 2 },
-    { "高级女祭司", PM_HIGH_CLERIC, 1 },
-    { "高级祭司", PM_HIGH_CLERIC, 0 },
-    { "士兵", PM_SOLDIER, 0 },
-    { "下士", PM_SOLDIER, 0 },
-    { "中士", PM_SERGEANT, 0 },
-    { "护士", PM_NURSE, 0 },
-    { "中尉", PM_LIEUTENANT, 0 },
-    { "上尉", PM_CAPTAIN, 0 },
-    { "警卫员", PM_WATCHMAN, 0 },
-    { "警卫", PM_WATCHMAN, 0 },
-    { "警卫员队长", PM_WATCH_CAPTAIN, 0 },
-    { "警卫队长", PM_WATCH_CAPTAIN, 0 },
-    { "警卫长", PM_WATCH_CAPTAIN, 0 },
-    { "美杜莎", PM_MEDUSA, 0 },
-    { "岩德巫师", PM_WIZARD_OF_YENDOR, 0 },
-    { "岩德的巫师", PM_WIZARD_OF_YENDOR, 0 },
-    { "克罗伊斯", PM_CROESUS, 0 },
-    { "鬼魂", PM_GHOST, 0 },
-    { "魂灵", PM_SHADE, 0 },
-    { "暗影", PM_SHADE, 0 },
-    { "黑影", PM_SHADE, 0 },
-    { "水妖", PM_WATER_DEMON, 0 },
-    { "梦魇", PM_AMOROUS_DEMON, 2 },
-    { "魅魔", PM_AMOROUS_DEMON, 1 },
-    { "多情的恶魔", PM_AMOROUS_DEMON, 0 },
-    { "多情恶魔", PM_AMOROUS_DEMON, 0 },
-    { "有角的魔鬼", PM_HORNED_DEVIL, 0 },
-    { "有角魔鬼", PM_HORNED_DEVIL, 0 },
-    { "有角的恶魔", PM_HORNED_DEVIL, 0 },
-    { "有角恶魔", PM_HORNED_DEVIL, 0 },
-    { "角魔", PM_HORNED_DEVIL, 0 },
-    { "伊里逆丝", PM_ERINYS, 0 },
-    { "欲魔", PM_ERINYS, 0 },
-    { "罪魔", PM_ERINYS, 0 },
-    { "厄里倪厄斯", PM_ERINYS, 0 },
-    { "哈玛魔", PM_BARBED_DEVIL, 0 },
-    { "猬魔", PM_BARBED_DEVIL, 0 },
-    { "六臂蛇魔", PM_MARILITH, 0 },
-    { "弗洛魔", PM_VROCK, 0 },
-    { "狂战魔", PM_HEZROU, 0 },
-    { "骨魔", PM_BONE_DEVIL, 0 },
-    { "冰魔", PM_ICE_DEVIL, 0 },
-    { "判魂魔", PM_NALFESHNEE, 0 },
-    { "深渊恶魔", PM_PIT_FIEND, 0 },
-    { "桑德斯廷", PM_SANDESTIN, 0 },
-    { "沙魔", PM_SANDESTIN, 0 },
-    { "炎魔", PM_BALROG, 0 },
-    { "朱比烈斯", PM_JUIBLEX, 0 },
-    { "朱庇莱克斯", PM_JUIBLEX, 0 },
-    { "伊诺胡", PM_YEENOGHU, 0 },
-    { "耶诺古", PM_YEENOGHU, 0 },
-    { "奥迦斯", PM_ORCUS, 0 },
-    { "奥喀斯", PM_ORCUS, 0 },
-    { "吉里昂", PM_GERYON, 0 },
-    { "格殷永", PM_GERYON, 0 },
-    { "迪斯帕特", PM_DISPATER, 0 },
-    { "巴力西卜", PM_BAALZEBUB, 0 },
-    { "别西卜", PM_BAALZEBUB, 0 },
-    { "阿斯莫德", PM_ASMODEUS, 0 },
-    { "阿斯蒙蒂斯", PM_ASMODEUS, 0 },
-    { "狄摩高根", PM_DEMOGORGON, 0 },
-    { "死亡", PM_DEATH, 0 },
-    { "瘟疫", PM_PESTILENCE, 0 },
-    { "饥荒", PM_FAMINE, 0 },
-    { "邮件幽灵程序", PM_MAIL_DAEMON, 0 },
-    { "邮件守护灵", PM_MAIL_DAEMON, 0 },
-    { "传信小鬼", PM_MAIL_DAEMON, 0 },
-    { "灯神", PM_DJINNI, 0 },
-    { "水母", PM_JELLYFISH, 0 },
-    { "水虎鱼", PM_PIRANHA, 0 },
-    { "鲨鱼", PM_SHARK, 0 },
-    { "巨型鳗鱼", PM_GIANT_EEL, 0 },
-    { "电鳗", PM_ELECTRIC_EEL, 0 },
-    { "海妖", PM_KRAKEN, 0 },
-    { "蝾螈", PM_NEWT, 0 },
-    { "壁虎", PM_GECKO, 0 },
-    { "鬣蜥", PM_IGUANA, 0 },
-    { "幼鳄鱼", PM_BABY_CROCODILE, 0 },
-    { "小鳄鱼", PM_BABY_CROCODILE, 0 },
-    { "鳄鱼宝宝", PM_BABY_CROCODILE, 0 },
-    { "蜥蜴", PM_LIZARD, 0 },
-    { "变色龙", PM_CHAMELEON, 0 },
-    { "鳄鱼", PM_CROCODILE, 0 },
-    { "火蜥蜴", PM_SALAMANDER, 0 },
-    { "长蠕虫尾", PM_LONG_WORM_TAIL, 0 },
-    { "长蠕虫尾巴", PM_LONG_WORM_TAIL, 0 },
-    { "长蠕虫的尾巴", PM_LONG_WORM_TAIL, 0 },
-    { "长虫尾", PM_LONG_WORM_TAIL, 0 },
-    { "长虫尾巴", PM_LONG_WORM_TAIL, 0 },
-    { "长虫的尾巴", PM_LONG_WORM_TAIL, 0 },
-    { "考古学家", PM_ARCHEOLOGIST, 0 },
-    { "野蛮人", PM_BARBARIAN, 0 },
-    { "男穴居人", PM_CAVE_DWELLER, 2 },
-    { "男穴居人", PM_CAVE_DWELLER, 1 },
-    { "穴居人", PM_CAVE_DWELLER, 0 },
-    { "医生", PM_HEALER, 0 },
-    { "治疗师", PM_HEALER, 0 },
-    { "骑士", PM_KNIGHT, 0 },
-    { "僧侣", PM_MONK, 0 },
-    { "男牧师", PM_CLERIC, 2 },
-    { "女牧师", PM_CLERIC, 1 },
-    { "牧师", PM_CLERIC, 0 },
-    { "游侠", PM_RANGER, 0 },
-    { "盗贼", PM_ROGUE, 0 },
-    { "武士", PM_SAMURAI, 0 },
-    { "游客", PM_TOURIST, 0 },
-    { "女武神", PM_VALKYRIE, 0 },
-    { "巫师", PM_WIZARD, 0 },
-    { "卡那封勋爵", PM_LORD_CARNARVON, 0 },
-    { "珀利阿斯", PM_PELIAS, 0 },
-    { "萨满卡诺夫", PM_SHAMAN_KARNOV, 0 },
-    { "希波克拉底", PM_HIPPOCRATES, 0 },
-    { "亚瑟王", PM_KING_ARTHUR, 0 },
-    { "亚瑟", PM_KING_ARTHUR, 0 },
-    { "宗师", PM_GRAND_MASTER, 0 },
-    { "大祭司", PM_ARCH_PRIEST, 0 },
-    { "俄里翁", PM_ORION, 0 },
-    { "盗贼大师", PM_MASTER_OF_THIEVES, 0 },
-    { "萨托领主", PM_LORD_SATO, 0 },
-    { "双花", PM_TWOFLOWER, 0 },
-    { "诺恩", PM_NORN, 0 },
-    { "诺伦", PM_NORN, 0 },
-    { "绿衣娜菲利特", PM_NEFERET_THE_GREEN, 0 },
-    { "绿肤娜菲利特", PM_NEFERET_THE_GREEN, 0 },
-    { "修堤库特里的奴才", PM_MINION_OF_HUHETOTL, 0 },
-    { "修堤库特里的爪牙", PM_MINION_OF_HUHETOTL, 0 },
-    { "休特奥特尔的奴才", PM_MINION_OF_HUHETOTL, 0 },
-    { "休特奥特尔的爪牙", PM_MINION_OF_HUHETOTL, 0 },
-    { "图特阿蒙", PM_THOTH_AMON, 0 },
-    { "彩色龙", PM_CHROMATIC_DRAGON, 0 },
-    { "独眼巨人", PM_CYCLOPS, 0 },
-    { "恶龙", PM_IXOTH, 0 },
-    { "恶龙埃索斯", PM_IXOTH, 0 },
-    { "凯恩大师", PM_MASTER_KAEN, 0 },
-    { "纳宗魔", PM_NALZOK, 0 },
-    { "蝎弩", PM_SCORPIUS, 0 },
-    { "天蝎", PM_SCORPIUS, 0 },
-    { "刺客大师", PM_MASTER_ASSASSIN, 0 },
-    { "足利尊氏", PM_ASHIKAGA_TAKAUJI, 0 },
-    { "叙尔特领主", PM_LORD_SURTUR, 0 },
-    { "苏尔特尔领主", PM_LORD_SURTUR, 0 },
-    { "苏尔特领主", PM_LORD_SURTUR, 0 },
-    { "黑暗魔君", PM_DARK_ONE, 0 },
-    { "学者", PM_STUDENT, 0 },
-    { "学生", PM_STUDENT, 0 },
-    { "酋长", PM_CHIEFTAIN, 0 },
-    { "尼安德特人", PM_NEANDERTHAL, 0 },
-    { "护理者", PM_ATTENDANT, 0 },
-    { "实习骑士", PM_PAGE, 0 },
-    { "方丈", PM_ABBOT, 0 },
-    { "侍祭", PM_ACOLYTE, 0 },
-    { "猎人", PM_HUNTER, 0 },
-    { "刺客", PM_THUG, 0 },
-    { "忍者", PM_NINJA, 0 },
-    { "禅师", PM_ROSHI, 0 },
-    { "导游", PM_GUIDE, 0 },
-    { "战士", PM_WARRIOR, 0 },
-    { "魔法学徒", PM_APPRENTICE, 0 },
+#include "mon_chinese.inc"
     { (const char *) 0, 0, 0 },
 };
 
@@ -5964,6 +4977,8 @@ static const struct potion_spellings {
     { "麻痹", POT_PARALYSIS },
     { "加速", POT_SPEED },
     { "飘浮", POT_LEVITATION },
+    { "漂浮", POT_LEVITATION },
+    { "悬浮", POT_LEVITATION },
     { "幻觉", POT_HALLUCINATION },
     { "隐身", POT_INVISIBILITY },
     { "看见隐形", POT_SEE_INVISIBLE },
@@ -6092,6 +5107,7 @@ static const struct spellbook_spellings {
     { "探测隐形", SPE_DETECT_UNSEEN },
     { "发现隐形", SPE_DETECT_UNSEEN },
     { "飘浮", SPE_LEVITATION },
+    { "漂浮", SPE_LEVITATION },
     { "悬浮", SPE_LEVITATION },
     { "强力治愈", SPE_EXTRA_HEALING },
     { "恢复能力", SPE_RESTORE_ABILITY },
@@ -6506,7 +5522,7 @@ wizterrainwish(struct _readobjnam_data *d)
         else /* -1 - A_CHAOTIC, 0 - A_NEUTRAL, 1 - A_LAWFUL */
             al = !rn2(6) ? A_NONE : (rn2((int) A_LAWFUL + 2) - 1);
         lev->altarmask = Align2amask(al); /* overlays 'flags' */
-        pline("一个%s祭坛.", An(align_str(al)));
+        pline("%s祭坛.", An(align_str(al)));
         madeterrain = TRUE;
     } else if (!BSTRCMPI(bp, p - 5, "grave")
                || !BSTRCMPI(bp, p - 9, "headstone")) {
@@ -6598,11 +5614,13 @@ wizterrainwish(struct _readobjnam_data *d)
             /* feedback */
             dbuf[0] = '\0';
             if (lev->doormask & D_TRAPPED)
-                Strcat(dbuf, "陷阱 ");
-            if (lev->doormask & D_LOCKED)
-                Strcat(dbuf, "坏锁的");
+                Strcat(dbuf, "一扇陷阱");
+            else if (lev->doormask & D_LOCKED)
+                Strcat(dbuf, "一扇坏锁的");
+            else if (!((lev->doormask & ~D_TRAPPED) == D_NODOOR))
+                Strcat(dbuf, "一扇"); //你觉得我知道怎么写吗
             if (lev->typ == SDOOR) {
-                Strcat(dbuf, "秘密门");
+                Strcat(dbuf, "一扇秘密门");
             } else {
                 /* these should be mutually exclusive but we describe them
                    as if they're independent to maybe catch future bugs... */
@@ -6613,11 +5631,11 @@ wizterrainwish(struct _readobjnam_data *d)
                 if (lev->doormask & D_BROKEN)
                     Strcat(dbuf, "坏锁的");
                 if ((lev->doormask & ~D_TRAPPED) == D_NODOOR)
-                    Strcat(dbuf, "无门的门洞");
+                    Strcat(dbuf, "一个无门的门洞");
                 else
                     Strcat(dbuf, "门");
             }
-            pline("%s.", upstart(an(dbuf)));
+            pline("%s.", dbuf);
             madeterrain = TRUE;
         } else {
             Strcpy(dbuf, secret ? "秘密门" : "门");
@@ -6781,7 +5799,15 @@ readobjnam_preparse(struct _readobjnam_data *d)
         res = 0;
 
         if (!strncmpi(d->bp, "an ", l = 3) || !strncmpi(d->bp, "a ", l = 2) ||
-            !cnstrcmpi(d->bp, "一个", l)) {
+            !cnstrcmpi(d->bp, "一个", l) || !cnstrcmpi(d->bp, "一块", l) || !cnstrcmpi(d->bp, "一双", l) ||
+            !cnstrcmpi(d->bp, "一柄", l) || !cnstrcmpi(d->bp, "一片", l) || !cnstrcmpi(d->bp, "一根", l) ||
+            !cnstrcmpi(d->bp, "一把", l) || !cnstrcmpi(d->bp, "一件", l) || !cnstrcmpi(d->bp, "一盏", l) ||
+            !cnstrcmpi(d->bp, "一卷", l) || !cnstrcmpi(d->bp, "一枝", l) || !cnstrcmpi(d->bp, "一本", l) ||
+            !cnstrcmpi(d->bp, "一面", l) || !cnstrcmpi(d->bp, "一座", l) || !cnstrcmpi(d->bp, "一枚", l) ||
+            !cnstrcmpi(d->bp, "一只", l) || !cnstrcmpi(d->bp, "一套", l) || !cnstrcmpi(d->bp, "一副", l) ||
+            !cnstrcmpi(d->bp, "一团", l) || !cnstrcmpi(d->bp, "一份", l) || !cnstrcmpi(d->bp, "一具", l) ||
+            !cnstrcmpi(d->bp, "一支", l) || !cnstrcmpi(d->bp, "一瓶", l) || !cnstrcmpi(d->bp, "一瓣", l) ||
+            !cnstrcmpi(d->bp, "一张", l) || !cnstrcmpi(d->bp, "一顶", l) || !cnstrcmpi(d->bp, "一条", l)) { //见one_classifiers
             d->cnt = 1;
         } else if (!strncmpi(d->bp, "the ", l = 4)) {
             ; /* just increment `bp' by `l' below */
@@ -6800,6 +5826,18 @@ readobjnam_preparse(struct _readobjnam_data *d)
             while (*d->bp == ' ')
                 d->bp++;
             l = 0;
+        } else if (!cnstrcmpi(d->bp, "块", l) || !cnstrcmpi(d->bp, "双", l) || !cnstrcmpi(d->bp, "柄", l) ||
+                   !cnstrcmpi(d->bp, "片", l) || !cnstrcmpi(d->bp, "根", l) || !cnstrcmpi(d->bp, "把", l) ||
+                   !cnstrcmpi(d->bp, "件", l) || !cnstrcmpi(d->bp, "盏", l) || !cnstrcmpi(d->bp, "卷", l) ||
+                   !cnstrcmpi(d->bp, "枝", l) || !cnstrcmpi(d->bp, "本", l) || !cnstrcmpi(d->bp, "面", l) ||
+                   !cnstrcmpi(d->bp, "座", l) || !cnstrcmpi(d->bp, "枚", l) || !cnstrcmpi(d->bp, "只", l) ||
+                   !cnstrcmpi(d->bp, "套", l) || !cnstrcmpi(d->bp, "副", l) || !cnstrcmpi(d->bp, "团", l) ||
+                   !cnstrcmpi(d->bp, "份", l) || !cnstrcmpi(d->bp, "具", l) || !cnstrcmpi(d->bp, "支", l) ||
+                   !cnstrcmpi(d->bp, "瓶", l) || !cnstrcmpi(d->bp, "瓣", l) || !cnstrcmpi(d->bp, "张", l) ||
+                   !cnstrcmpi(d->bp, "顶", l) || !cnstrcmpi(d->bp, "条", l)) { //见classifiers
+            ; //pass
+        } else if (!cnstrcmpi(d->bp, "菠菜", l) || !cnstrcmpi(d->bp, "菠菜的", l)) {
+            d->contents = TIN_SPINACH;
         } else if (!strncmpi(d->bp, "blessed ", l = 8) || !strncmpi(d->bp, "holy ", l = 5) ||
             !cnstrcmpi(d->bp, "被祝福的", l) || !cnstrcmpi(d->bp, "受祝福的", l) || !cnstrcmpi(d->bp, "有祝福的", l) ||
             !cnstrcmpi(d->bp, "祝福的", l) || !cnstrcmpi(d->bp, "祝福", l) || !cnstrcmpi(d->bp, "圣", l)) {
@@ -7020,18 +6058,18 @@ readobjnam_preparse(struct _readobjnam_data *d)
             d->fake = 1, d->real = 0;
             /* ['real' isn't actually needed (unless we someday add
                "real gem" for random non-glass, non-stone)] */
-        } else if (!strncmpi(d->bp, "female ", l = 7) ||
+        } else if (cnstrcmpi(d->bp, "女武神", l) && (!strncmpi(d->bp, "female ", l = 7) ||
                 !cnstrcmpi(d->bp, "女性的", l) || !cnstrcmpi(d->bp, "雌性的", l) ||
                 !cnstrcmpi(d->bp, "女的", l)  || !cnstrcmpi(d->bp, "雌性", l)  || !cnstrcmpi(d->bp, "母的", l) ||
-                !cnstrcmpi(d->bp, "女", l) || !cnstrcmpi(d->bp, "雌", l) || !cnstrcmpi(d->bp, "母", l)) {
+                !cnstrcmpi(d->bp, "女", l) || !cnstrcmpi(d->bp, "雌", l) || !cnstrcmpi(d->bp, "母", l))) {
             d->mgend = FEMALE;
             /* if after "corpse/statue/figurine of", remove from string */
             if (save_bp)
                 strsubst(d->bp, "female ", ""), l = 0;
-        } else if (!strncmpi(d->bp, "male ", l = 5) ||
+        } else if (cnstrcmpi(d->bp, "公家", l) && (!strncmpi(d->bp, "male ", l = 5) ||
                 !cnstrcmpi(d->bp, "男性的", l) || !cnstrcmpi(d->bp, "雄性的", l) ||
                 !cnstrcmpi(d->bp, "男的", l)  || !cnstrcmpi(d->bp, "雄性", l)  || !cnstrcmpi(d->bp, "公的", l) ||
-                !cnstrcmpi(d->bp, "男", l) || !cnstrcmpi(d->bp, "雄", l) || !cnstrcmpi(d->bp, "公", l)) {
+                !cnstrcmpi(d->bp, "男", l) || !cnstrcmpi(d->bp, "雄", l) || !cnstrcmpi(d->bp, "公", l))) {
             d->mgend = MALE;
             if (save_bp)
                 strsubst(d->bp, "male ", ""), l = 0;
@@ -7441,6 +6479,10 @@ readobjnam_postparse1(struct _readobjnam_data *d)
         /* note: if 'name' is too long, oname() will truncate it */
         d->name = d->p + strlen(", 名为");
     }
+    if ((d->p = strstri(d->bp, "的卷轴")) != 0) { /*极--其--危险*/
+        *d->p = '\0';
+        d->typ = SCR_BLANK_PAPER;
+    }
     if ((d->p = strstri(d->bp, " called ")) != 0) {
         *d->p = 0;
         /* note: if 'un' is too long, obj lookup just won't match anything */
@@ -7458,6 +6500,19 @@ readobjnam_postparse1(struct _readobjnam_data *d)
         *d->p = 0;
         /* note: if 'un' is too long, obj lookup just won't match anything */
         d->un = d->p + strlen("(被称为");
+        /* "helmet called telepathy" is not "helmet" (a specific type)
+         * "shield called reflection" is not "shield" (a general type)
+         */
+        for (i = 0; i < SIZE(o_ranges); i++)
+            if (!strcmpi(d->bp, o_ranges[i].name)) {
+                d->oclass = o_ranges[i].oclass;
+                return 1; /*goto srch;*/
+            }
+    }
+    if ((d->p = strstri(d->bp, " (被称为")) != 0) {
+        *d->p = 0;
+        /* note: if 'un' is too long, obj lookup just won't match anything */
+        d->un = d->p + strlen(" (被称为");
         /* "helmet called telepathy" is not "helmet" (a specific type)
          * "shield called reflection" is not "shield" (a general type)
          */
@@ -7497,6 +6552,19 @@ readobjnam_postparse1(struct _readobjnam_data *d)
         *d->p = 0;
         /* note: if 'un' is too long, obj lookup just won't match anything */
         d->un = d->p + strlen("被称为");
+        /* "helmet called telepathy" is not "helmet" (a specific type)
+         * "shield called reflection" is not "shield" (a general type)
+         */
+        for (i = 0; i < SIZE(o_ranges); i++)
+            if (!strcmpi(d->bp, o_ranges[i].name)) {
+                d->oclass = o_ranges[i].oclass;
+                return 1; /*goto srch;*/
+            }
+    }
+    if ((d->p = strstri(d->bp, "叫做")) != 0) {
+        *d->p = 0;
+        /* note: if 'un' is too long, obj lookup just won't match anything */
+        d->un = d->p + strlen("叫做");
         /* "helmet called telepathy" is not "helmet" (a specific type)
          * "shield called reflection" is not "shield" (a general type)
          */
@@ -7549,11 +6617,35 @@ readobjnam_postparse1(struct _readobjnam_data *d)
         *d->p = 0;
         d->dn = d->p + strlen(", 标签为");
     }
+    if ((d->p = strstri(d->bp, "(写着")) != 0) {
+        *d->p = 0;
+        d->dn = d->p + strlen("(写着");
+    }
+    if ((d->p = strstri(d->bp, "(上面写着")) != 0) {
+        *d->p = 0;
+        d->dn = d->p + strlen("(上面写着");
+    }
+    if ((d->p = strstri(d->bp, "(标签为")) != 0) {
+        *d->p = 0;
+        d->dn = d->p + strlen("(标签为");
+    }
+    if ((d->p = strstri(d->bp, " (写着")) != 0) {
+        *d->p = 0;
+        d->dn = d->p + strlen("( 写着");
+    }
+    if ((d->p = strstri(d->bp, " (上面写着")) != 0) {
+        *d->p = 0;
+        d->dn = d->p + strlen(" (上面写着");
+    }
+    if ((d->p = strstri(d->bp, " (标签为")) != 0) {
+        *d->p = 0;
+        d->dn = d->p + strlen(" (标签为");
+    }
     if ((d->p = strstri(d->bp, " of spinach")) != 0) {
         *d->p = 0;
         d->contents = TIN_SPINACH;
     }
-    if ((d->p = strstri(d->bp, "菠菜")) != 0) {
+    if ((d->p = strstri(d->bp, "菠菜罐头")) != 0) {
         *d->p = 0;
         d->contents = TIN_SPINACH;
     }
@@ -7644,6 +6736,9 @@ readobjnam_postparse1(struct _readobjnam_data *d)
         d->bp += strlen("双");
         if (d->cnt > 1)
             d->cnt *= 2;
+    } else if (!strncmpi(d->bp, "一对", strlen("一对"))) {
+        d->bp += strlen("一对");
+        d->cnt *= 2;
     } else if (!strncmpi(d->bp, "set of ", 7)) {
         d->bp += 7;
     } else if (!strncmpi(d->bp, "sets of ", 8)) {
@@ -7704,17 +6799,6 @@ readobjnam_postparse1(struct _readobjnam_data *d)
             && !strstri(d->bp, "手套")) {
             if ((d->p = strstri(d->bp, "tin of ")) != 0) {
                 if (!strcmpi(d->p + 7, "spinach")) {
-                    d->contents = TIN_SPINACH;
-                    d->mntmp = NON_PM;
-                } else {
-                    d->tmp = tin_variety_txt(d->p + 7, &d->tinv);
-                    d->tvariety = d->tinv;
-                    d->mntmp = name_to_mon(d->p + 7 + d->tmp, &d->mgend);
-                }
-                d->typ = TIN;
-                return 2; /*goto typfnd;*/
-            } else if ((d->p = strstri(d->bp, "罐头")) != 0) {
-                if (!strcmpi(d->p - strlen("菠菜罐头"), "菠菜")) {
                     d->contents = TIN_SPINACH;
                     d->mntmp = NON_PM;
                 } else {
@@ -7825,20 +6909,7 @@ readobjnam_postparse1(struct _readobjnam_data *d)
         while (fs->sp) {
             if (!strncmp(d->bp, fs->sp, strlen(fs->sp))) {
                 d->mntmp = fs->itsmonster;
-                switch (fs->itsgender)
-                {
-                    case 0:
-                        d->mgend = NEUTRAL;
-                        break;
-                    case 1:
-                        d->mgend = FEMALE;
-                        break;
-                    case 2:
-                        d->mgend = MALE;
-                        break;
-                    default:
-                        d->mgend = NEUTRAL;
-                }
+                d->mgend = fs->itsgender;
                 if(!strcmp(d->bp + strlen(fs->sp), "雕像") || !strcmp(d->bp + strlen(fs->sp), "的雕像") ||
                     !strcmp(d->bp + strlen(fs->sp), "石雕") || !strcmp(d->bp + strlen(fs->sp), "的石雕"))
                 {
@@ -7858,7 +6929,7 @@ readobjnam_postparse1(struct _readobjnam_data *d)
                 }
                 if(!strcmp(d->bp + strlen(fs->sp), "罐头") || !strcmp(d->bp + strlen(fs->sp), "的罐头") || !strcmp(d->bp + strlen(fs->sp), "肉罐头"))
                 {
-                    d->typ = CORPSE;
+                    d->typ = TIN;
                     return 2; /*goto typfnd;*/
                 }
             }
@@ -8852,6 +7923,11 @@ readobjnam_postparse3(struct _readobjnam_data *d)
         d->typ = TIN;
         return 2; /*goto typfnd;*/
     }
+    if (!strcmpi(d->bp, "菠菜罐头")) {
+        d->contents = TIN_SPINACH;
+        d->typ = TIN;
+        return 2; /*goto typfnd;*/
+    }
     /* Fruits must not mess up the ability to wish for real objects (since
      * you can leave a fruit in a bones file and it will be added to
      * another person's game), so they must be checked for last, after
@@ -9003,15 +8079,15 @@ readobjenam_postparse3(struct _readobjnam_data *d)
         }
     }
 
-    if (((d->typ = rnd_otyp_by_namedesc(d->actualn, d->oclass, 1))
+    if (((d->typ = rnd_otyp_by_enameedesc(d->actualn, d->oclass, 1))
          != STRANGE_OBJECT)
         || (d->dn != d->actualn
-            && ((d->typ = rnd_otyp_by_namedesc(d->dn, d->oclass, 1))
+            && ((d->typ = rnd_otyp_by_enameedesc(d->dn, d->oclass, 1))
                 != STRANGE_OBJECT))
-        || ((d->typ = rnd_otyp_by_namedesc(d->un, d->oclass, 1))
+        || ((d->typ = rnd_otyp_by_enameedesc(d->un, d->oclass, 1))
              != STRANGE_OBJECT)
         || (d->origbp != d->actualn
-            && ((d->typ = rnd_otyp_by_namedesc(d->origbp, d->oclass, 1))
+            && ((d->typ = rnd_otyp_by_enameedesc(d->origbp, d->oclass, 1))
                 != STRANGE_OBJECT)))
         return 2; /*goto typfnd;*/
     d->typ = 0;
@@ -9319,7 +8395,7 @@ readobjnam(char *bp, struct obj *no_wish)
                 rn1cnt = 6 - d.gsize;
             if (d.cnt > rn1cnt
                 && (!wizard || program_state.wizkit_wishing
-                    || y_n("Override glob weight limit?") != 'y'))
+                    || y_n("覆盖团块重量限制?") != 'y'))
                 d.cnt = rn1cnt;
             d.otmp->owt *= (unsigned) d.cnt;
         }
@@ -9632,7 +8708,7 @@ readobjnam(char *bp, struct obj *no_wish)
         artifact_exists(d.otmp, safe_oname(d.otmp), FALSE, ONAME_NO_FLAGS);
         obfree(d.otmp, (struct obj *) 0);
         d.otmp = &hands_obj;
-        pline("片刻间,你感觉到%s到了你的%s里,但它随机消失了!",
+        pline("片刻间, 你感觉到%s到了你的%s里, 但它随机消失了!",
               something, makeplural(body_part(HAND)));
         return d.otmp;
     }
@@ -9718,18 +8794,18 @@ suit_simple_name(struct obj *suit)
 
     if (suit) {
         if (Is_dragon_mail(suit))
-            return "dragon mail"; /* <color> dragon scale mail */
+            return "龙鳞甲"; /* <color> dragon scale mail */
         else if (Is_dragon_scales(suit))
-            return "dragon scales";
+            return "龙鳞";
         suitnm = OBJ_NAME(objects[suit->otyp]);
         esuitp = eos((char *) suitnm);
-        if (strlen(suitnm) > 5 && !strcmp(esuitp - 5, " mail"))
-            return "mail"; /* most suits fall into this category */
-        else if (strlen(suitnm) > 7 && !strcmp(esuitp - 7, " jacket"))
-            return "jacket"; /* leather jacket */
+        if (strlen(suitnm) > 5 && (!strcmp(esuitp - 5, " mail") || !strcmp(esuitp - strlen("甲"), "甲")))
+            return "护甲"; /* most suits fall into this category */
+        else if (strlen(suitnm) > 7 && (!strcmp(esuitp - 7, " jacket") || !strcmp(esuitp - strlen("夹克"), "夹克")))
+            return "夹克"; /* leather jacket */
     }
     /* "suit" is lame but "armor" is ambiguous and "body armor" is absurd */
-    return "suit";
+    return "套装";
 }
 
 const char *
@@ -9738,18 +8814,18 @@ cloak_simple_name(struct obj *cloak)
     if (cloak) {
         switch (cloak->otyp) {
         case ROBE:
-            return "robe";
+            return "长袍";
         case MUMMY_WRAPPING:
-            return "wrapping";
+            return "绷带";
         case ALCHEMY_SMOCK:
             return (objects[cloak->otyp].oc_name_known && cloak->dknown)
-                       ? "smock"
-                       : "apron";
+                       ? "罩衫"
+                       : "围裙";
         default:
             break;
         }
     }
-    return "cloak";
+    return "斗篷";
 }
 
 /* helm vs hat for messages */
@@ -9794,7 +8870,7 @@ gloves_simple_name(struct obj *gloves)
 const char *
 boots_simple_name(struct obj *boots)
 {
-    static const char shoes[] = "shoes";
+    static const char shoes[] = "鞋子";
 
     if (boots && boots->dknown) {
         int otyp = boots->otyp;
@@ -9806,7 +8882,7 @@ boots_simple_name(struct obj *boots)
             || (objects[otyp].oc_name_known && strstri(actualn, shoes)))
             return shoes;
     }
-    return "boots";
+    return "靴子";
 }
 
 /* simplified shield for messages */
@@ -9816,7 +8892,7 @@ shield_simple_name(struct obj *shield)
     if (shield) {
         /* xname() describes unknown (unseen) reflection as smooth */
         if (shield->otyp == SHIELD_OF_REFLECTION)
-            return shield->dknown ? "silver shield" : "smooth shield";
+            return shield->dknown ? "银盾" : "抛光的盾牌";
         /*
          * We might distinguish between wooden vs metallic or
          * light vs heavy to give small benefit to spell casters.
@@ -9836,14 +8912,14 @@ shield_simple_name(struct obj *shield)
                : "light shield";
 #endif
     }
-    return "shield";
+    return "盾牌";
 }
 
 /* for completeness */
 const char *
 shirt_simple_name(struct obj *shirt UNUSED)
 {
-    return "shirt";
+    return "衬衫";
 }
 
 const char *
@@ -9851,7 +8927,7 @@ mimic_obj_name(struct monst *mtmp)
 {
     if (M_AP_TYPE(mtmp) == M_AP_OBJECT) {
         if (mtmp->mappearance == GOLD_PIECE)
-            return "gold";
+            return "金币";
         if (mtmp->mappearance != STRANGE_OBJECT)
             return simple_typename(mtmp->mappearance);
     }

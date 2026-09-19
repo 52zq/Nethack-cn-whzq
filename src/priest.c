@@ -1,4 +1,4 @@
-/* NetHack 5.0	priest.c	$NHDT-Date: 1764567778 2025/11/30 21:42:58 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.106 $ */
+/* NetHack 5.0	priest.c	$NHDT-Date: 1781973062 2026/06/20 16:31:02 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.110 $ */
 /* Copyright (c) Izchak Miller, Steve Linhart, 1989.              */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -324,11 +324,11 @@ priestname(
         if (article == ARTICLE_YOUR || (article == ARTICLE_A && high_priest))
             article = ARTICLE_THE;
         if (article == ARTICLE_THE) {
-            Strcpy(pname, "这个");
-        } else if (!strcmp(what, "Angel") || !strcmp(what, "天使")) { /*危险:Angel*/
+            Strcpy(pname, "");
+        } else if (!strcmp(what, "Angel")) { /*危险:Angel*/
             /* bypass just_an(); it would yield "" due to treating capital A
                as indicating a personal name */
-            Strcpy(pname, "一个");
+            Strcpy(pname, "");
         } else {
             (void) just_an(pname, what);
         }
@@ -336,33 +336,32 @@ priestname(
     /* pname[] contains "" or {"a ","an ","the "} */
     if (mon->minvis) {
         /* avoid "a invisible priest" */
-        if (!strcmp(pname, "a "))
-            Strcpy(pname, "一个");
+        /*冗余:if (!strcmp(pname, "a "))
+            Strcpy(pname, "一个");*/
         Strcat(pname, "隐形的");
     }
-    if (mon->isminion && EMIN(mon)->renegade) {
-        /* avoid "an renegade Angel" */
-        if (!strcmp(pname, "an") && !mon->minvis)
-            Strcpy(pname, "一个");
-        Strcat(pname, "反叛的");
-    }
 
-    if (mon->ispriest || aligned_priest) {
-        if (high_priest)
-            Strcat(pname, do_hallu ? "大" : "高");
-    } else {
-        if (mon->mtame && !strcmpi(what, "Angel") || !strcmp(what, "天使"))
-            Strcat(pname, "高级");
-    }
-
-    Strcat(pname, what);
     /* same as distant_monnam(), more or less... */
     if (do_hallu || !high_priest || reveal_high_priest
         || !Is_astralevel(&u.uz)
         || m_next2u(mon) || program_state.gameover) {
-        Strcat(pname, " 的 ");
         Strcat(pname, halu_gname(mon_aligntyp(mon)));
+        Strcat(pname, "的");
     }
+    if (mon->isminion && EMIN(mon)->renegade) { //修改语序:原本应该放在前面
+        /* avoid "an renegade Angel" */
+        /*冗余:if (!strcmp(pname, "an") && !mon->minvis)
+            Strcpy(pname, "一个");*/
+        Strcat(pname, "叛逆");
+    }
+    if (mon->ispriest || aligned_priest) {
+        if (high_priest)
+            Strcat(pname, do_hallu ? "大" : "高阶");
+    } else {
+        if (mon->mtame && (!strcmpi(what, "Angel") || !strcmp(what, "天使")))
+            Strcat(pname, "守护");
+    }
+    Strcat(pname, what); /*修改语序:放到了后面*/
     return pname;
 }
 
@@ -531,7 +530,7 @@ intemple(int roomno)
             if (flags.verbose)
                 You("害怕得要死, 无法移动.");
             nomul(-3);
-            gm.multi_reason = "被幽灵惊吓";
+            gm.multi_reason = "被幽灵恐吓";
             gn.nomovemsg = "你重新镇定下来.";
         }
     }
@@ -589,7 +588,7 @@ priest_talk(struct monst *priest)
         };
 
         if (helpless(priest)) {
-            pline("%s从s的沉思中惊醒!", Monnam(priest),
+            pline("%s从%s的沉思中惊醒!", Monnam(priest),
                   mhis(priest));
             priest->mfrozen = priest->msleeping = 0;
             priest->mcanmove = 1;
@@ -642,7 +641,7 @@ priest_talk(struct monst *priest)
         if (quan < 1)
             quan = 1;
 
-        Sprintf(buf, "你打算捐多少(建议:%ld或%ld)?",
+        Sprintf(buf, "你打算捐多少(建议: %ld或%ld)?",
                 suggested * quan, suggested * quan * 2);
 
         if (flags.debug)

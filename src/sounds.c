@@ -1,4 +1,4 @@
-/* NetHack 5.0	sounds.c	$NHDT-Date: 1736530208 2025/01/10 09:30:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.165 $ */
+/* NetHack 5.0	sounds.c	$NHDT-Date: 1781973067 2026/06/20 16:31:07 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.172 $ */
 /*      Copyright (c) 1989 Janet Walz, Mike Threepoint */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -77,7 +77,7 @@ beehive_mon_sound(struct monst *mtmp)
         case 2:
             Soundeffect(se_bees, 100);
             You_hear("蜜蜂飞进了你的%s帽子里!",
-                     uarmh ? "" : "(不存在的) ");
+                     uarmh ? "" : "(不存在的)");
             break;
         }
         return TRUE;
@@ -119,7 +119,7 @@ zoo_mon_sound(struct monst *mtmp)
         int hallu = Hallucination ? 1 : 0, selection = rn2(2) + hallu;
         static const char *const zoo_msg[3] = {
             "类似大象踩碎坚果的声音.",
-            "类似海豹叫声的声音", "怪医杜立德!",
+            "类似海豹叫声的声音.", "怪医杜立德!",
         };
         You_hear1(zoo_msg[selection]);
         return TRUE;
@@ -145,7 +145,7 @@ temple_priest_sound(struct monst *mtmp)
            priest is not currently standing on the altar; he's mobile). */
         static const char *const temple_msg[] = {
             "*有人在赞美%s.", "*有人在祈求%s.",
-            "#一个动物尸体被献为祭品",
+            "#一具动物尸体被献为祭品.",
             "*有人在恳切地呼吁捐款.",
         };
         const char *msg;
@@ -164,7 +164,7 @@ temple_priest_sound(struct monst *mtmp)
                 continue;
             break; /* msg is acceptable */
         } while (++trycount < 50);
-        while (!letter(*msg))
+        while (!letter1(*msg))
             ++msg; /* skip control flags */
         if (strchr(msg, '%')) {
             DISABLE_WARNING_FORMAT_NONLITERAL
@@ -413,7 +413,7 @@ growl(struct monst *mtmp)
         growl_verb = growl_sound(mtmp);
     if (growl_verb) {
         if (canseemon(mtmp) || !Deaf) {
-            pline("%s发出%s!", Monnam(mtmp), vtense((char *) 0, growl_verb));
+            pline("%s发出%s声!", Monnam(mtmp), vtense((char *) 0, growl_verb));
             iflags.last_msg = PLNMSG_GROWL;
             if (svc.context.run)
                 nomul(0);
@@ -778,7 +778,7 @@ domonnoise(struct monst *mtmp)
                         flags.female ? "姐姐" : "哥哥");
                 verbl_msg = verbuf;
             } else if (nightchild && isnight) {
-                Sprintf(verbuf, "很高兴听到你的声音,夜之子!");
+                Sprintf(verbuf, "很高兴听到你的声音, 夜之子!");
                 verbl_msg = verbuf;
             } else
                 verbl_msg = "我只喝... 药水.";
@@ -810,12 +810,14 @@ domonnoise(struct monst *mtmp)
                     verbl_msg = verbuf;
                 } else if (vampindex == 1) {
                     Sprintf(verbuf, vampmsg[vampindex],
-                            Upolyd ? an(pmname(&mons[u.umonnum],
-                                               flags.female ? FEMALE : MALE))
+                            Upolyd ? an_pmname(&mons[u.umonnum],
+                                               flags.female ? FEMALE : MALE)
                                    : an(racenoun));
                     verbl_msg = verbuf;
-                } else
-                    verbl_msg = vampmsg[vampindex];
+                } else if (vampindex > 1) {
+                    if (vampindex >= 0 && vampindex < SIZE(vampmsg))
+                        verbl_msg = vampmsg[vampindex];
+                }
             }
         }
         break;
@@ -990,7 +992,7 @@ domonnoise(struct monst *mtmp)
         break;
     case MS_DJINNI:
         if (mtmp->mtame) {
-            verbl_msg = "抱歉,我的愿望已经用完了.";
+            verbl_msg = "抱歉, 我的愿望已经用完了.";
         } else if (mtmp->mpeaceful) {
             if (ptr == &mons[PM_WATER_DEMON])
                 pline_msg = "咕噜叫.";
@@ -998,7 +1000,7 @@ domonnoise(struct monst *mtmp)
                 verbl_msg = "我自由了!";
         } else {
             if (ptr != &mons[PM_PRISONER])
-                verbl_msg = "让你别打扰我,这就给你好好上一课!";
+                verbl_msg = "让你别打扰我, 这就给你好好上一课!";
             else /* vague because prisoner might already be out of cell */
                 verbl_msg = "快把我弄出去.";
         }
@@ -1262,7 +1264,7 @@ dochat(void)
 
     if (is_silent(gy.youmonst.data)) {
         pline("身为%s, 你无法说话.",
-              an(pmname(gy.youmonst.data, flags.female ? FEMALE : MALE)));
+              an_pmname(gy.youmonst.data, flags.female ? FEMALE : MALE));
         return ECMD_OK;
     }
     if (Strangled) {
@@ -1536,6 +1538,8 @@ tiphat(void)
     return res;
 }
 
+char *sounddir = 0;
+
 #ifdef USER_SOUNDS
 
 typedef struct audio_mapping_rec {
@@ -1549,7 +1553,6 @@ typedef struct audio_mapping_rec {
 static audio_mapping *soundmap = 0;
 static audio_mapping *sound_matches_message(const char *);
 
-char *sounddir = 0; /* set in files.c */
 
 /* adds a sound file mapping, returns 0 on failure, 1 on success */
 int

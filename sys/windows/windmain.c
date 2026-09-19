@@ -108,6 +108,7 @@ staticfn void stdio_raw_print(const char *str);
 staticfn void stdio_nonl_raw_print(const char *str);
 staticfn void stdio_raw_print_bold(const char *str);
 staticfn int stdio_nhgetch(void);
+void stdout_write_utf8(const char *str);
 
 #ifdef PORT_HELP
 void port_help(void);
@@ -192,8 +193,8 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
 #endif
 #endif
 
-    set_emergency_io();
 #ifndef MSWIN_GRAPHICS
+    set_emergency_io();
     early_init(argc, argv); /* already in WinMain for MSWIN_GRAPHICS */
 #endif
 
@@ -243,6 +244,15 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
         windowtype = "tty";
 #endif
     }
+#ifdef MSWIN_GRAPHICS
+    if (!strcmp(windowtype, "tty"))
+        windowtype = "mswin";
+#endif
+#ifdef TTY_GRAPHICS
+    if (!strcmp(windowtype, "mswin"))
+        windowtype = "tty";
+#endif
+
     choose_windows(
         windowtype); /* sets all the window port function pointers */
 
@@ -251,7 +261,7 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
      * the game is exited.
      */
     if (getcwd(orgdir, sizeof orgdir) == (char *) 0)
-        error("NetHack: current directory path too long");
+        error("NetHack: 当前文件路径过长");
 #endif
     getreturn_enabled = TRUE;
 #ifdef MSWIN_GRAPHICS
@@ -276,16 +286,19 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
     check_recordfile((char *) 0);
     /* did something earlier flag a need to exit without starting a game? */
     if (windows_startup_state > 0) {
-        raw_printf("Exiting.");
+        raw_printf("退出.");
         nethack_exit(EXIT_FAILURE);
     }
+
+    genl_prag(argc, argv); /* command line options for profession, race,
+                            * alignment, gender */
 
     /* Finished processing options, lock all directory paths */
     for (int i = 0; i < PREFIX_COUNT; i++)
         fqn_prefix_locked[i] = TRUE;
 
     if (!validate_prefix_locations(failbuf)) {
-        raw_printf("Some invalid directory locations were specified:\n\t%s\n",
+        raw_printf("指定了一些无效的目录位置:\n\t%s\n",
                    failbuf);
         nethack_exit(EXIT_FAILURE);
     }
@@ -322,11 +335,11 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
         pline("%s\n%s\n%s\n%s\n\n", copyright_banner_line(1),
               copyright_banner_line(2), copyright_banner_line(3),
               copyright_banner_line(4));
-        pline("NetHack was unable to open the required file \"%s\"", DLBFILE);
+        pline("NetHack无法打开需要的文件\"%s\"", DLBFILE);
         if (file_exists(DLBFILE))
-            pline("\nAre you perhaps trying to run NetHack within a zip "
-                  "utility?");
-        error("dlb_init failure.");
+            pline("\n你是不是在压缩包里运行"
+                  "NetHack的?");
+        error("dlb_init失败.");
     }
 #endif
 
@@ -387,8 +400,6 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
        setting of renameallowed; when False, player_selection()
        won't resent renaming as an option */
     iflags.renameallowed = FALSE;
-    /* Obtain the name of the logged on user and incorporate
-     * it into the name. */
     Sprintf(fnamebuf, "%s", svp.plname);
     (void) fname_encode(
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_-.", '%',
@@ -408,7 +419,7 @@ _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);*/
      */
     nhfp = create_levelfile(0, (char *) 0);
     if (!nhfp) {
-        raw_print("Cannot create lock file");
+        raw_print("无法创建锁文件");
     } else {
         svh.hackpid = GetCurrentProcessId();
         (void) write(nhfp->fd, (genericptr_t) &svh.hackpid, sizeof(svh.hackpid));
@@ -433,16 +444,16 @@ attempt_restore:
         }
 #endif
         if (ge.early_raw_messages)
-            raw_print("Restoring save file...");
+            raw_print("读取存档中...");
         else
-            pline("Restoring save file...");
+            pline("读取存档中...");
         mark_synch(); /* flush output */
         if (dorecover(nhfp)) {
             resuming = TRUE; /* not starting new game */
             if (discover)
-                You("are in non-scoring discovery mode.");
+                You("正在游玩不计分的探索模式.");
             if (discover || wizard) {
-                if (y_n("Do you want to keep the save file?") == 'n')
+                if (y_n("你想保留存档文件吗?") == 'n')
                     (void) delete_savefile();
                 else {
                     nh_compress(fqname(gs.SAVEF, SAVEPREFIX, 0));
@@ -471,7 +482,7 @@ attempt_restore:
         }
         newgame();
         if (discover)
-            You("are in non-scoring discovery mode.");
+            You("正在游玩不计分的探索模式.");
     }
 
         // iflags.debug_fuzzer = TRUE;
@@ -722,14 +733,14 @@ copy_file(const char *dst_folder, const char *dst_name,
     strcat(src_path, src_name);
 
     if (!file_exists(src_path))
-        error("Unable to copy file '%s' as it does not exist", src_path);
+        error("因为文件'%s'不存在, 所以无法复制", src_path);
 
     if (file_exists(dst_path) && !copy_even_if_it_exists)
         return;
 
     BOOL success = CopyFileA(src_path, dst_path, !copy_even_if_it_exists);
     if (!success)
-        error("Failed to copy '%s' to '%s' (%d)", src_path, dst_path, errno);
+        error("将'%s'复制到'%s'失败 (%d)", src_path, dst_path, errno);
 }
 
 /* update file copying if it does not exist or src is newer then dst */
@@ -751,7 +762,7 @@ update_file(const char *dst_folder, const char *dst_name,
     strcat(save_path, ".save");
 
     if (!file_exists(src_path))
-        error("Unable to copy file '%s' as it does not exist", src_path);
+        error("因为文件'%s'不存在, 所以无法复制", src_path);
 
     if (!file_newer(src_path, dst_path))
         return;
@@ -761,7 +772,7 @@ update_file(const char *dst_folder, const char *dst_name,
 
     BOOL success = CopyFileA(src_path, dst_path, FALSE);
     if (!success)
-        error("Failed to update '%s' to '%s'", src_path, dst_path);
+        error("将'%s'更新到'%s'失败", src_path, dst_path);
 }
 
 void
@@ -951,8 +962,10 @@ void freefakeconsole(void)
 void
 windows_raw_print(const char *str)
 {
-    if (str)
-        fprintf(stdout, "%s\n", str);
+    if (str) {
+        stdout_write_utf8(str);
+        stdout_write_utf8("\n");
+    }
     windows_nhgetch();
     return;
 }
@@ -1049,7 +1062,7 @@ getlock(void)
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
         chdirx(orgdir, 0);
 #endif
-        error("Quitting.");
+        error("退出游戏.");
     }
 
     /* regularize(lock); */ /* already done in pcmain */
@@ -1062,10 +1075,10 @@ getlock(void)
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
         chdirx(orgdir, 0);
 #endif
-        error("Bad directory or name: %s\n%s\n", fq_lock,
+        error("无效路径或文件: %s\n%s\n", fq_lock,
                   strerror(errno));
         unlock_file(HLOCK);
-        Sprintf(oops, "Cannot open %s", fq_lock);
+        Sprintf(oops, "无法打开%s", fq_lock);
         raw_print(oops);
         nethack_exit(EXIT_FAILURE);
     }
@@ -1083,12 +1096,12 @@ getlock(void)
      * prompt_result == -1 means willfully destroy the old game.
      * prompt_result == 0 should just exit.
      */
-    Sprintf(oops, "You chose to %s.",
+    Sprintf(oops, "你选择%s.", //中文乱码
                 (prompt_result == -1)
-                    ? "destroy the old game and start a new one"
+                    ? "摧毁旧的游戏, 开始新的"
                     : (prompt_result == 1)
-                        ? "recover the old game"
-                        : "not start a new game");
+                        ? "恢复旧的游戏"
+                        : "不开始新的游戏");
 #ifdef WIN32CON
     if (istty)
         term_clear_screen();
@@ -1106,7 +1119,7 @@ getlock(void)
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
             chdirx(orgdir, 0);
 #endif
-            raw_print("Couldn't recover the old game.");
+            raw_print("无法恢复旧的游戏.");
         }
     } else if (prompt_result < 0) {    /* destroy old game */
         if (eraseoldlocks()) {
@@ -1120,7 +1133,7 @@ getlock(void)
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
             chdirx(orgdir, 0);
 #endif
-            raw_print("Couldn't destroy the old game.");
+            raw_print("无法摧毁旧的游戏.");
             return 0;
         }
     } else {
@@ -1140,8 +1153,8 @@ gotlock:
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
         chdirx(orgdir, 0);
 #endif
-        Sprintf(oops, "cannot creat file (%s.)\n%s\n%s\"%s\" exists?\n", fq_lock,
-              strerror(ern), " Are you sure that the directory",
+        Sprintf(oops, "无法creat文件 (%s.)\n%s\n%s\"%s\"这个路径存在吗?\n", fq_lock,
+              strerror(ern), "你确定",
               gf.fqn_prefix[LEVELPREFIX]);
         raw_print(oops);
     } else {
@@ -1150,13 +1163,13 @@ gotlock:
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
             chdirx(orgdir, 0);
 #endif
-            error("cannot write lock (%s)", fq_lock);
+            error("无法写入锁 (%s)", fq_lock);
         }
         if (nhclose(fd) == -1) {
 #if defined(CHDIR) && !defined(NOCWD_ASSUMPTIONS)
             chdirx(orgdir, 0);
 #endif
-            error("cannot close lock (%s)", fq_lock);
+            error("无法关闭锁 (%s)", fq_lock);
         }
     }
     return prompt_result;
@@ -1212,8 +1225,8 @@ tty_self_recover_prompt(void)
     raw_print("\n");
     raw_print("\n");
     raw_print("\n");
-    raw_print("There are files from a game in progress under your name. ");
-    raw_print("Recover? [yn] ");
+    raw_print("在你的名下有一些正在进行的游戏文件. "); //中文乱码
+    raw_print("恢复? [yn] ");
 
  tty_ask_again:
 
@@ -1235,8 +1248,8 @@ tty_self_recover_prompt(void)
 
     if (pl == 1 && (c == 'n' || c == 'N')) {
         /* no to recover */
-        raw_print("\n\nAre you sure you wish to destroy the old game rather than try to\n");
-        raw_print("recover it? [yn] ");
+        raw_print("\n\n你确定要摧毁旧的游戏, \n"); //中文乱码
+        raw_print("而非恢复它? [yn] ");
         c = 'n';
         ct = 0;
         pl = 2;
@@ -1276,13 +1289,13 @@ other_self_recover_prompt(void)
     c = 'n';
     ct = 0;
     if (iflags.window_inited || WINDOWPORT(curses)) {
-        c = y_n("There are files from a game in progress under your name. "
-               "Recover?");
+        c = y_n("在你的名下有一些正在进行的游戏文件. " //中文乱码
+               "恢复?");
     } else {
         c = 'n';
         ct = 0;
-        raw_print("There are files from a game in progress under your name. "
-              "Recover? [yn]");
+        raw_print("在你的名下有一些正在进行的游戏文件. " //中文乱码
+              "恢复? [yn]");
     }
 
  other_ask_again:
@@ -1303,8 +1316,8 @@ other_self_recover_prompt(void)
     }
     if (pl == 1 && (c == 'n' || c == 'N')) {
         /* no to recover */
-        c = y_n("Are you sure you wish to destroy the old game, rather than try to "
-                  "recover it? [yn] ");
+        c = y_n("你确定要摧毁旧的游戏, " //中文乱码
+                  "而非恢复它? [yn] ");
         pl = 2;
         if (!ismswin && !iscurses) {
             c = 'n';
@@ -1335,7 +1348,7 @@ chdirx(const char *dir, boolean wr)
     static char thisdir[] = ".";
 
     if (dir && chdir(dir) < 0) {
-        error("Cannot chdir to %s.", dir);
+        error("无法chdir到%s.", dir);
     }
 
     /* warn the player if we can't write the record file */
@@ -1356,14 +1369,39 @@ set_emergency_io(void)
 }
 
 
+/* Helper: write UTF-8 string to console via WriteConsoleW,
+   bypassing CRT encoding issues entirely */
+void
+stdout_write_utf8(const char *str)
+{
+    HANDLE hOut;
+    int wlen;
+    wchar_t *wstr;
+    DWORD written;
+
+    if (!str || !*str)
+        return;
+    hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE)
+        return;
+    wlen = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+    if (wlen <= 0)
+        return;
+    wstr = (wchar_t *) malloc(wlen * sizeof(wchar_t));
+    if (!wstr)
+        return;
+    MultiByteToWideChar(CP_UTF8, 0, str, -1, wstr, wlen);
+    WriteConsoleW(hOut, wstr, wlen - 1, &written, NULL);
+    free(wstr);
+}
+
 /* Add to your code: windowprocs.win_raw_print = stdio_wait_synch; */
 void
 stdio_wait_synch(void)
 {
     char valid[] = { ' ', '\n', '\r', '\033', '\0' };
 
-    fprintf(stdout, "--More--");
-    (void) fflush(stdout);
+    stdout_write_utf8("--更多--");
     while (!strchr(valid, nhgetch()))
         ;
 }
@@ -1372,8 +1410,10 @@ stdio_wait_synch(void)
 void
 stdio_raw_print(const char *str)
 {
-    if (str)
-        fprintf(stdout, "%s\n", str);
+    if (str) {
+        stdout_write_utf8(str);
+        stdout_write_utf8("\n");
+    }
     return;
 }
 
@@ -1383,7 +1423,7 @@ void
 stdio_nonl_raw_print(const char *str)
 {
     if (str)
-        fprintf(stdout, "%s", str);
+        stdout_write_utf8(str);
     return;
 }
 

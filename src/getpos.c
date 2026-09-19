@@ -1,4 +1,4 @@
-/* NetHack 5.0	getpos.c	$NHDT-Date: 1763708572 2025/11/20 23:02:52 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.6 $ */
+/* NetHack 5.0	getpos.c	$NHDT-Date: 1781973050 2026/06/20 16:30:50 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.11 $ */
 /*-Copyright (c) Pasi Kallinen, 2023. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -117,7 +117,7 @@ getpos_getvalids_selection(
 static const char *const gloc_descr[NUM_GLOCS][4] = {
     { "任何怪物", "怪物", "下一个/上一个怪物", "怪物" },
     { "任何物品", "物品", "下一个/上一个物品", "物品" },
-    { "任何门", "门", "下一个/上一个门/门口",
+    { "任何门", "门", "下一扇/上一扇门/门口",
       "门/门口" },
     { "任何未探索区域", "未探索区域", "未探索位置",
       "未探索的相邻位置" },
@@ -180,7 +180,7 @@ getpos_help(boolean force, const char *goal)
             visctrl(cmd_from_func(do_move_east)), goal);
     putstr(tmpwin, 0, sbuf);
     Sprintf(sbuf,
-            "使用'%s', '%s', '%s', '%s'快速移动光标,%s.",
+            "使用'%s', '%s', '%s', '%s'快速移动光标, %s.",
             visctrl(cmd_from_func(do_run_west)),
             visctrl(cmd_from_func(do_run_south)),
             visctrl(cmd_from_func(do_run_north)),
@@ -277,7 +277,7 @@ getpos_help(boolean force, const char *goal)
             Sprintf(kbuf, "'%s'", visctrl(gc.Cmd.spkeys[NHKF_GETPOS_PICK]));
         }
         Snprintf(sbuf, sizeof(sbuf),
-                 "Type a %s when you are at the right place.", kbuf);
+                 "当你选到想要的位置后, 按下%s.", kbuf);
         putstr(tmpwin, 0, sbuf);
         if (doing_what_is) {
             Sprintf(sbuf,
@@ -560,7 +560,7 @@ dxdy_to_dist_descr(coordxy dx, coordxy dy, boolean fulldir)
     int dst;
 
     if (!dx && !dy) {
-        Sprintf(buf, "在这儿");
+        Sprintf(buf, "在这里");
     } else if ((dst = xytodir(dx, dy)) != -1) {
         /* explicit direction; 'one step' is implicit */
         Sprintf(buf, "%s", directionname(dst));
@@ -576,7 +576,7 @@ dxdy_to_dist_descr(coordxy dx, coordxy dy, boolean fulldir)
             if (abs(dy) > 9999)
                 dy = sgn(dy) * 9999;
             Sprintf(eos(buf), "%d%s%s", abs(dy), dirnames[(dy > 0)][fulldir],
-                    dx ? "，" : "");
+                    dx ? ", " : "");
         }
         if (dx) {
             if (abs(dx) > 9999)
@@ -708,7 +708,7 @@ getpos_menu(coord *ccp, int gloc)
         }
     }
 
-    Sprintf(tmpbuf, "选择%s一个目标%s%s",
+    Sprintf(tmpbuf, "选择%s目标%s%s",
             an(gloc_descr[gloc][1]),
             gloc_filtertxt[iflags.getloc_filter],
             iflags.getloc_travelmode ? "以自动旅行" : "");
@@ -852,7 +852,7 @@ getpos(coord *ccp, boolean force, const char *goal)
 #endif
     curs(WIN_MAP, cx, cy);
     flush_screen(0);
-#ifdef MACOS9
+#ifdef MAC68K
     lock_mouse_cursor(TRUE);
 #endif
     lock_mouse_buttons(TRUE);
@@ -1149,7 +1149,7 @@ getpos(coord *ccp, boolean force, const char *goal)
         flush_screen(0);
     }
  exitgetpos:
-#ifdef MACOS9
+#ifdef MAC68K
     lock_mouse_cursor(FALSE);
 #endif
     lock_mouse_buttons(FALSE);

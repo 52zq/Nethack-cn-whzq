@@ -1,4 +1,4 @@
-/* NetHack 5.0  rumors.c    $NHDT-Date: 1594370241 2020/07/10 08:37:21 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.56 $ */
+/* NetHack 5.0	rumors.c	$NHDT-Date: 1781973065 2026/06/20 16:31:05 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.93 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -554,10 +554,11 @@ outrumor(
     switch (mechanism) {
     case BY_ORACLE:
         /* Oracle delivers the rumor */
-        pline("不背其言, 神谕者%s说:",
-              (!rn2(4) ? "随口"
+        pline("不背其言, 神谕者%s%s:",
+              (!rn2(4) ? "漫不经心地"
                        : (!rn2(3) ? "随意"
-                                  : (rn2(2) ? "若无其事地" : ""))));
+                                  : (rn2(2) ? "若无其事地" : ""))),
+              says());
         SetVoice((struct monst *) 0, 0, 80, voice_oracle);
         verbalize1(line);
         /* [WIS exercised by getrumor()] */
@@ -672,12 +673,12 @@ outoracle(boolean special, boolean delphi)
             putstr(tmpwin, 0,
                    special
                      ? "神谕者不屑地拿走了你所有的金子, 说:"
-                     : "神谕沉思了片刻, 随后沉声说道:");
+                     : "神谕者沉思了片刻, 随后沉声说道:");
         else
             putstr(tmpwin, 0, "信息内容如下:");
         putstr(tmpwin, 0, "");
 
-        while (dlb_fgets(line, COLNO, oracles) && strcmp(line, "---\n")) {
+        while (dlb_fgets(line, COLNO, oracles) && strncmp(line, "---", 3)) {
             if ((endp = strchr(line, '\n')) != 0)
                 *endp = 0;
             putstr(tmpwin, 0, xcrypt(line, xbuf));
@@ -714,7 +715,7 @@ doconsult(struct monst *oracl)
         return ECMD_OK;
     }
 
-    Sprintf(qbuf, "\"汝欲小卜乎? \" (%d%s)",
+    Sprintf(qbuf, "\"汝欲小卜乎? \" (%d %s)",
             minor_cost, currency((long) minor_cost));
     switch (ynq(qbuf)) {
     default:
@@ -731,7 +732,7 @@ doconsult(struct monst *oracl)
         if (umoney <= (long) minor_cost /* don't even ask */
             || (svo.oracle_cnt == 1 || go.oracle_flg < 0))
             return ECMD_OK;
-        Sprintf(qbuf, "\"然, 汝欲大卜邪? \" (%d%s)",
+        Sprintf(qbuf, "\"然, 汝欲大卜邪? \" (%d %s)",
                 major_cost, currency((long) major_cost));
         if (y_n(qbuf) != 'y')
             return ECMD_OK;

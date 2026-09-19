@@ -1,4 +1,4 @@
--- NetHack core nhcore.lua	$NHDT-Date: 1652196284 2022/05/10 15:24:44 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.0 $
+-- NetHack core nhcore.lua	$NHDT-Date: 1781994886 2026/06/20 22:34:46 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.5 $
 --	Copyright (c) 2021 by Pasi Kallinen
 -- NetHack may be freely redistributed.  See license for details.
 -- This file contains lua code used by NetHack core.
@@ -107,14 +107,14 @@ end
 -- Show a helpful tip when player first uses getpos()
 function show_getpos_tip()
    nh.text([[
-Tip: Farlooking or selecting a map location
+提示: 远景浏览或选择地图位置
 
-You are now in a "farlook" mode - the movement keys move the cursor,
-not your character.  Game time does not advance.  This mode is used
-to look around the map, or to select a location on it.
+你现在处于"远景浏览"模式--移动键控制光标移
+动, 而非角色移动. 游戏时间不会推进. 此模式
+用于环顾地图, 或在地图上选择位置.
 
-When in this mode, you can press ESC to return to normal game mode,
-and pressing ? will show the key help.
+在此模式下, 你可以按ESC键返回正常游戏模式,
+按?键将显示按键帮助.
 ]]);
 end
 

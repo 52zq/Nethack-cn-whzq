@@ -1,4 +1,4 @@
--- NetHack Ranger Ran-goal.lua	$NHDT-Date: 1652196010 2022/05/10 15:20:10 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.1 $
+-- NetHack Ranger Ran-goal.lua	$NHDT-Date: 1781994871 2026/06/20 22:34:31 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.2 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991 by M. Stephenson
 -- NetHack may be freely redistributed.  See license for details.
@@ -36,7 +36,7 @@ des.stair("up", 19,10)
 -- Non diggable walls
 des.non_diggable(selection.area(00,00,75,19))
 -- Objects
-des.object({ id = "bow", x=37, y=10, buc="blessed", spe=0, name="The Longbow of Diana" })
+des.object({ id = "bow", x=37, y=10, buc="blessed", spe=0, name="狄安娜的长弓" })
 des.object("chest", 37, 10)
 des.object({ coord = { 36, 09 } })
 des.object({ coord = { 36, 10 } })

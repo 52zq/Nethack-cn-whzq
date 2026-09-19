@@ -8,8 +8,11 @@
 
 /* Global declarations */
 
+#define CURSES_NUM_BACKGROUND_COLORS 8
+
 int curses_getch(void);
 int curses_read_char(void);
+boolean curses_has_256color(void);
 void curses_toggle_color_attr(WINDOW *win, int color, int attr, int onoff);
 void curses_menu_color_attr(WINDOW *win, int color, int attr, int onoff);
 void curses_bail(const char *mesg);
@@ -23,6 +26,7 @@ boolean curses_utf8_continuation(unsigned char ch);
 char *curses_utf8_prev_char(char *start, char *pos);
 int curses_read_utf8_char(WINDOW *win, int first_ch, char *buf, int bufsz);
 int curses_utf8_str_cols(const char *str);
+int curses_ucs_cols(unsigned long cp);
 boolean curses_is_menu(winid wid);
 boolean curses_is_text(winid wid);
 int curses_convert_glyph(int ch, int glyph);

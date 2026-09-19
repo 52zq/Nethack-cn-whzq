@@ -1,4 +1,4 @@
--- NetHack Knight Kni-goal.lua	$NHDT-Date: 1652196005 2022/05/10 15:20:05 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.1 $
+-- NetHack Knight Kni-goal.lua	$NHDT-Date: 1781994868 2026/06/20 22:34:28 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.2 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991,92 by M. Stephenson
 -- NetHack may be freely redistributed.  See license for details.
@@ -37,7 +37,7 @@ des.stair("up", 03,08)
 -- Non diggable walls
 des.non_diggable(selection.area(00,00,75,19))
 -- Objects
-des.object({ id = "mirror", x=50,y=06, buc="blessed", spe=0, name="The Magic Mirror of Merlin" })
+des.object({ id = "mirror", x=50,y=06, buc="blessed", spe=0, name="梅林的魔镜" })
 des.object({ coord = { 33, 01 } })
 des.object({ coord = { 33, 02 } })
 des.object({ coord = { 33, 03 } })

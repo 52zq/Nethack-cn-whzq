@@ -1,4 +1,4 @@
-/* NetHack 5.0	mhitu.c	$NHDT-Date: 1775259433 2026/04/03 15:37:13 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.341 $ */
+/* NetHack 5.0	mhitu.c	$NHDT-Date: 1781973054 2026/06/20 16:30:54 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.347 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -42,24 +42,24 @@ hitmsg(struct monst *mtmp, struct attack *mattk)
     } else {
         switch (mattk->aatyp) {
         case AT_BITE:
-            verb = "咬了你一口";
+            verb = "咬你";
             break;
         case AT_KICK:
             if (thick_skinned(gy.youmonst.data))
                 punct = ".";
-            verb = "踢了你一下";
+            verb = "踢你";
             break;
         case AT_STNG:
-            verb = "叮了你一口";
+            verb = "叮你";
             break;
         case AT_BUTT:
-            verb = "撞了你一下";
+            verb = "撞你";
             break;
         case AT_TUCH:
-            verb = "碰了你一下!";
+            verb = "碰你";
             break;
         case AT_TENT:
-            verb = "的触手吸食了一口你的脑袋";
+            verb = "用触手吸你的脑袋";
             Monst_name = s_suffix(Monst_name);
             break;
         case AT_EXPL:
@@ -67,7 +67,7 @@ hitmsg(struct monst *mtmp, struct attack *mattk)
             verb = "爆炸了";
             break;
         default:
-            verb = "打了你一下";
+            verb = "打你";
         }
         /* if a monster hits more than once with similar attack, say so */
         again = (mtmp->m_id == gh.hitmsg_mid
@@ -93,7 +93,7 @@ missmu(struct monst *mtmp, boolean nearmiss, struct attack *mattk)
     if (could_seduce(mtmp, &gy.youmonst, mattk) && !mtmp->mcan)
         pline_mon(mtmp, "%s假装友好.", Monnam(mtmp));
     else
-        pline_mon(mtmp, "%s%s没打中!", Monnam(mtmp),
+        pline_mon(mtmp, "%s%s没有击中!", Monnam(mtmp),
                   (nearmiss && flags.verbose) ? "恰好" : "");
 
     stop_occupation();
@@ -117,7 +117,7 @@ mswings_verb(
 
     verb = bash ? "猛挥" /*sigh*/
            : lash ? "甩"
-             : thrust ? "扔出"
+             : thrust ? "猛刺"
                : "挥动";
     /* (might have caller also pass attacker's formatted name so that
        if hallucination makes that be plural, we could use vtense() to
@@ -133,7 +133,7 @@ mswings(
     boolean bash)       /* True: polearm used at too close range */
 {
     if (flags.verbose && !Blind && mon_visible(mtmp)) {
-        pline_mon(mtmp, "%s%s%s%s%s.", Monnam(mtmp),
+        pline_mon(mtmp, "%s%s%s的%s%s.", Monnam(mtmp),
                   mswings_verb(otemp, bash),
                   mhis(mtmp), /*修改语序:(otemp->quan > 1L) ? "之一" : "",*/
                   (otemp->quan > 1L) ? "一个" : "", xname(otemp)); /*修改语序:mhis(mtmp), xname(otemp));*/
@@ -164,7 +164,7 @@ u_slow_down(void)
 {
     HFast = 0L;
     if (!Fast)
-        You("慢了下来.");
+        You("的速度变慢了.");
     else /* speed boots */
         Your("迅捷感觉不那么自然了.");
     exercise(A_DEX, FALSE);
@@ -217,7 +217,7 @@ wildmiss(struct monst *mtmp, struct attack *mattk)
         } else {
             switch (rn2(3)) {
             case 0:
-                pline("%s到处乱%s但没打中!", Monst_name, swings);
+                pline("%s到处乱%s但没%s中!", Monst_name, swings, swings);
                 break;
             case 1:
                 pline("%s攻击了你的身旁.", Monst_name);
@@ -225,7 +225,7 @@ wildmiss(struct monst *mtmp, struct attack *mattk)
             case 2:
                 pline("%s攻击了%s!", Monst_name,
                       is_waterwall(mtmp->mux,mtmp->muy)
-                        ? "空水"
+                        ? "水"
                         : "空气");
                 break;
             default:
@@ -697,8 +697,8 @@ mattacku(struct monst *mtmp)
             char buf[BUFSZ];
 
             Sprintf(buf, "你看上去又变回了%s.",
-                    Upolyd ? (const char *) an(pmname(gy.youmonst.data,
-                                                      flags.female))
+                    Upolyd ? (const char *) pmname(gy.youmonst.data,
+                                                      flags.female) //这个地方感觉不用an_pmname也可以?
                            : (const char *) "你自己");
             unmul(buf); /* immediately stop mimicking */
         }
@@ -1448,7 +1448,7 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
                 tmp = 0;
         } else {
             You("被%s了!", enfolds(mtmp->data) ? "挤压"
-                                               : "被碎片击打");
+                                               : "碎片击打");
             exercise(A_STR, FALSE);
         }
         break;
@@ -1463,7 +1463,7 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
             if (Hallucination)
                 pline("哎呀! 你被黏液覆盖了!");
             else
-                You("被粘液覆盖了! 它在灼烧!");
+                You("被黏液覆盖了! 它在灼烧!");
             exercise(A_STR, FALSE);
             monstunseesu(M_SEEN_ACID);
         }
@@ -1486,7 +1486,7 @@ gulpmu(struct monst *mtmp, struct attack *mattk)
         break;
     case AD_ELEC:
         if (!mtmp->mcan && rn2(2)) {
-            pline("你周围的空气因电流而噼啪作响."); /*危险:pline_The*/
+            pline("你周围的空气因电流而噼啪作响."); /*换pline:pline_The*/
             if (Shock_resistance) {
                 shieldeff(u.ux, u.uy);
                 You("似乎毫发无损.");
@@ -1606,7 +1606,7 @@ explmu(
     if (!ufound) {
         pline("%s在%s中爆炸了!",
               canseemon(mtmp) ? Monnam(mtmp) : "它",
-              is_waterwall(mtmp->mux,mtmp->muy) ? "空水"
+              is_waterwall(mtmp->mux,mtmp->muy) ? "水"
                                                 : "空气");
     } else {
         hitmsg(mtmp, mattk);
@@ -1640,7 +1640,7 @@ explmu(
         if (ufound && !not_affected) {
             boolean chg;
             if (!Hallucination)
-                You("被一阵万花筒般的光芒击中了!");
+                You("被一阵万花筒般的闪光击中了!");
             /* avoid hallucinating the black light as it dies */
             mondead(mtmp);    /* remove it from map now */
             kill_agr = FALSE; /* already killed (maybe lifesaved) */
@@ -2030,7 +2030,7 @@ doseduce(struct monst *mon)
             }
             /* confirmation prompt when charisma is high bypassed if deaf */
             if (!Deaf && rn2(20) < ACURR(A_CHA)) {
-                (void) safe_qbuf(qbuf, "\"那个",
+                (void) safe_qbuf(qbuf, "\"那枚", //危险: 会不会不是戒指?
                                  "真好看. 我可以拿走吗? \"", ring,
                                  xname, simpleonames, "戒指");
                 makeknown(RIN_ADORNMENT);
@@ -2061,7 +2061,7 @@ doseduce(struct monst *mon)
             }
             /* confirmation prompt when charisma is high bypassed if deaf */
             if (!Deaf && rn2(20) < ACURR(A_CHA)) {
-                (void) safe_qbuf(qbuf, "\"那个",
+                (void) safe_qbuf(qbuf, "\"那枚", //危险: 会不会不是戒指?
                                 "真好看. 你可以给我戴上吗? \"",
                                  ring, xname, simpleonames, "戒指");
                 makeknown(RIN_ADORNMENT);
@@ -2245,7 +2245,7 @@ doseduce(struct monst *mon)
             disp.botl = TRUE;
             break;
         case 3:
-            pline("这是一个非常有教育意义的经验.");
+            pline("这是一次非常有教育意义的体验.");
             pluslvl(FALSE);
             exercise(A_WIS, TRUE);
             break;

@@ -1,4 +1,4 @@
-/* NetHack 5.0	hacklib.c	$NHDT-Date: 1706213796 2024/01/25 20:16:36 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.116 $ */
+/* NetHack 5.0	hacklib.c	$NHDT-Date: 1781973051 2026/06/20 16:30:51 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.133 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2007. */
 /* Copyright (c) Robert Patrick Rankin, 1991                      */
@@ -69,6 +69,13 @@ boolean
 letter(char c)
 {
     return (boolean) ('@' <= c && c <= 'Z') || ('a' <= c && c <= 'z');
+}
+
+/* Francium-223: sounds.c:167 */
+boolean
+letter1(char c)
+{
+    return (boolean) (c != '#' && c != '*');
 }
 
 /* force 'c' into uppercase */
@@ -613,7 +620,7 @@ findword(
 const char *
 ordin(int n)               /* note: should be non-negative */
 {
-    int dd = n % 10;
+    //int dd = n % 10;
     return ""; /*危险*/
 }
 
@@ -905,6 +912,99 @@ unicodeval_to_utf8str(int uval, uint8 *buffer, size_t bufsz)
     return 1;
 }
 
+/* 获取一个格式良好的 UTF-8 字符的字节长度，并估算其显示宽度。*/
+void
+utf8char_info(const char *p_char, uint8 *char_len, uint8 *char_width)
+{
+    uchar c = (uchar) *p_char;
+
+    if (char_len) {
+        if (c < 0x80)
+            *char_len = 1;
+        else if (c < 0xE0)
+            *char_len = 2;
+        else if (c < 0xF0)
+            *char_len = 3;
+        else
+            *char_len = 4;
+    }
+
+    if (char_width) {
+        *char_width = (c < 0xE0) ? 1 : 2;
+    }
+}
+
+/* 估算一个 UTF-8 字符串的显示列宽。 */
+int
+utf8str_width(const char *str)
+{
+    int width = 0;
+    uint8 clen = 0, cw = 0;
+    while (*str) {
+        utf8char_info(str, &clen, &cw);
+        str += clen;
+        width += cw;
+    }
+    return width;
+}
+
+/* 返回指向字符串中第 col 个显示列之前或该列处的指针。
+ * 当下一个字符会超过 col 列时停止，确保不会切断多字节字符。 */
+const char *
+utf8str_at_col(const char *str, int col)
+{
+    unsigned cnt = 0;
+    uint8 clen = 0, cw = 0;
+    while (*str) {
+        utf8char_info(str, &clen, &cw);
+        if ((int) cnt + cw > col)
+            break;
+        str += clen;
+        cnt += cw;
+    }
+    return str;
+}
+
+/* 将字符串追加到 buf 末尾，并在其后补空格到指定显示列宽。类似 %-Ns 的行为。
+ * 若 buf 容量不够则不写入数据，并返回需要的容量（含结尾 '\0'）。
+ * 若成功则返回追加后的字符串长度。 */
+unsigned
+utf8str_append(char *buf, unsigned bufsz, const char *text, int width)
+{
+    unsigned curr_len = (unsigned) strlen(buf);
+    unsigned text_len = (unsigned) strlen(text);
+    int text_width = utf8str_width(text);
+    unsigned pad = (width > text_width) ? (width - text_width) : 0;
+    unsigned dest_len = curr_len + text_len + pad + 1;
+
+    if (dest_len > bufsz)
+        return dest_len;
+    Sprintf(eos(buf), "%s", text);
+    if (pad > 0)
+        Sprintf(eos(buf), "%*s", pad, "");
+    return curr_len + text_len + pad;
+}
+
+/* 同 `utf8str_append`，类似 %Ns 的行为。
+ * 若 buf 容量不够则不写入数据，并返回需要的容量（含结尾 '\0'）。
+ * 若成功则返回追加后的字符串长度。 */
+unsigned
+utf8str_append_r(char *buf, unsigned bufsz, const char *text, int width)
+{
+    unsigned curr_len = (unsigned) strlen(buf);
+    unsigned text_len = (unsigned) strlen(text);
+    int text_width = utf8str_width(text);
+    unsigned pad = (width > text_width) ? (width - text_width) : 0;
+    unsigned dest_len = curr_len + text_len + pad + 1;
+
+    if (dest_len > bufsz)
+        return dest_len;
+    if (pad > 0)
+        Sprintf(eos(buf), "%*s", pad, "");
+    Sprintf(eos(buf), "%s", text);
+    return curr_len + text_len + pad;
+}
+
 int
 case_insensitive_comp(const char *s1, const char *s2)
 {
@@ -961,7 +1061,7 @@ static struct datamodel_information dm[] = {
       "", "" },
     { { 2, 4, 4, 8, 4 }, "ILP32LL64", "x86 32-bit" }, /* Windows or Unix */
     { { 2, 4, 4, 8, 8 }, "IL32LLP64", "Windows x64 64-bit" },
-    { { 2, 4, 8, 8, 8 }, "I32LP64", "Unix 64-bit"}, 
+    { { 2, 4, 8, 8, 8 }, "I32LP64", "Unix 64-bit"},
     { { 2, 8, 8, 8, 8 }, "ILP64", "Unix ILP64"},      /* HAL, SPARC64 */
 };
 

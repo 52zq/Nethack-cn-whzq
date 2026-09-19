@@ -1,4 +1,4 @@
-/* NetHack 5.0	sit.c	$NHDT-Date: 1718136168 2024/06/11 20:02:48 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.95 $ */
+/* NetHack 5.0	sit.c	$NHDT-Date: 1781973067 2026/06/20 16:31:07 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.112 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -68,7 +68,7 @@ throne_sit_effect(void)
         switch (effect) {
         case 1:
             (void) adjattrib(rn2(A_MAX), -rn1(4, 3), FALSE);
-            losehp(rnd(10), "王座被诅咒", KILLED_BY_AN);
+            losehp(rnd(10), "被诅咒的王座", KILLED_BY_AN);
             break;
         case 2:
             (void) adjattrib(rn2(A_MAX), 1, FALSE);
@@ -76,7 +76,7 @@ throne_sit_effect(void)
         case 3:
             pline("一股%s电流冲击穿透了你的身体!",
                   (Shock_resistance) ? "" : "巨大的");
-            losehp(Shock_resistance ? rnd(6) : rnd(30), "椅子放电",
+            losehp(Shock_resistance ? rnd(6) : rnd(30), "放电的椅子",
                    KILLED_BY_AN);
             exercise(A_CON, FALSE);
             break;
@@ -187,7 +187,7 @@ throne_sit_effect(void)
                 You_feel("被威胁了.");
                 aggravate();
             } else {
-                You_feel("一阵扭曲.");
+                You("感到一阵扭曲."); //You_feel
                 tele(); /* teleport him */
             }
             break;
@@ -222,7 +222,7 @@ throne_sit_effect(void)
        started from.]  "Analyzing a throne" doesn't really make any sense
        but if the answer is yes than it will vanish in a puff of logic. */
     if (!special_throne &&
-        !rn2(3) && (!wizard || y_n("Analyze throne?") == 'y')) {
+        !rn2(3) && (!wizard || y_n("分解王座?") == 'y')) {
         levl[tx][ty].typ = ROOM, levl[tx][ty].flags = 0;
         map_background(tx, ty, FALSE);
         newsym_force(tx, ty);
@@ -336,7 +336,7 @@ special_throne_effect(int effect) {
     case 12:
         /* acid damage */
         pline("酸液从王座中渗出来!");
-        losehp(Acid_resistance ? rnd(16) : rnd(80), "椅子喷出酸液",
+        losehp(Acid_resistance ? rnd(16) : rnd(80), "喷出酸液的椅子",
                KILLED_BY_AN);
         exercise(A_CON, FALSE);
         break;
@@ -362,7 +362,7 @@ lay_an_egg(void)
     if (!flags.female) {
         pline("%s不能下蛋!",
               Hallucination
-              ? "你可能认为你是一个鸭嘴兽, 但雄性仍然"
+              ? "你可能觉得你是一只鸭嘴兽, 但雄性仍然"
               : "雄性");
         return ECMD_OK;
     } else if (u.uhunger < (int) objects[EGG].oc_nutrition) {
@@ -388,7 +388,7 @@ lay_an_egg(void)
     set_corpsenm(uegg, egg_type_from_parent(u.umonnum, FALSE));
     uegg->known = 1;
     observe_object(uegg);
-    You("%s.", eggs_in_water(gy.youmonst.data) ? "下了一个蛋" : "下了一个蛋");
+    You("%s下了一个蛋.", eggs_in_water(gy.youmonst.data) ? "产" : ""); //待写:???
     dropy(uegg);
     stackobj(uegg);
     morehungry((int) objects[EGG].oc_nutrition);
@@ -505,7 +505,7 @@ dosit(void)
     } else if ((Underwater || Is_waterlevel(&u.uz))
                 && !eggs_in_water(gy.youmonst.data)) {
         if (Is_waterlevel(&u.uz))
-            There("附近没有坐垫漂浮着.");
+            There("附近没有坐垫飘浮着.");
         else
             You("坐在泥泞的底部.");
     } else if (is_pool(u.ux, u.uy) && !eggs_in_water(gy.youmonst.data)) {

@@ -1,4 +1,4 @@
-/* NetHack 5.0	mon.c	$NHDT-Date: 1770949988 2026/02/12 18:33:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.621 $ */
+/* NetHack 5.0	mon.c	$NHDT-Date: 1781062909 2026/06/09 19:41:49 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.634 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -1230,20 +1230,25 @@ movemon_singlemon(struct monst *mtmp)
        off the map too; gd_move() decides whether the temporary
        corridor can be removed and guard discarded (via clearing
        mon->isgd flag so that dmonsfree() will get rid of mon) */
-    if (mtmp->isgd && !mtmp->mx && !(mtmp->mstate & MON_MIGRATING)) {
+    if (PARKEDMONSTER(mtmp) && !(mtmp->mstate & MON_MIGRATING)) {
         /* parked at <0,0>; eventually isgd should get set to false */
         if (svm.moves > mtmp->mlstmv) {
             (void) gd_move(mtmp);
             mtmp->mlstmv = svm.moves;
         }
+        mtmp->movement = 0;
         return FALSE;
     }
-    if (DEADMONSTER(mtmp))
+    if (DEADMONSTER(mtmp)) {
+        mtmp->movement = 0;
         return FALSE;
+    }
 
     /* monster isn't on this map anymore */
-    if (mon_offmap(mtmp))
+    if (mon_offmap(mtmp)) {
+        mtmp->movement = 0;
         return FALSE;
+    }
 
     m_everyturn_effect(mtmp);
 
@@ -2785,9 +2790,9 @@ m_detach(
         shkgone(mtmp);
     if (mtmp->wormno)
         wormgone(mtmp);
+    mtmp->mstate &= ~TERRAIN_FALLOUT_MASK;
     if (In_endgame(&u.uz))
         mtmp->mstate |= MON_ENDGAME_FREE;
-
     if ((mtmp->mstate & MON_DETACH) != 0) {
         impossible("m_detach: %s is already detached?",
                    minimal_monnam(mtmp, FALSE));
@@ -2858,7 +2863,7 @@ lifesaved_monster(struct monst *mtmp)
                 else
                     pline("%s看上去好多了!", Monnam(mtmp));
             }
-            pline_The("吊坠化为了尘埃!");
+            pline_The("吊坠化为了尘土!");
         }
         m_useup(mtmp, lifesave);
         /* equip replacement amulet, if any, on next move */
@@ -2913,7 +2918,7 @@ vamprises(struct monst *mtmp)
         Snprintf(action, sizeof action, "%s%s%s起来, %s成了",
                  Unaware ? "你梦到" : "",
                  x_monnam(mtmp, ARTICLE_THE,
-                          spec_mon ? (char *) 0 : "看上去已经死了的",
+                          spec_mon ? (char *) 0 : "看上去已经死掉的",
                           (SUPPRESS_INVISIBLE | AUGMENT_IT), FALSE),
                  Unaware ? "" : "突然",
                  spec_death ? "复原" : "转变");
@@ -3210,11 +3215,11 @@ corpse_chance(
                 /* mdef is a gas spore (AT_BOOM) that is exploding inside an
                    engulfer; suppress usual explosion since it's contained */
                 if (magr == &gy.youmonst) {
-                    pline("你的%s里有一个东西爆炸了!", body_part(STOMACH)); /*危险:There("你的%s里有一个东西爆炸了!", body_part(STOMACH));*/
+                    pline("你的%s里有一个东西爆炸了!", body_part(STOMACH)); /*换pline:There("你的%s里有一个东西爆炸了!", body_part(STOMACH));*/
                     Sprintf(svk.killer.name, "%s的爆炸",
                             s_suffix(pmname(mdat, Mgender(mon))));
                     losehp(Maybe_Half_Phys(tmp), svk.killer.name,
-                           KILLED_BY_AN);
+                           KILLED_BY);
                 } else {
                     You_hear("爆炸声.");
                     magr->mhp -= tmp;
@@ -3383,8 +3388,8 @@ monkilled(
 
     if (fltxt && (mdef->wormno ? worm_known(mdef)
                                : cansee(mdef->mx, mdef->my)))
-        pline_mon(mdef, "%s被%s%s%s了!", Monnam(mdef),
-              *fltxt ? "" : "", fltxt, /*修改语序:nonliving(mptr) ? "摧毁" : "杀死",*/
+        pline_mon(mdef, "%s被%s%s了!", Monnam(mdef),
+              /*冗余:*fltxt ? "" : "",*/ fltxt, /*修改语序:nonliving(mptr) ? "摧毁" : "杀死",*/
               nonliving(mptr) ? "摧毁" : "杀死"); /*修改语序:*fltxt ? "" : "", fltxt);*/
     else
         /* sad feeling is deferred until after potential life-saving */
@@ -3428,6 +3433,8 @@ set_ustuck(struct monst *mtmp)
 
     disp.botl = TRUE;
     u.ustuck = mtmp;
+    if (u.ustuck_mid)
+        u.ustuck_mid = 0;
     if (!u.ustuck) {
         u.uswallow = 0;
         u.uswldtim = 0;
@@ -3713,9 +3720,9 @@ xkilled(
         if (!unique_corpstat(mdat)) {
             boolean mname = has_mgivenname(mtmp);
 
-            livelog_printf(LL_KILLEDPET, "谋杀了%s忠实的%s%s%s",
+            livelog_printf(LL_KILLEDPET, "谋杀了%s忠实的%s%s",
                            uhis(), pmname(mdat, Mgender(mtmp)), /*修改语序:mname ? MGIVENNAME(mtmp) : "",*/
-                           mname ? "" : "",
+                           /*冗余:mname ? "" : "",*/
                            mname ? MGIVENNAME(mtmp) : ""); /*修改语序:uhis(), pmname(mdat, Mgender(mtmp)));*/
         }
     } else if (mtmp->mpeaceful)
@@ -3753,7 +3760,7 @@ mon_to_stone(struct monst *mtmp)
             pline_mon(mtmp, "%s变硬了...", Monnam(mtmp));
         if (newcham(mtmp, &mons[PM_STONE_GOLEM], NO_NC_FLAGS)) {
             if (canseemon(mtmp))
-                pline("现在它是一个%s.", an(pmname(mtmp->data, Mgender(mtmp))));
+                pline("现在它是%s.", an_pmname(mtmp->data, Mgender(mtmp)));
         } else {
             if (canseemon(mtmp))
                 pline("...并恢复正常.");
@@ -3775,7 +3782,7 @@ vamp_stone(struct monst *mtmp)
             char buf[BUFSZ];
 
             /* construct a format string before transformation */
-            Sprintf(buf, "轻快的%s%s到%s上",
+            Sprintf(buf, "轻快地%s%s到%s上",
                     x_monnam(mtmp, ARTICLE_NONE, (char *) 0,
                              (SUPPRESS_SADDLE | SUPPRESS_HALLUCINATION
                               | SUPPRESS_INVISIBLE | SUPPRESS_IT), FALSE),
@@ -3929,6 +3936,7 @@ elemental_clog(struct monst *mon)
         if (mtmp) {
             int mx = mtmp->mx, my = mtmp->my;
 
+            mtmp->mstate &= ~TERRAIN_FALLOUT_MASK;
             mtmp->mstate |= MON_OBLITERATE;
             mongone(mtmp);
             /* places in the code might still reference mtmp->mx, mtmp->my */
@@ -4048,6 +4056,7 @@ mnearto(
            but for the moment it is leaving */
         mon_leaving_level(othermon);
         othermon->mx = othermon->my = 0; /* 'othermon' is not on the map */
+        othermon->mstate &= ~TERRAIN_FALLOUT_MASK;
         othermon->mstate |= MON_OFFMAP;
     }
 
@@ -4791,7 +4800,7 @@ hideunder(struct monst *mtmp)
             if (!locomo)
                 locomo = locomotion(mtmp->data, "藏");
             set_msg_xy(mtmp->mx, mtmp->my); /* pline() will reset this */
-            You_see("你看到%s%s在%s下.", seenmon, locomo, seenobj);
+            You_see("一%s%s%s在%s下.", mon_classifier(mtmp), seenmon, locomo, seenobj); //修改语序:You_see("%s%s在%s下.", seenmon, locomo, seenobj);
             iflags.last_msg = PLNMSG_HIDE_UNDER;
             gl.last_hider = mtmp->m_id;
         }
@@ -4863,7 +4872,7 @@ pick_animal(void)
     /* rogue level should use monsters represented by uppercase letters
        only, but since chameleons aren't generated there (not uppercase!)
        we don't perform a lot of retries */
-    if (Is_rogue_level(&u.uz) && !isupper(monsym(&mons[res])))
+    if (Is_rogue_level(&u.uz) && !isupper((int) monsym(&mons[res])))
         res = ga.animal_list[rn2(ga.animal_list_count)];
     return res;
 }
@@ -5113,7 +5122,7 @@ wiz_force_cham_form(struct monst *mon)
         if (*buf == '\033')
             break;
         /* for "*", use NON_PM to pick an arbitrary shape below */
-        if (!strcmp(buf, "*") || !strcmpi(buf, "random")) {
+        if (!strcmp(buf, "*") || !strcmpi(buf, "random") || !strcmpi(buf, "随机")) {
             mndx = NON_PM;
             break;
         }
@@ -5219,7 +5228,7 @@ select_newcham_form(struct monst *mon)
         } while (--tryct > 0 && !validspecmon(mon, mndx)
                  /* try harder to select uppercase monster on rogue level */
                  && (tryct > 40 && Is_rogue_level(&u.uz)
-                     && !isupper(monsym(&mons[mndx]))));
+                     && !isupper((int) monsym(&mons[mndx]))));
     }
     return mndx;
 }
@@ -5329,7 +5338,7 @@ newcham(
             /* for the first several tries we require upper-case on
                the rogue level (after that, we take whatever we get) */
             if (tryct > 15 && Is_rogue_level(&u.uz)
-                && mdat && !isupper(monsym(mdat)))
+                && mdat && !isupper((int) monsym(mdat)))
                 mdat = 0;
             if (mdat)
                 break;
@@ -5486,6 +5495,7 @@ newcham(
     if (!(mtmp->misc_worn_check & W_ARMG))
         mselftouch(mtmp, "不再免疫石化的",
                    !svc.context.mon_moving);
+    (void) maybe_set_terrain_effects(mtmp, olddata);
     check_gear_next_turn(mtmp);
 
     /* This ought to re-test can_carry() on each item in the inventory
@@ -5532,6 +5542,69 @@ newcham(
     }
 
     return 1;
+}
+
+boolean
+maybe_set_terrain_effects(struct monst *mtmp, struct permonst *oldmdat)
+{
+    struct permonst *mdat = mtmp->data;
+    boolean changed = FALSE;
+
+    /* mtmp is in liquid */
+    if (is_pool(mtmp->mx, mtmp->my) || Is_waterlevel(&u.uz)
+         || is_lava(mtmp->mx, mtmp->my)
+         || IS_FOUNTAIN(levl[mtmp->mx][mtmp->my].typ)) {
+            /* mtmp is a non-flyer/floater/levitator */
+        boolean above_water =
+                    ((is_flyer(mdat) || is_floater(mdat))
+                     && !(mtmp == u.usteed && (Flying || Levitation))),
+                was_above_water =
+                    (oldmdat
+                     && ((is_flyer(oldmdat) || is_floater(oldmdat))
+                         && !(mtmp == u.usteed && (Flying || Levitation))));
+        if (!above_water) {
+                changed = (!oldmdat || (above_water != was_above_water));
+            gp.pending_terrain_effects |= nonflyer_vs_liquid;
+            mtmp->mstate |= (long) nonflyer_vs_liquid;
+        }
+
+        /* swimmer/amphibious/breathless to something that is not */
+        if (!cant_drown(mdat)) {
+            if (!changed)
+                changed =
+                    (!oldmdat || ((cant_drown(oldmdat) != cant_drown(mdat))));
+            gp.pending_terrain_effects |= candrown_vs_liquid;
+            mtmp->mstate |= (long) candrown_vs_liquid;
+        }
+    }
+    /* TODO: handle other terrains that could be harmful to a
+       revived mon or polymorphed mon */
+
+    return changed;
+}
+
+/*
+ * The terrain is what it is, but the monster changed
+ * in some way (polymorphed or newly revived), and has
+ * been flagged as problematic with the terrain.
+ */
+void
+terrain_effects(void)
+{
+    struct monst *mtmp, *mtmp2;
+
+    for (mtmp = fmon; mtmp; mtmp = mtmp2) {
+        mtmp2 = mtmp->nmon;
+        if ((mtmp->mstate & TERRAIN_FALLOUT_MASK) != 0) {
+            /* nonflyer_vs_liquid */
+            if (!DEADMONSTER(mtmp)
+                && ((mtmp->mstate & (long) (nonflyer_vs_liquid | candrown_vs_liquid)) != 0))
+                (void) minliquid(mtmp);
+
+            /* always clear these bits, even if DEADMONSTER */
+            mtmp->mstate &= ~TERRAIN_FALLOUT_MASK;
+        }
+    }
 }
 
 /* sometimes an egg will be special */
@@ -5960,8 +6033,9 @@ adj_erinys(unsigned abuse)
         pm->mattk[2].damd = 4;
     }
 
-    /* also adjust level and difficulty */
-    pm->mlevel = min(7 + u.ualign.abuse, 50);
+    /* also adjust level and difficulty;
+       mlevel >= 50 has a special meaning, so don't exceed 49 */
+    pm->mlevel = min(7 + u.ualign.abuse, 49);
     pm->difficulty = min(10 + (u.ualign.abuse / 3), 25);
 }
 

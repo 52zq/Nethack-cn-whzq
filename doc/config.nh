@@ -1,4 +1,4 @@
-# NetHack 3.7  config.nh       $NHDT-Date: 1745978702 2025/04/29 18:05:02 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.10 $
+# NetHack 5.0  config.nh       $NHDT-Date: 1745978702 2025/04/29 18:05:02 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.10 $
 # Copyright (c) 2016 by Pasi Kallinen
 # NetHack may be freely redistributed.  See license for details.
 #
@@ -491,14 +491,19 @@
 # MENUCOLOR="regular expression"=color&attribute
 #  Show all blessed items in green
 #MENUCOLOR=" blessed " = green
+#MENUCOLOR="([^已知\r\n]|^)(被|受)祝福的" = green
 #  Show all holy water in green
 #MENUCOLOR=" holy " = green
+#MENUCOLOR="圣水" = green
 #  Show all cursed items in red
 #MENUCOLOR=" cursed " = red
+#MENUCOLOR="([^已知\r\n]|^)(被|受)诅咒的" = red
 #  Show all unholy water in red
 #MENUCOLOR=" unholy " = red
+#MENUCOLOR="邪水" = red
 #  Show all cursed worn items in orange and underlined
 #MENUCOLOR=" cursed .* \(being worn\)" = orange&underline
+#MENUCOLOR="诅咒.* \(穿戴中\)" = orange&underline
 
 
 # Use the IBM character set rather than just plain ascii characters

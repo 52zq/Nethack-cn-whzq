@@ -1,4 +1,4 @@
--- NetHack Valkyrie Val-goal.lua	$NHDT-Date: 1652196017 2022/05/10 15:20:17 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.5 $
+-- NetHack Valkyrie Val-goal.lua	$NHDT-Date: 1781994875 2026/06/20 22:34:35 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.6 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991-2 by M. Stephenson
 -- NetHack may be freely redistributed.  See license for details.
@@ -46,7 +46,7 @@ else
    des.drawbridge({ x=17, y=14, dir="north", state="random" })
 end
 -- Objects
-des.object({ id = "crystal ball", x=17, y=08, buc="blessed", spe=5, name="The Orb of Fate" })
+des.object({ id = "crystal ball", x=17, y=08, buc="blessed", spe=5, name="命运之球" })
 des.object()
 des.object()
 des.object()

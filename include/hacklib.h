@@ -1,4 +1,4 @@
-/* NetHack 5.0	hacklib.h	$NHDT-Date: 1725653010 2024/09/06 20:03:30 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.0 $ */
+/* NetHack 5.0	hacklib.h	$NHDT-Date: 1781973081 2026/06/20 16:31:21 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.5 $ */
 /* Copyright (c) Steve Creps, 1988.                               */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -10,6 +10,7 @@
  */
 extern boolean digit(char);
 extern boolean letter(char);
+extern boolean letter1(char);
 extern char highc(char);
 extern char lowc(char);
 extern char *lcase(char *) NONNULL NONNULLARG1;
@@ -78,6 +79,13 @@ extern void nh_snprintf_w_impossible(const char *func, int line, char *str,
 extern unsigned Strlen_(const char *, const char *, int) NONNULLPTRS;
 #endif
 extern int unicodeval_to_utf8str(int, uint8 *, size_t);
+extern void utf8char_info(const char *, uint8 *, uint8 *) NONNULLARG1;
+extern int utf8str_width(const char *) NONNULLPTRS;
+extern const char *utf8str_at_col(const char *, int) NONNULLARG1;
+extern unsigned utf8str_append(char *, unsigned, const char *,
+                               int) NONNULLPTRS;
+extern unsigned utf8str_append_r(char *, unsigned, const char *,
+                                 int) NONNULLPTRS;
 extern boolean copy_bytes(int, int);
 extern const char *datamodel(int);
 extern const char *what_datamodel_is_this(int, int, int, int, int, int);

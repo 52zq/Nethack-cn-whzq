@@ -1,4 +1,4 @@
-/* NetHack 5.0	windows.c	$NHDT-Date: 1737345149 2025/01/19 19:52:29 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.138 $ */
+/* NetHack 5.0	windows.c	$NHDT-Date: 1781973074 2026/06/20 16:31:14 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.147 $ */
 /* Copyright (c) D. Cohrs, 1993. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -22,7 +22,7 @@ extern struct window_procs Qt_procs;
 #ifdef GEM_GRAPHICS
 /*#include "wingem.h"*/
 #endif
-#ifdef MACOS9
+#ifdef MAC68K
 extern struct window_procs mac_procs;
 #endif
 #ifdef BEOS_GRAPHICS
@@ -111,7 +111,7 @@ static struct win_choices {
 #ifdef GEM_GRAPHICS
     { &Gem_procs, win_Gem_init CHAINR(0) },
 #endif
-#ifdef MACOS9
+#ifdef MAC68K
     { &mac_procs, 0 CHAINR(0) },
 #endif
 #ifdef BEOS_GRAPHICS
@@ -543,7 +543,7 @@ staticfn void hup_cliparound(int, int);
 #endif
 #ifdef CHANGE_COLOR
 staticfn void hup_change_color(int, long, int);
-#ifdef MACOS9
+#ifdef MAC68K
 staticfn short hup_set_font_name(winid, char *);
 #endif
 staticfn char *hup_get_color_string(void);
@@ -592,7 +592,7 @@ static struct window_procs hup_procs = {
     hup_void_ndecl,                                   /* nh_delay_output  */
 #ifdef CHANGE_COLOR
     hup_change_color,
-#ifdef MACOS9
+#ifdef MAC68K
     hup_void_fdecl_int,                               /* change_background */
     hup_set_font_name,
 #endif
@@ -795,14 +795,14 @@ hup_change_color(int color UNUSED, long rgb UNUSED, int reverse UNUSED)
     return;
 }
 
-#ifdef MACOS9
+#ifdef MAC68K
 /*ARGSUSED*/
 staticfn short
 hup_set_font_name(winid window UNUSED, char *fontname UNUSED)
 {
     return 0;
 }
-#endif /* MACOS9 */
+#endif /* MAC68K */
 
 staticfn char *
 hup_get_color_string(void)
@@ -1002,7 +1002,7 @@ genl_status_update(
             if (cond & BL_MASK_BLIND)
                 Strcpy(nb = eos(nb), "  失明");
             if (cond & BL_MASK_DEAF)
-                Strcpy(nb = eos(nb), "  耳聋");
+                Strcpy(nb = eos(nb), "  失聪");
             if (cond & BL_MASK_STUN)
                 Strcpy(nb = eos(nb), "  眩晕");
             if (cond & BL_MASK_CONF)
@@ -1014,7 +1014,7 @@ genl_status_update(
             if (cond & BL_MASK_FLY)
                 Strcpy(nb = eos(nb), "  飞行");
             if (cond & BL_MASK_RIDE)
-                Strcpy(nb = eos(nb), "  乘骑");
+                Strcpy(nb = eos(nb), "  骑乘");
             break;
         default:
             Sprintf(status_vals[idx],
@@ -1098,7 +1098,7 @@ genl_status_update(
             } /* status_activefields[idx2] */
 
             if (idx2 == BL_CONDITION && pass < 4
-                && strlen(newbot2) - lndelta > COLNO)
+                 && utf8str_width(newbot2) - lndelta > COLNO)
                 break; /* switch to next order */
         } /* i */
 

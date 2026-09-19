@@ -1,4 +1,4 @@
-/* NetHack 5.0	getline.c	$NHDT-Date: 1701285885 2023/11/29 19:24:45 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.59 $ */
+/* NetHack 5.0	getline.c	$NHDT-Date: 1781973100 2026/06/20 16:31:40 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.71 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -7,7 +7,7 @@
 
 #ifdef TTY_GRAPHICS
 
-#if !defined(MACOS9)
+#if !defined(MAC68K)
 #define NEWAUTOCOMP
 #endif
 
@@ -416,7 +416,7 @@ tty_get_ext_cmd(void)
               : extcmds_match(buf, ECM_IGNOREAC | ECM_EXACTMATCH, &ecmatches);
     if (nmatches != 1) {
         if (nmatches != -1)
-            pline("%s%.60s: unknown extended command.",
+            pline("%s%.60s: 未知扩展命令.",
                   visctrl(extcmd_char[0]), buf);
         return -1;
     }

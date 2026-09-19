@@ -1,4 +1,4 @@
-/* NetHack 5.0	explode.c	$NHDT-Date: 1736530208 2025/01/10 09:30:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.122 $ */
+/* NetHack 5.0	explode.c	$NHDT-Date: 1781973049 2026/06/20 16:30:49 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.128 $ */
 /*      Copyright (C) 1990 by Ken Arromdee */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -300,7 +300,7 @@ explode(
            so retain a copy of the current value for this explosion */
         str = strcpy(killr_buf, svk.killer.name);
         do_hallu = (Hallucination
-                    && (strstri(str, "的爆炸")
+                    && (strstri(str, "爆炸")
                         || strstri(str, "的爆炸")));
     }
     if (type == PHYS_EXPL_TYPE) {
@@ -643,11 +643,15 @@ explode(
                 rehumanize();
             } else {
                 if (olet == MON_EXPLODE) {
-                    if (generic) /* explosion was unseen; str=="explosion", */
-                        ; /* svk.killer.name=="gas spore's explosion". */
-                    else if (str != svk.killer.name && str != hallu_buf)
+                    if (generic) {
+                        /* explosion was unseen; str=="explosion", */
+                        /* svk.killer.name=="gas spore's explosion" */
+                        if (!strcmp(str, "爆炸")) //危险 - 2026.09.12 merge
+                            Strcpy(svk.killer.name, str);
+                    } else if (str != svk.killer.name && str != hallu_buf) {
                         Strcpy(svk.killer.name, str);
-                    svk.killer.format = KILLED_BY_AN;
+                    }
+                    svk.killer.format = NO_KILLER_PREFIX;
                 } else if (olet == TRAP_EXPLODE) {
                     svk.killer.format = NO_KILLER_PREFIX;
                     Snprintf(svk.killer.name, sizeof svk.killer.name,
@@ -908,7 +912,7 @@ scatter(
                 total += stmp->obj->quan;
                 obj_left_shop = (shop_origin && !costly_spot(x, y));
             }
-            if (!flooreffects(stmp->obj, x, y, "地")) {
+            if (!flooreffects(stmp->obj, x, y, "着陆")) {
                 if (obj_left_shop
                     && strchr(u.urooms, *in_rooms(u.ux, u.uy, SHOPBASE))) {
                     /* At the moment this only takes on gold. While it is
@@ -1057,7 +1061,7 @@ mon_explodes(
      * also, it is used in explode() messages */
     Sprintf(svk.killer.name, "%s的爆炸",
             s_suffix(pmname(mon->data, Mgender(mon))));
-    svk.killer.format = KILLED_BY_AN;
+    svk.killer.format = KILLED_BY;
 
     explode(mon->mx, mon->my, type, dmg, MON_EXPLODE,
             adtyp_to_expltype(mattk->adtyp));

@@ -1,4 +1,4 @@
--- NetHack Wizard Wiz-goal.lua	$NHDT-Date: 1652196018 2022/05/10 15:20:18 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.2 $
+-- NetHack Wizard Wiz-goal.lua	$NHDT-Date: 1781994876 2026/06/20 22:34:36 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.3 $
 --	Copyright (c) 1992 by David Cohrs
 -- NetHack may be freely redistributed.  See license for details.
 --
@@ -70,7 +70,7 @@ des.non_diggable(selection.area(00,00,75,19))
 -- The altar.  This is not a shrine.
 des.altar({ coord={16,11}, aligned="noncoaligned", type="altar" })
 -- Objects
-des.object({ id = "amulet of ESP", x=16, y=11, buc="blessed", spe=0, name="The Eye of the Aethiopica" })
+des.object({ id = "amulet of ESP", x=16, y=11, buc="blessed", spe=0, name="埃塞俄比亚之眼" })
 des.object()
 des.object()
 des.object()

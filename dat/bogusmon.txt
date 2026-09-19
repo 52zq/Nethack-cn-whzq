@@ -1,4 +1,4 @@
-# NetHack 5.0  bogusmon.txt       $NHDT-Date: 1596498237 2020/08/03 23:43:57 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.10 $
+# NetHack 5.0  bogusmon.txt       $NHDT-Date: 1596498237 2020/08/03 23:43:57 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.10 $
 # Copyright (c) 2016 by Pasi Kallinen
 # NetHack may be freely redistributed.  See license for details.
 #
@@ -320,10 +320,10 @@ WireShark
 多余的制表符
 
 # bugs
-波尔虫
-曼德尔虫
-薛定谔虫
-海森堡虫
+玻尔bug
+曼德尔bug
+薛定谔的bug
+海森bug
 
 # DooM
 恶恶魔
@@ -346,7 +346,7 @@ WireShark
 凉亭
 
 # SciFi elements
-灰色粘液
+灰色黏液
 磁单极子
 第一类永动机
 巨大沉默物体
@@ -490,7 +490,7 @@ ghoti
 殉道兽人
 迫击炮兽人
 酸液团
-锐利粘液团
+锐利黏液团
 大气元素
 化名祭司
 阵营寄生虫

@@ -175,6 +175,8 @@ extern void (*ibmgraphics_mode_callback)(void);  /* symbols.c */
 extern void (*utf8graphics_mode_callback)(void); /* symbols.c */
 #endif /* VIRTUAL_TERMINAL_SEQUENCES */
 
+static boolean OnWindows95_98_Me(void);
+
 static void init_custom_colors(void);
 static void free_custom_colors(void);
 
@@ -382,6 +384,47 @@ colortable_to_bgr_int32(const struct nethack_color *tbl)
     int32 bgrint32 = (tbl->r << 0) | (tbl->g << 8) | (tbl->b << 16);
     return bgrint32;
 }
+
+/* Decode one UTF-8 character from s, returning the Unicode codepoint
+   and advancing *idx by the number of bytes consumed (1..4).
+   Invalid sequences return -1. */
+static int
+xputs_decode_utf8(const char *s, int *idx, int slen)
+{
+    unsigned char c = (unsigned char) s[*idx];
+    int len = 1, codepoint = c;
+
+    if (c < 0x80) {
+        (*idx)++;
+        return codepoint;
+    }
+    if (c < 0xC0) {
+        (*idx)++;
+        return -1;
+    } else if (c < 0xE0) {
+        len = 2;
+        codepoint = c & 0x1F;
+    } else if (c < 0xF0) {
+        len = 3;
+        codepoint = c & 0x0F;
+    } else if (c < 0xF8) {
+        len = 4;
+        codepoint = c & 0x07;
+    } else {
+        return -1;
+    }
+    if (*idx + len > slen)
+        return -1;
+    for (int i = 1; i < len; ++i) {
+        unsigned char cb = (unsigned char) s[*idx + i];
+        if ((cb & 0xC0) != 0x80)
+            return -1;
+        codepoint = (codepoint << 6) | (cb & 0x3F);
+    }
+    *idx += len;
+    return codepoint;
+}
+
 
 #define rgbtable_offset 16
 
@@ -948,6 +991,12 @@ void buffer_write(cell_t * buffer, cell_t * cell, COORD pos)
         back_buffer_flip();
 }
 
+static boolean
+OnWindows95_98_Me(void)
+{
+    return ((GetVersion() & 0x80000000) != 0);
+}
+
 /*
  * Called after returning from ! or ^Z
  */
@@ -1010,7 +1059,7 @@ tty_number_pad(int state UNUSED)
 void
 term_shutdown(void)
 {
-    consoletty_exit();
+    console_exit();
 }
 
 #ifdef ASCIIGRAPH
@@ -1100,14 +1149,19 @@ consoletty_open(int mode UNUSED)
 extern void set_emergency_io(void);
 
 void
-consoletty_exit(void)
+console_exit(void)
 {
     free_custom_colors();
-    free((genericptr_t) console.front_buffer);
-    free((genericptr_t) console.back_buffer);
+    if (console.front_buffer)
+        free((genericptr_t) console.front_buffer);
+    if (console.back_buffer)
+        free((genericptr_t) console.back_buffer);
     console.front_buffer = console.back_buffer = 0;
-    free((genericptr_t) console.localestr);
-    free((genericptr_t) console.orig_localestr);
+    if (console.localestr)
+        free((genericptr_t) console.localestr), console.localestr = 0;
+    if (console.orig_localestr)
+        free((genericptr_t) console.orig_localestr),
+            console.orig_localestr = 0;
     set_emergency_io();
 }
 
@@ -1369,12 +1423,27 @@ xputs(const char *s)
         set_console_cursor(ttyDisplay->curx, ttyDisplay->cury);
 
     if (s) {
-        for (k = 0; k < slen && s[k]; ++k)
-#ifndef VIRTUAL_TERMINAL_SEQUENCES
-            xputc_core(s[k]);
-#else
-            xputc_core((int) s[k]);
+#ifdef VIRTUAL_TERMINAL_SEQUENCES
+        if (console.has_unicode) {
+            for (k = 0; k < slen && s[k]; ) {
+                int codepoint = xputs_decode_utf8(s, &k, slen);
+                if (codepoint >= 0) {
+                    xputc_core(codepoint);
+                } else {
+                    xputc_core((unsigned char) s[k]);
+                    k++;
+                }
+            }
+        } else
 #endif
+        {
+            for (k = 0; k < slen && s[k]; ++k)
+#ifndef VIRTUAL_TERMINAL_SEQUENCES
+                xputc_core(s[k]);
+#else
+                xputc_core((int) s[k]);
+#endif
+        }
     }
 }
 
@@ -2600,7 +2669,7 @@ void nethack_enter_consoletty(void)
          */
         width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
 #ifdef DEBUG
-        if (NH_DEVEL_STATUS != NH_STATUS_RELEASED)
+        if (wizard && NH_DEVEL_STATUS != NH_STATUS_RELEASED)
             fprintf(stdout, "width = %d\n", width);
 #endif
     }
@@ -2680,14 +2749,15 @@ void nethack_enter_consoletty(void)
     /* setup front and back buffers */
     int buffer_size_bytes = sizeof(cell_t) * console.buffer_size;
 
-    console.front_buffer = (cell_t *)malloc(buffer_size_bytes);
+    console.front_buffer = (cell_t *)alloc(buffer_size_bytes);
     buffer_fill_to_end(console.front_buffer, &undefined_cell, 0, 0);
 
-    console.back_buffer = (cell_t *)malloc(buffer_size_bytes);
+    console.back_buffer = (cell_t *)alloc(buffer_size_bytes);
     buffer_fill_to_end(console.back_buffer, &clear_cell, 0, 0);
 
     /* determine whether OS version has unicode support */
-    console.has_unicode = (IsWindows8OrGreater());
+    /* console.has_unicode = (IsWindows8OrGreater()); */
+    console.has_unicode = !OnWindows95_98_Me();
 
 #ifdef VIRTUAL_TERMINAL_SEQUENCES
     /* store the original code page*/

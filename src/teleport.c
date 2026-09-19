@@ -1,5 +1,4 @@
-/* NetHack 5.0	teleport.c	$NHDT-Date: 1769342601 2026/01/25 04:03:21 $
- * $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.239 $ */
+/* NetHack 5.0	teleport.c	$NHDT-Date: 1781973069 2026/06/20 16:31:09 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.246 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -784,7 +783,7 @@ teleport_pet(struct monst *mtmp, boolean force_it)
             yelp(mtmp);
             return FALSE;
         } else {
-            Your("皮带松了.");
+            Your("狗链松了.");
         release_it:
             m_unleash(mtmp, FALSE);
             return TRUE;
@@ -850,7 +849,7 @@ scrolltele(struct obj *scroll)
         You_feel("迷失了一刹那.");
         /* don't discover the scroll [at least not yet for wizard override];
            disorientation doesn't reveal that this is a teleport attempt */
-        if (!wizard || y_n("Override?") != 'y')
+        if (!wizard || y_n("覆盖迷失?") != 'y')
             return;
     }
     if (((Teleport_control || (scroll && scroll->blessed)) && !Stunned)
@@ -863,7 +862,7 @@ scrolltele(struct obj *scroll)
             Strcpy(whobuf, "你");
             if (u.usteed)
                 Sprintf(eos(whobuf), "和%s", mon_nam(u.usteed));
-            pline("想%s传送到哪里?", whobuf);
+            pline("想把%s传送到哪里?", whobuf);
             if (scroll)
                 learnscroll(scroll);
             cc.x = u.ux;
@@ -873,7 +872,7 @@ scrolltele(struct obj *scroll)
                  * pre-suggest this coordinate. */
                 cc = iflags.travelcc;
             }
-            if (getpos(&cc, TRUE, "想要传送到的位置") < 0)
+            if (getpos(&cc, TRUE, "目标位置") < 0)
                 return; /* abort */
             /* possible extensions: introduce a small error if
                magic power is low; allow transfer to solid rock */
@@ -1319,7 +1318,7 @@ level_tele(void)
             Strcpy(svk.killer.name, "永久升入了天堂");
         } else if (newlev == -9) {
             You_feel("非常高兴.");
-            pline("(事实上, 你在9号云上了!)");
+            pline("(事实上, 你在9号云上了! )");
             display_nhwindow(WIN_MESSAGE, FALSE);
         } else
             You("现在在云上...");
@@ -1478,7 +1477,7 @@ tele_trap(struct trap *trap)
     if (In_endgame(&u.uz) || Antimagic || noteleport_level(&gy.youmonst)) {
         if (Antimagic)
             shieldeff(u.ux, u.uy);
-        You_feel("一阵扭曲.");
+        You("感到一阵扭曲."); //You_feel
     } else if (!next_to_u()) {
         You1(shudder_for_moment);
     } else if (trap->once) {
@@ -1526,7 +1525,7 @@ level_tele_trap(struct trap *trap, unsigned int trflags)
         shieldeff(u.ux, u.uy);
     }
     if ((Antimagic && !intentional) || In_endgame(&u.uz)) {
-        You_feel("一阵扭曲.");
+        You("感到一阵扭曲."); //You_feel
         return;
     }
     deltrap(trap);
@@ -1684,13 +1683,13 @@ rloc_to_core(struct monst *mtmp, coordxy x, coordxy y, unsigned rlocflags)
                   : nearu                               ? nearu
                   : ((olddu = distu(oldx, oldy)) == du) ? ""
                   : (du < olddu)                        ? "更近处"
-                                                        : "得更处");
+                                                        : "更远处");
         } else {
-            pline("%s%s%s%s!", appearmsg ? Amonnam(mtmp) : Monnam(mtmp),
-                  appearmsg ? "突然" : "", !Blind ? "出现在" : "到达",
+            pline("%s%s%s%s%s!", appearmsg ? Amonnam(mtmp) : Monnam(mtmp),
+                  appearmsg ? "突然" : "", !Blind ? "出现" : "到达", (next ? "在" : (nearu ? "在" : "")),
                   next    ? next
                   : nearu ? nearu
-                          : "");
+                          : "了");
         }
         /* wand discovery only happens if a messaage is delivered (bug?);
            if spell or q.mechanic attack or artifact #invoke for banish

@@ -1,4 +1,4 @@
-/* NetHack 5.0	restore.c	$NHDT-Date: 1736530208 2025/01/10 09:30:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.234 $ */
+/* NetHack 5.0	restore.c	$NHDT-Date: 1781973064 2026/06/20 16:31:04 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.265 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -30,6 +30,7 @@ staticfn int restlevelfile(xint8);
 staticfn void rest_bubbles(NHFILE *);
 staticfn void restore_gamelog(NHFILE *);
 staticfn void reset_oattached_mids(boolean);
+
 /* these ones are declared non-static in extern.h if SFCTOOL is defined */
 staticfn boolean restgamestate(NHFILE *);
 staticfn void rest_bubbles(NHFILE *);
@@ -447,6 +448,14 @@ restmonchn(NHFILE *nhfp)
             restshk(mtmp, ghostly);
         if (mtmp->ispriest)
             restpriest(mtmp, ghostly);
+        if (mtmp->isgd) {
+            /* fixup for new bit MON_PARKED added post 5.0.0 */
+            if (!mtmp->mx && (mtmp->mstate & MON_PARKED) == 0L
+                && (mtmp->mstate & MON_MIGRATING) == 0L) {
+                mtmp->mstate &= ~TERRAIN_FALLOUT_MASK;
+                mtmp->mstate |= MON_PARKED;
+            }
+        }
 
         if (!ghostly) {
             if (mtmp->m_id == svc.context.polearm.m_id)
@@ -712,6 +721,14 @@ restgamestate(NHFILE *nhfp)
     restore_oracles(nhfp);
     Sfi_char(nhfp, svp.pl_character,
              "gamestate-pl_character", sizeof svp.pl_character);
+    /* Previous versions had a bug that clobbered pl_character on restore.
+       Fill it in if it was clobbered. */
+    if (svp.pl_character[0] == '\0') {
+        if ((Upolyd ? u.mfemale : flags.female) && gu.urole.name.f)
+            Strcpy(svp.pl_character, gu.urole.name.f);
+        else
+            Strcpy(svp.pl_character, gu.urole.name.m);
+    }
     Sfi_char(nhfp, svp.pl_fruit, "gamestate-pl_fruit", sizeof svp.pl_fruit);
     freefruitchn(gf.ffruit); /* clean up fruit(s) made by initoptions() */
     gf.ffruit = loadfruitchn(nhfp);
@@ -790,11 +807,13 @@ dorecover(NHFILE *nhfp)
 {
     xint8 ltmp = 0;
     int rtmp;
+    char plname[PL_NSIZ_PLUS];
 
     /* suppress map display if some part of the code tries to update that */
     program_state.restoring = REST_GSTATE;
 
-    get_plname_from_file(nhfp, svp.plname, TRUE);
+    get_plname_from_file(nhfp, plname, TRUE);
+    Snprintf(svp.plname, sizeof(svp.plname), "%s", plname);
     /*
      * The position in the save file is now here:
      *
@@ -823,11 +842,9 @@ dorecover(NHFILE *nhfp)
     }
     /* after restgamestate() -> restnames() so that 'bases[]' is populated */
     init_oclass_probs(); /* recompute go.oclass_prob_totals[] */
+    init_dungeon_cnames(); /* Chinese dungeon names aren't in the save file */
 
     restlevelstate();
-#ifdef INSURANCE
-    savestateinlock();
-#endif
     rtmp = restlevelfile(ledger_no(&u.uz));
     if (rtmp < 2)
         return rtmp; /* dorecover called recursively */
@@ -855,7 +872,7 @@ dorecover(NHFILE *nhfp)
         clear_nhwindow(WIN_MAP);
 #endif
     clear_nhwindow(WIN_MESSAGE);
-    You("回到了%s的%d层%s.", svd.dungeons[u.uz.dnum].dname, /*修改语序:You("return to level %d in %s%s.", depth(&u.uz),*/
+    You("回到了%s的%d层%s.", svd.dcname[u.uz.dnum], /*修改语序:You("return to level %d in %s%s.", depth(&u.uz),*/
         depth(&u.uz), /*修改语序:svd.dungeons[u.uz.dnum].dname,*/
         flags.debug ? "(调试模式)"
                     : flags.explore ? "(探索模式)" : "");
@@ -889,8 +906,9 @@ dorecover(NHFILE *nhfp)
     restoreinfo.mread_flags = 0;
 
     rewind_nhfile(nhfp);        /* return to beginning of file */
-    (void) validate(nhfp, (char *) 0, FALSE);
-    get_plname_from_file(nhfp, svp.plname, TRUE);
+    (void) validate(nhfp, (char *) 0, FALSE, 0);
+    get_plname_from_file(nhfp, plname, TRUE);
+    Snprintf(svp.plname, sizeof(svp.plname), "%s", plname);
 
     /* not 0 nor REST_GSTATE nor REST_LEVELS */
     program_state.restoring = REST_CURRENT_LEVEL;
@@ -899,6 +917,11 @@ dorecover(NHFILE *nhfp)
     close_nhfile(nhfp);
     restlevelstate();
     program_state.something_worth_saving = 1; /* useful data now exists */
+
+    if (gu.uplift_needed_rev0_to_rev1 == 1) {
+        /* they've all been uplifted now */
+        gu.uplift_needed_rev0_to_rev1 = 0;
+    }
 
     if (!wizard && !discover)
         (void) delete_savefile();
@@ -929,6 +952,12 @@ dorecover(NHFILE *nhfp)
 
     run_timers(); /* expire all timers that have gone off while away */
     program_state.restoring = 0; /* affects bot() so clear before docrt() */
+#ifdef INSURANCE
+    /* first checkpoint of the restored session; every level file has been
+       written and the current level has been read back in, so recover has
+       something to work with even if the player never changes level */
+    save_currentstate();
+#endif
 
     if (ge.early_raw_messages && !program_state.beyond_savefile_load) {
         /*
@@ -1062,6 +1091,8 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
 #endif
 
     program_state.in_getlev = TRUE;
+    level_status_init();
+    level_status.loading = 1;
 #ifndef SFCTOOL
 
     if (ghostly)
@@ -1114,7 +1145,7 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
     Sfi_dest_area(nhfp, &svu.updest, "lev-updest");
     Sfi_dest_area(nhfp, &svd.dndest, "lev-dndest");
     Sfi_levelflags(nhfp, &svl.level.flags, "lev-level_flags");
-    rest_adjust_levelflags();
+    rest_adjust_levelflags(elapsed);
     if (svd.doors) {
         free(svd.doors);
         svd.doors = 0;
@@ -1164,9 +1195,11 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
     dealloc_trap(trap);
 
     fobj = restobjchn(nhfp, FALSE);
-#ifndef SFCTOOL
-    find_lev_obj();
-#endif  /* !SFCTOOL */
+    /* more work needs to be done on fobj in find_lev_obj() further down,
+     * but that needs to happen after set_residency() so that shop_keeper()
+     * will return correct results during the processing.
+     */
+
     /* restobjchn()'s `frozen' argument probably ought to be a callback
        routine so that we can check for objects being buried under ice */
     svl.level.buriedobjlist = restobjchn(nhfp, FALSE);
@@ -1179,16 +1212,21 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
         for (y = 0; y < ROWNO; y++)
             svl.level.monsters[x][y] = (struct monst *) 0;
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
+        if ((mtmp->mstate & TERRAIN_FALLOUT_MASK) != 0)
+            gp.pending_terrain_effects |= (mtmp->mstate & TERRAIN_FALLOUT_MASK);
         if (mtmp->isshk)
             set_residency(mtmp, FALSE);
+        /* set some monst fields to sane values when coming from a bones file */
+        if (ghostly) {
+            mtmp->movement = 0;
+        }
         if (mtmp->m_id == u.usteed_mid) {
             /* steed is kept on fmon list but off the map */
             u.usteed = mtmp;
             u.usteed_mid = 0;
         } else {
             if (mtmp->m_id == u.ustuck_mid) {
-                set_ustuck(mtmp);
-                u.ustuck_mid = 0;
+                set_ustuck(mtmp); /* set_ustuck clears u.ustuck_mid */
             }
             place_monster(mtmp, mtmp->mx, mtmp->my);
             if (mtmp->wormno)
@@ -1196,7 +1234,6 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
             if (hides_under(mtmp->data) && mtmp->mundetected)
                 (void) hideunder(mtmp);
         }
-
         /* regenerate monsters while on another level */
         if (!u.uz.dlevel || program_state.restoring == REST_LEVELS)
             continue;
@@ -1219,6 +1256,11 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
         if (ghostly || (elapsed > 0L && elapsed > (long) rnd(10)))
             hide_monst(mtmp);
     }
+    level_status.shkready = 1;
+    /* post-5.0.0: this is now postponed until here so that it takes place
+       after set_residency() has been called */
+    find_lev_obj();
+
 #endif /* !SFCTOOL */
 
     restdamage(nhfp);
@@ -1302,20 +1344,23 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
 
     if (ghostly)
         clear_id_mapping();
+#endif
+    level_status.loading = 0, level_status.ready = 1;
     program_state.in_getlev = FALSE;
-#else
+#ifdef SFCTOOL
     nhUse(pid);
     nhUse(lev);
 #endif /* !SFCTOOL */
-    program_state.in_getlev = FALSE;
 }
 
 void
-rest_adjust_levelflags(void)
+rest_adjust_levelflags(long elapsed)
 {
     /* adjust timestamps */
     relative_time_to_moves(&svl.level.flags.stasis_until);
+    svl.level.flags.stasis_until -= elapsed;
 }
+
 void
 moves_to_relative_time(long *timestamp)
 {
@@ -1530,6 +1575,47 @@ reset_oattached_mids(boolean ghostly)
 }
 
 #ifdef SELECTSAVED
+/* translate the "-role-race-gend-algn" suffix (English filecodes) of a
+ * saved-game menu string into Chinese cfilecode values, in place.
+ * The role/race/gend/align codes are each 3 bytes (both the English
+ * filecode and the Chinese cfilecode are 3 UTF-8 bytes), so in-place
+ * replacement keeps the buffer length unchanged. */
+staticfn void
+savedgame_to_cfilecode(char *buf)
+{
+    char *dash[4];
+    char *p = buf + Strlen(buf) - 1;
+    int i;
+
+    /* locate the 4 dashes separating role|race|gend|algn, walking back
+       from the end; plname may itself contain dashes and is left alone */
+    for (i = 0; i < 4; ++i) {
+        while (p > buf && *p != '-')
+            --p;
+        if (*p != '-')
+            return; /* not the expected format; leave unchanged */
+        dash[i] = p;
+        --p;
+    }
+    /* dash[3]=before role, dash[2]=before race, dash[1]=before gend,
+       dash[0]=before algn */
+    for (i = 3; i >= 0; --i) {
+        char code[4];
+        const char *repl;
+
+        memcpy(code, dash[i] + 1, 3);
+        code[3] = '\0';
+        switch (i) {
+        case 3: repl = cfilecode_role(code); break;
+        case 2: repl = cfilecode_race(code); break;
+        case 1: repl = cfilecode_gend(code); break;
+        default: repl = cfilecode_align(code); break;
+        }
+        if (repl != code && Strlen(repl) == 3)
+            memcpy(dash[i] + 1, repl, 3);
+    }
+}
+
 /* put up a menu listing each character from this player's saved games;
    returns 1: use svp.plname[], 0: new game, -1: quit */
 int
@@ -1578,6 +1664,7 @@ restore_menu(
                 Sprintf(menutext, "%.*s", PL_NSIZ_PLUS - 1, next);
             else
                 Sprintf(menutext, "%c %.*s", mode, PL_NSIZ_PLUS - 1, next);
+            savedgame_to_cfilecode(menutext);
             add_menu(tmpwin, &nul_glyphinfo, &any, 0, 0, ATR_NONE, clr,
                      menutext, MENU_ITEMFLAGS_SKIPMENUCOLORS);
         }

@@ -1,4 +1,4 @@
-/* NetHack 5.0  botl.h  $NHDT-Date: 1694893330 2023/09/16 19:42:10 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.37 $ */
+/* NetHack 5.0  botl.h  $NHDT-Date: 1781973077 2026/06/20 16:31:17 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.45 $ */
 /* Copyright (c) Michael Allison, 2003                            */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -143,7 +143,15 @@ struct conditions_t {
     enum blconditions c;
     const char *text[3];
 };
+
+// 修改: 新建结构体用于存放 `conditions` 的翻译文本及项目拼音
+struct cond_zh_t {
+    const char *const text;
+    const char *const pinyin;
+};
+
 extern const struct conditions_t conditions[CONDITION_COUNT];
+extern const struct cond_zh_t conditions_ui[CONDITION_COUNT];
 
 struct condtests_t {
     enum blconditions c;
@@ -238,14 +246,14 @@ extern int cond_idx[CONDITION_COUNT];
 #define BL_TH_ALWAYS_HILITE 105  /* highlight regardless of value */
 #define BL_TH_CRITICALHP 106     /* highlight critically low HP */
 
-#define HL_ATTCLR_NONE    CLR_MAX + 1
-#define HL_ATTCLR_BOLD    CLR_MAX + 2
-#define HL_ATTCLR_DIM     CLR_MAX + 3
-#define HL_ATTCLR_ITALIC  CLR_MAX + 4
-#define HL_ATTCLR_ULINE   CLR_MAX + 5
-#define HL_ATTCLR_BLINK   CLR_MAX + 6
-#define HL_ATTCLR_INVERSE CLR_MAX + 7
-#define BL_ATTCLR_MAX     CLR_MAX + 8
+#define HL_ATTCLR_NONE    (CLR_MAX + 1)
+#define HL_ATTCLR_BOLD    (CLR_MAX + 2)
+#define HL_ATTCLR_DIM     (CLR_MAX + 3)
+#define HL_ATTCLR_ITALIC  (CLR_MAX + 4)
+#define HL_ATTCLR_ULINE   (CLR_MAX + 5)
+#define HL_ATTCLR_BLINK   (CLR_MAX + 6)
+#define HL_ATTCLR_INVERSE (CLR_MAX + 7)
+#define BL_ATTCLR_MAX     (CLR_MAX + 8)
 
 enum hlattribs {
     HL_UNDEF   = 0x00,

@@ -1,4 +1,4 @@
-/* NetHack 5.0	mcastu.c	$NHDT-Date: 1770949988 2026/02/12 18:33:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.111 $ */
+/* NetHack 5.0	mcastu.c	$NHDT-Date: 1781973053 2026/06/20 16:30:53 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.122 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -198,8 +198,8 @@ castmu(
     if (!foundyou && thinks_it_foundyou
         && !is_undirected_spell(spellnum)) {
         pline_mon(mtmp, "%s对%s施法!",
-                 canseemon(mtmp) ? Monnam(mtmp) : "什么东西",
-                 is_waterwall(mtmp->mux, mtmp->muy) ? "空水"
+                 canseemon(mtmp) ? Monnam(mtmp) : "有东西在",
+                 is_waterwall(mtmp->mux, mtmp->muy) ? "水"
                                                     : "空气");
         return M_ATTK_MISS;
     }
@@ -365,7 +365,7 @@ death_inflicted_by(
         struct permonst *mptr = mtmp->data,
             *champtr = (ismnum(mtmp->cham)) ? &mons[mtmp->cham] : mptr;
         const char *realnm = pmname(champtr, Mgender(mtmp)),
-            *fakenm = pmname(mptr, Mgender(mtmp));
+            *fakenm = an_pmname(mptr, Mgender(mtmp));
 
         /* greatly simplified extract from done_in_by(), primarily for
            reason for death due to 'touch of death' spell; if mtmp is
@@ -373,9 +373,9 @@ death_inflicted_by(
            can't cast spells */
         if (!type_is_pname(champtr) && !the_unique_pm(mptr))
             realnm = an(realnm);
-        Sprintf(eos(outbuf), "%s", ",由"); /*修改语序:Sprintf(eos(outbuf), ",由%s%s导致",*/
+        Sprintf(eos(outbuf), "%s", ", 由"); /*修改语序:Sprintf(eos(outbuf), ", 由%s%s导致",*/
         if (champtr != mptr){ /*修改语序:the_unique_pm(mptr) ? "" : "", realnm);*/
-            Sprintf(eos(outbuf), "模仿成%s的", an(fakenm));}/*修改语序:if (champtr != mptr)*/
+            Sprintf(eos(outbuf), "模仿成%s的", fakenm);}/*修改语序:if (champtr != mptr)*/
         Sprintf(eos(outbuf), "%s%s导致", the_unique_pm(mptr) ? "" : "", realnm); /*修改语序:Sprintf(eos(outbuf), "(模仿成%s)", an(fakenm));*/ Sprintf(eos(outbuf), "%s", deathreason); /*危险:原来没有*/
     }
     return outbuf;
@@ -525,7 +525,7 @@ mcast_geyser(int dmg)
     /* this is physical damage (force not heat),
      * not magical damage or fire damage
      */
-    pline("一个突然不知从哪里来的间歇泉掉下来猛击了你!");
+    pline("一座突然不知从哪里来的间歇泉掉下来猛击了你!");
     dmg = d(8, 6);
     if (Half_physical_damage)
         dmg = (dmg + 1) / 2;
@@ -689,7 +689,7 @@ mcast_insects(struct monst *mtmp)
             if (what != whatbuf)
                 what = strcpy(whatbuf, what);
             /* unseen caster summoned seen critter(s) */
-            arg = (newseen == oldseen + 1) ? an(makesingular(what))
+            arg = (newseen == oldseen + 1) ? makesingular(what)
                                            : whatbuf;
             if (!Deaf) {
                 Soundeffect(se_someone_summoning, 100);
@@ -706,7 +706,7 @@ mcast_insects(struct monst *mtmp)
            words, no need to fuss with visibility or singularization;
            player is told what's happening even if hero is unconscious) */
     } else if (!success) {
-        fmt = "%s朝一堆树枝施法,但什么也有没发生.%s";
+        fmt = "%s朝一堆树枝施法, 但什么也有没发生.%s";
         what = "";
     } else if (let == S_SNAKE) {
         fmt = "%s把一堆树枝变成了%s!";
@@ -751,7 +751,7 @@ mcast_paralyze(struct monst *mtmp)
         shieldeff(u.ux, u.uy);
         monstseesu(M_SEEN_MAGR);
         if (gm.multi >= 0)
-            You("僵住了一刹那.");
+            You("短暂僵住了.");
         dmg = 1; /* to produce nomul(-1), not actual damage */
     } else {
         if (gm.multi >= 0)

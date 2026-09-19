@@ -1,4 +1,4 @@
-/* NetHack 5.0	write.c	$NHDT-Date: 1702023275 2023/12/08 08:14:35 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.41 $ */
+/* NetHack 5.0	write.c	$NHDT-Date: 1781973075 2026/06/20 16:31:15 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.54 $ */
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
@@ -105,7 +105,7 @@ dowrite(struct obj *pen)
                  : "卷轴";
     if (Blind) {
         if (!paper->dknown) {
-            You("不知道那个%s是否空白.", typeword);
+            You("不知道那%s%s是否空白.", classifier(paper), typeword);
             return ECMD_OK;
         } else if (paper->oclass == SPBOOK_CLASS) {
             /* can't write a magic book while blind */
@@ -116,7 +116,7 @@ dowrite(struct obj *pen)
     }
     observe_object(paper);
     if (paper->otyp != SCR_BLANK_PAPER && paper->otyp != SPE_BLANK_PAPER) {
-        pline("那个%s不是空白的!", typeword);
+        pline("那个%s%s不是空白的!", classifier(paper), typeword);
         exercise(A_WIS, FALSE);
         return ECMD_TIME;
     }
@@ -204,7 +204,7 @@ dowrite(struct obj *pen)
         goto found;
     }
 
-    There("没有这种%s!", typeword);
+    pline("没有这种%s!", typeword); /*换pline:There*/
     return ECMD_TIME;
  found:
 
@@ -244,7 +244,7 @@ dowrite(struct obj *pen)
     /* KMH, conduct */
     if (!u.uconduct.literate++)
         livelog_printf(LL_CONDUCT,
-                       "因写%s而脱离文盲", an(typeword));
+                       "因写一%s%s而脱离文盲", classifier(paper), typeword);
 
     new_obj = mksobj(i, FALSE, FALSE);
     new_obj->bknown = (paper->bknown && pen->bknown);

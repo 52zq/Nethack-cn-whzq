@@ -1,4 +1,4 @@
-/* NetHack 5.0	spell.c	$NHDT-Date: 1769498874 2026/01/26 23:27:54 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.185 $ */
+/* NetHack 5.0	spell.c	$NHDT-Date: 1781973068 2026/06/20 16:31:08 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.189 $ */
 /*      Copyright (c) M. Stephenson 1988                          */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -135,7 +135,7 @@ cursed_book(struct obj *bp)
 
     switch (rn2(lev)) {
     case 0:
-        You_feel("一阵扭曲.");
+        You("感到一阵扭曲."); //You_feel
         tele(); /* teleport him */
         break;
     case 1:
@@ -163,7 +163,7 @@ cursed_book(struct obj *bp)
         bp->in_use = FALSE;
         poison_strdmg(Poison_resistance ? rn1(2, 1) : rn1(4, 3),
                       rnd(Poison_resistance ? 6 : 10),
-                      "书页涂毒", KILLED_BY_AN);
+                      "涂毒的书页", KILLED_BY);
         bp->in_use = was_in_use;
         break;
     case 6:
@@ -174,7 +174,7 @@ cursed_book(struct obj *bp)
             pline("你打开这本书, 它把%s释放到了你的%s上!", explodes,
                   body_part(FACE));
             dmg = 2 * rnd(10) + 5;
-            losehp(Maybe_Half_Phys(dmg), "爆炸符文", KILLED_BY_AN);
+            losehp(Maybe_Half_Phys(dmg), "一串爆炸符文", KILLED_BY);
         }
         return TRUE;
     default:
@@ -296,7 +296,7 @@ deadbook(struct obj *book2)
             if (!u.udg_cnt || u.udg_cnt > soon)
                 u.udg_cnt = soon;
         } else { /* at least one relic not prepared properly */
-            You("感觉好像缺少%s...", something);
+            You("感觉好像缺少什么..."); /*修改语序:something*/
             goto raise_dead;
         }
         return;
@@ -589,7 +589,7 @@ study_book(struct obj *spellbook)
 
                     Sprintf(qbuf,
                     "这本魔法书%s难理解. 继续吗?",
-                            (read_ability < 12 ? "非常 " : "很"));
+                            (read_ability < 12 ? "非常" : "很"));
                     if (y_n(qbuf) != 'y') {
                         spellbook->in_use = FALSE;
                         return 1;
@@ -688,7 +688,7 @@ rejectcasting(void)
 {
     /* rejections which take place before selecting a particular spell */
     if (Stunned) {
-        You("身体不稳, 不能施放法术.");
+        You("身体不稳, 不能施展魔法.");
         return TRUE;
     } else if (!can_chant(&gy.youmonst)) {
         You("不能念咒.");
@@ -1161,8 +1161,8 @@ cast_protection(void)
                                      : IS_TREE(rmtyp) ? "你周围的植被"
                                        : IS_STWALL(rmtyp) ? "你周围的石头"
                                          : "空气");
-                pline_The("%s开始发出微弱的暗淡%s色.",
-                          atmosphere, an(hgolden));
+                pline_The("%s开始泛起微弱的暗淡%s.",
+                          atmosphere, hgolden);
             }
         }
         u.uspellprot += gain;
@@ -1249,7 +1249,7 @@ spelleffects_check(int spell, int *res, int *energy)
      * decrement of spell knowledge is done every turn.
      */
     if (spellknow(spell) <= 0) {
-        Your("对这个魔法的知识扭曲了.");
+        Your("对这个法术的知识扭曲了.");
         pline("它在你的心中产生噩梦般的图像...");
         spell_backfire(spell);
         u.uen -= rnd(*energy);
@@ -1259,13 +1259,13 @@ spelleffects_check(int spell, int *res, int *energy)
         *res = ECMD_TIME;
         return TRUE;
     } else if (spellknow(spell) <= KEEN / 200) { /* 100 turns left */
-        You("尽力回想这个魔法.");
+        You("尽力回想这个法术.");
     } else if (spellknow(spell) <= KEEN / 40) { /* 500 turns left */
-        You("回想这个魔法有困难.");
+        You("很难回想这个法术.");
     } else if (spellknow(spell) <= KEEN / 20) { /* 1000 turns left */
-        Your("对这个魔法的知识越来越模糊.");
+        Your("对这个法术的知识越来越模糊.");
     } else if (spellknow(spell) <= KEEN / 10) { /* 2000 turns left */
-        Your("对这个魔法的记忆力正在逐渐消退.");
+        Your("对这个法术的记忆力正在逐渐消退.");
     }
 
     if (u.uhunger <= 10 && spellid(spell) != SPE_DETECT_FOOD) {
@@ -1273,7 +1273,7 @@ spelleffects_check(int spell, int *res, int *energy)
         *res = ECMD_OK;
         return TRUE;
     } else if (ACURR(A_STR) < 4 && spellid(spell) != SPE_RESTORE_ABILITY) {
-        You("的力量不足以来施展魔法.");
+        You("的力量不足以施展魔法.");
         *res = ECMD_OK;
         return TRUE;
     } else if (check_capacity(
@@ -1312,7 +1312,7 @@ spelleffects_check(int spell, int *res, int *energy)
          * isn't now (lost energy when losing levels or polymorphing into
          * new person or had some stripped away by traps or monsters).
          */
-        You("的能量%s还不足以施放那个法术.",
+        You("的能量%s不足以施放那个魔法.",
             (u.uen < u.uenmax) ? "" /* not at full energy => normal message */
             : (*energy > u.uenpeak) ? "还" /* haven't ever had enough */
               : "了"); /* once had enough but have lost some since */
@@ -1670,7 +1670,7 @@ throwspell(void)
     cc.y = u.uy;
     getpos_sethilite(display_spell_target_positions,
                      can_center_spell_location);
-    if (getpos(&cc, TRUE, "想要施放的位置") < 0)
+    if (getpos(&cc, TRUE, "目标位置") < 0)
         return 0; /* user pressed ESC */
     clear_nhwindow(WIN_MESSAGE); /* discard any autodescribe feedback */
 
@@ -2033,7 +2033,7 @@ dovspell(void)
                 if (spellsortmenu())
                     sortspells();
             } else {
-                Sprintf(qbuf, "重新排序;'%c'交换",
+                Sprintf(qbuf, "重新排序; '%c'交换",
                         spellet(splnum));
                 if (!dospellmenu(qbuf, splnum, &othnum))
                     break;
@@ -2068,6 +2068,17 @@ show_spells(void)
     }
 }
 
+// 法术菜单列布局参数
+enum {
+    SPELLMENU_COL_GAP = 2,          // 法术表格列间距
+    SPELLMENU_COL_NAME_WIDTH = 8,   // 名称
+    SPELLMENU_COL_LEVEL_WIDTH = 4,  // 等级
+    SPELLMENU_COL_TYPE_WIDTH = 4,   // 种类
+    SPELLMENU_COL_FAIL_WIDTH = 6,   // 失败率
+    SPELLMENU_COL_RETAIN_WIDTH = 8, // 留存率
+    SPELLMENU_COL_TURNS_WIDTH = 6,  // 回合数 (wizmode)
+};
+
 /* shows menu of known spells, with options to sort them.
    return FALSE on cancel, TRUE otherwise.
    spell_no is set to the internal spl_book index, if any selected */
@@ -2099,30 +2110,69 @@ dospellmenu(
      * For SPELLMENU_DUMP, (2) is untrue, so four spaces
      * need to be subtracted.
      */
+
+    // 修改: 重新调整了法术列表的排版，使其能正常对齐。
+    // 对话框的显示宽度更适合中文
     if (!iflags.menu_tab_sep) {
-        Sprintf(buf, "%s%-20s 等级 %-12s 失败率 留存率",
-                splaction == SPELLMENU_DUMP ? "" : "    ",
-                "名称",
-                "种类");
-        fmt = "%-20s  %2d   %-12s %3d%% %9s";
+        buf[0] = '\0';
+        if (splaction != SPELLMENU_DUMP)
+            Sprintf(buf, "    ");
+        utf8str_append(buf, sizeof buf, "名称",
+                       SPELLMENU_COL_NAME_WIDTH + SPELLMENU_COL_GAP);
+        utf8str_append(buf, sizeof buf, "等级",
+                       SPELLMENU_COL_LEVEL_WIDTH + SPELLMENU_COL_GAP);
+        utf8str_append(buf, sizeof buf, "种类",
+                       SPELLMENU_COL_TYPE_WIDTH + SPELLMENU_COL_GAP);
+        utf8str_append(buf, sizeof buf, "失败率",
+                       SPELLMENU_COL_FAIL_WIDTH + SPELLMENU_COL_GAP);
+        utf8str_append_r(buf, sizeof buf, "留存率",
+                         SPELLMENU_COL_RETAIN_WIDTH);
         sep = ' ';
     } else {
         Sprintf(buf, "名称\t等级\t种类\t失败率\t留存率");
         fmt = "%s\t%-d\t%s\t%-d%%\t%s";
         sep = '\t';
     }
-    if (wizard)
-        Sprintf(eos(buf), "%c%6s", sep, "回合");
+    if (wizard) {
+        if (!iflags.menu_tab_sep) {
+            utf8str_append_r(buf, sizeof buf, "回合",
+                             SPELLMENU_COL_TURNS_WIDTH + SPELLMENU_COL_GAP);
+        } else {
+            Sprintf(eos(buf), "%c%8s", sep, "回合");
+        }
+    }
 
     add_menu_heading(tmpwin, buf);
     for (i = 0; i < MAXSPELL && spellid(i) != NO_SPELL; i++) {
         splnum = !gs.spl_orderindx ? i : gs.spl_orderindx[i];
-        Sprintf(buf, fmt, spellname(splnum), spellev(splnum),
+        if (!iflags.menu_tab_sep) {
+            buf[0] = '\0';
+            utf8str_append(buf, sizeof buf, spellname(splnum),
+                           SPELLMENU_COL_NAME_WIDTH + SPELLMENU_COL_GAP);
+            Sprintf(eos(buf), "%*d%*s", SPELLMENU_COL_LEVEL_WIDTH,
+                    spellev(splnum), SPELLMENU_COL_GAP, "");
+            utf8str_append(
+                buf, sizeof buf,
                 spelltypemnemonic(spell_skilltype(spellid(splnum))),
-                100 - percent_success(splnum),
-                spellretention(splnum, retentionbuf));
-        if (wizard)
-            Sprintf(eos(buf), "%c%6d", sep, spellknow(i));
+                SPELLMENU_COL_TYPE_WIDTH + SPELLMENU_COL_GAP);
+            Sprintf(eos(buf), "%*s%3d%%", SPELLMENU_COL_GAP, "",
+                    100 - percent_success(splnum));
+            utf8str_append_r(buf, sizeof buf,
+                             spellretention(splnum, retentionbuf),
+                             SPELLMENU_COL_RETAIN_WIDTH + SPELLMENU_COL_GAP);
+            if (wizard) {
+                Sprintf(eos(buf), "%*d",
+                        SPELLMENU_COL_TURNS_WIDTH + SPELLMENU_COL_GAP,
+                        spellknow(i));
+            }
+        } else {
+            Sprintf(buf, fmt, spellname(splnum), spellev(splnum),
+                    spelltypemnemonic(spell_skilltype(spellid(splnum))),
+                    100 - percent_success(splnum),
+                    spellretention(splnum, retentionbuf));
+            if (wizard)
+                Sprintf(eos(buf), "%c%6d", sep, spellknow(i));
+        }
 
         any.a_int = splnum + 1; /* must be non-zero */
         add_menu(tmpwin, &nul_glyphinfo, &any, spellet(splnum), 0,

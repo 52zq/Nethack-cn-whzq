@@ -1,4 +1,4 @@
-/* NetHack 5.0	mthrowu.c	$NHDT-Date: 1737392015 2025/01/20 08:53:35 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.173 $ */
+/* NetHack 5.0	mthrowu.c	$NHDT-Date: 1781973057 2026/06/20 16:30:57 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.192 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Pasi Kallinen, 2016. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -95,12 +95,12 @@ thitu(
         knm = name;
         /* [perhaps ought to check for plural here too] */
         if (!strncmpi(name, "the ", 4) || !strncmpi(name, "an ", 3)
-            || !strncmpi(name, "a ", 2) || !strncmpi(name, "一个", strlen("一个")))
+            || !strncmpi(name, "a ", 2) || !strncmpi(name, "一", strlen("一"))) //危险:一个
             kprefix = KILLED_BY;
     }
     onm = (obj && obj_is_pname(obj)) ? the(name)
           : (obj && obj->quan > 1L) ? name
-            : an(name);
+            : name;
     is_acid = (obj && obj->otyp == ACID_VENOM);
 
     if (u.uac + tlev <= (dieroll = rnd(20))) {
@@ -278,19 +278,19 @@ monshoot(struct monst *mtmp, struct obj *otmp, struct obj *mwep)
         if (multishot > 1) {
             /* "N arrows"; multishot > 1 implies otmp->quan > 1, so
                xname()'s result will already be pluralized */
-            Sprintf(onmbuf, "%d %s", multishot, xname(otmp));
+            Sprintf(onmbuf, "%d%s%s", multishot, classifier(otmp), xname(otmp));
             onm = onmbuf;
         } else {
             /* "an arrow" */
             onm = singular(otmp, xname);
-            onm = obj_is_pname(otmp) ? the(onm) : an(onm);
+            //冗余:onm = obj_is_pname(otmp) ? the(onm) : an(onm);
         }
         gm.m_shot.s = ammo_and_launcher(otmp, mwep) ? TRUE : FALSE;
         Strcpy(trgbuf, mtarg ? some_mon_nam(mtarg) : "");
         set_msg_xy(mtmp->mx, mtmp->my);
-        pline("%s%s%s%s了%s!", Monnam(mtmp),
-              gm.m_shot.s ? "向" : "", trgbuf, /*修改语序:gm.m_shot.s ? "向" : "", onm,*/
-              mtarg ? "射出" : "投掷", onm); /*修改语序:mtarg ? "射出" : "投掷", trgbuf);*/
+        pline("%s%s%s%s了%s%s%s!", Monnam(mtmp),
+              mtarg ? "向" : "", trgbuf, /*修改语序:gm.m_shot.s ? "向" : "", onm,*/
+              gm.m_shot.s ? "射出" : "投掷", obj_is_pname(otmp) ? "" : "一", obj_is_pname(otmp) ? "" : classifier(otmp), onm); /*修改语序:mtarg ? "射出" : "投掷", trgbuf);*/
         gm.m_shot.o = otmp->otyp;
     } else {
         gm.m_shot.o = STRANGE_OBJECT; /* don't give multishot feedback */
@@ -383,7 +383,7 @@ ohitmon(
         Soundeffect(se_splat_egg, 35);
         if (vis) {
             if (otmp->otyp == EGG) {
-                pline("啪! %s被%s蛋打中了!", Monnam(mtmp),
+                pline("啪! %s被%s蛋击中了!", Monnam(mtmp),
                       otmp->known ? an(mons[otmp->corpsenm].pmnames[NEUTRAL])
                                   : "一个");
             } else {
@@ -397,7 +397,7 @@ ohitmon(
                 hit(distant_name(otmp, mshot_xname), mtmp, how);
             }
         } else if (verbose && !gm.mtarget)
-            pline("%s%s被打中了%s", (otmp->otyp == EGG) ? "啪! " : "",
+            pline("%s%s被击中了%s", (otmp->otyp == EGG) ? "啪! " : "",
                   Monnam(mtmp), exclam(damage));
 
         if (otmp->opoisoned && is_poisonable(otmp)) {
@@ -535,7 +535,7 @@ u_catch_thrown_obj(struct obj *otmp)
     int catch_chance = 100 - ACURR(A_DEX)
                        - ((Role_if(PM_MONK) || Role_if(PM_ROGUE)) ? 20 : 0);
 
-    if (!Blind && !Confusion && !Stunned && !Fumbling
+    if (!Blind && !Confusion && !Stunned && !Fumbling && !Unaware
         && otmp->oclass != VENOM_CLASS
         && !nohands(gy.youmonst.data) && freehand()
         && calc_capacity(otmp->owt) <= SLT_ENCUMBER && !rn2(catch_chance)) {
@@ -624,7 +624,7 @@ m_throw(
             if (is_ammo(singleobj))
                 pline("%s没有发射!", Monnam(mon));
             else
-                pline("当%s投掷时, %s了!", mon_nam(mon), /*修改语序:pline("%s了当%s投掷时!", Tobjnam(singleobj, "滑落"),*/
+                pline("%s投掷时, %s了!", mon_nam(mon), /*修改语序:pline("%s了当%s投掷时!", Tobjnam(singleobj, "滑落"),*/
                       Tobjnam(singleobj, "滑落")); /*修改语序:mon_nam(mon));*/
         }
         dx = rn2(3) - 1;
@@ -883,7 +883,7 @@ return_from_mtoss(
             static long do_not_annoy = 0;
 
             if (!do_not_annoy || (svm.moves - do_not_annoy) > 500L) {
-                pline("%s到了%s的%s上!", Tobjnam(otmp, "飞回"),
+                pline("%s了%s的%s上!", Tobjnam(otmp, "飞回"),
                       s_suffix(mon_nam(magr)), mbodypart(magr, HAND));
                 do_not_annoy = svm.moves;
             }
@@ -902,7 +902,7 @@ return_from_mtoss(
             dmg = rn2(2);
             if (!dmg) {
                 if (canseemon(magr)) {
-                    pline("%s到了%s附近, 落在%s的%s%s.",
+                    pline("%s了%s附近, 落在%s的%s%s.",
                           Tobjnam(otmp, "飞回"), mon_nam(magr),
                           mhis(magr), makeplural(mbodypart(magr, FOOT)), 
                           mlevitating ? "下" : "上"); /*修改语序:自己看原文*/
@@ -912,8 +912,8 @@ return_from_mtoss(
             } else {
                 dmg += rnd(3);
                 if (canseemon(magr)) {
-                    pline("%s向%s飞回, 击中了%s%s!",
-                          Tobjnam(otmp, "飞"), mon_nam(magr),
+                    pline("%s了%s, 击中了%s的%s!",
+                          Tobjnam(otmp, "飞回"), mon_nam(magr),
                           mhis(magr), body_part(ARM));
                 } else if (!Deaf) {
                     You_hear("%s砰地击中了%s!", something,
@@ -941,7 +941,7 @@ return_from_mtoss(
         if (notcaught) {
             (void) snuff_candle(otmp);
             if (!ship_object(otmp, x, y, FALSE)) {
-                if (flooreffects(otmp, x, y, "落")) {
+                if (flooreffects(otmp, x, y, "被丢")) {
                     if (cansee(x, y))
                         newsym(x, y);
                     return;
@@ -1219,10 +1219,10 @@ thrwmu(struct monst *mtmp)
 
         if (canseemon(mtmp)) {
             onm = xname(otmp);
-            pline_mon(mtmp, "%s%s%s.", Monnam(mtmp),
+            pline_mon(mtmp, "%s%s%s%s%s.", Monnam(mtmp),
                   /* "thrusts" or "swings", or "bashes with" if adjacent */
                   mswings_verb(otmp, (rang <= 2) ? TRUE : FALSE),
-                  obj_is_pname(otmp) ? the(onm) : an(onm));
+                  obj_is_pname(otmp) ? "" : "一", obj_is_pname(otmp) ? "" : classifier(otmp), onm);
         }
 
         dam = dmgval(otmp, &gy.youmonst);

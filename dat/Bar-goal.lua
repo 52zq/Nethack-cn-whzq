@@ -1,4 +1,4 @@
--- NetHack Barbarian Bar-goal.lua	$NHDT-Date: 1652196000 2022/05/10 15:20:00 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.1 $
+-- NetHack Barbarian Bar-goal.lua	$NHDT-Date: 1781994865 2026/06/20 22:34:25 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.2 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991 by M. Stephenson
 -- NetHack may be freely redistributed.  See license for details.
@@ -40,7 +40,7 @@ des.stair("up", 36,05)
 des.altar({ x=63,y=04,align="noncoaligned", type="altar" })
 des.non_diggable(selection.area(00,00,75,19))
 -- Objects
-des.object({ id = "luckstone", x=63, y=04,buc="blessed",spe=0,name="The Heart of Ahriman" })
+des.object({ id = "luckstone", x=63, y=04,buc="blessed",spe=0,name="阿里曼之心" })
 des.object()
 des.object()
 des.object()

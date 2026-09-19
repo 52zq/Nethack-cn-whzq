@@ -1,4 +1,4 @@
-/* NetHack 5.0	mklev.c	$NHDT-Date: 1737387068 2025/01/20 07:31:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.194 $ */
+/* NetHack 5.0	mklev.c	$NHDT-Date: 1781973055 2026/06/20 16:30:55 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.207 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Alex Smith, 2017. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -1261,6 +1261,9 @@ makelevel(void)
         impossible("makelevel() called when dungeon not yet initialized.");
         init_dungeons();
     }
+    level_status_init();
+    level_status.making = 1;
+
     oinit(); /* assign level dependent obj probabilities */
     clear_level_structures();
 
@@ -1276,10 +1279,10 @@ makelevel(void)
         char fillname[9];
         s_level *loc_lev;
 
-        Sprintf(fillname, "%s-loca", gu.urole.efilecode);
+        Sprintf(fillname, "%s-loca", gu.urole.filecode);
         loc_lev = find_level(fillname);
 
-        Sprintf(fillname, "%s-fil", gu.urole.efilecode);
+        Sprintf(fillname, "%s-fil", gu.urole.filecode);
         Strcat(fillname,
                 (u.uz.dlevel < loc_lev->dlevel.dlevel) ? "a" : "b");
         makemaz(fillname);
@@ -1416,7 +1419,7 @@ makelevel(void)
     for (i = 0; i < svn.nroom; ++i) {
         fill_special_room(&svr.rooms[i]);
     }
-
+    level_status.shkready = 1;
     themerooms_post_level_generate();
 
     if (gl.luacore && nhcb_counts[NHCB_LVL_ENTER]) {
@@ -1425,6 +1428,7 @@ makelevel(void)
         nhl_pcall_handle(gl.luacore, 1, 0, "makelevel", NHLpa_panic);
         lua_settop(gl.luacore, 0);
     }
+    level_status.making = 0, level_status.ready = 1;
 }
 
 /* return TRUE if water location at (x,y) should have kelp. */
@@ -1930,7 +1934,7 @@ mktrap_victim(struct trap *ttmp)
     if (victim_mnum == PM_HUMAN && rn2(25))
         victim_mnum = rn1(PM_WIZARD - PM_ARCHEOLOGIST, PM_ARCHEOLOGIST);
     otmp = mkcorpstat(CORPSE, NULL, &mons[victim_mnum], x, y, CORPSTAT_INIT);
-    otmp->age -= (TAINT_AGE + 1); /* died too long ago to safely eat */
+    otmp->age -= (INEDIBLE_AGE + 1); /* died too long ago to safely eat */
 }
 
 /* pick a random trap type, return NO_TRAP if "too hard" */
@@ -2177,7 +2181,7 @@ mkstairs(
             sidx = glyph_to_cmap(glyph);
 
         impossible("mkstairs:  placing stairs %s on %s at <%d,%d>",
-                   up ? "up" : "down", defsyms[sidx].explanation, x, y);
+                   up ? "up" : "down", defsyms[sidx].bexplanation, x, y);
     }
 
     /*
@@ -2364,7 +2368,7 @@ mkgrave(struct mkroom *croom)
         return;
 
     /* Put a grave at <m.x,m.y> */
-    make_grave(m.x, m.y, dobell ? "解铃还须系铃人!" : (char *) 0);
+    make_grave(m.x, m.y, dobell ? "摇铃得救! " : (char *) 0);
 
     /* Possibly fill it with objects */
     if (!rn2(3)) {
@@ -2451,7 +2455,7 @@ mkinvokearea(void)
            or if all the walls within range have been dug away; when it does
            appear, it will describe iron bars as "walls" (which is ok) */
         if (wallct)
-            pline_The("你周围的墙壁开始弯曲和崩溃!");
+            pline_The("你周围的墙壁开始弯曲崩塌!");
     }
     display_nhwindow(WIN_MESSAGE, TRUE);
 

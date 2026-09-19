@@ -1,4 +1,4 @@
--- NetHack Samurai Sam-goal.lua	$NHDT-Date: 1652196013 2022/05/10 15:20:13 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.1 $
+-- NetHack Samurai Sam-goal.lua	$NHDT-Date: 1781994873 2026/06/20 22:34:33 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.2 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991-92 by M. Stephenson, P. Winner
 -- NetHack may be freely redistributed.  See license for details.
@@ -56,7 +56,7 @@ des.terrain(place[placeidx], ".")
 -- Non diggable walls
 des.non_diggable(selection.area(00,00,44,19))
 -- Objects
-des.object({ id = "tsurugi", x=22, y=10, buc="blessed", spe=0, name="The Tsurugi of Muramasa" })
+des.object({ id = "tsurugi", x=22, y=10, buc="blessed", spe=0, name="村正" })
 des.object()
 des.object()
 des.object()

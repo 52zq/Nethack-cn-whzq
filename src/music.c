@@ -1,4 +1,4 @@
-/* NetHack 5.0	music.c	$NHDT-Date: 1736530208 2025/01/10 09:30:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.120 $ */
+/* NetHack 5.0	music.c	$NHDT-Date: 1781973058 2026/06/20 16:30:58 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.126 $ */
 /*      Copyright (c) 1989 by Jean-Christophe Collet */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -271,7 +271,7 @@ do_pit(coordxy x, coordxy y, unsigned tu_pit)
             }
             /* Falling is okay for falling down
                within a pit from jostling too */
-            mselftouch(mtmp, "掉下去的", TRUE);
+            mselftouch(mtmp, "掉下去时, ", TRUE);
             if (!DEADMONSTER(mtmp)) {
                 mtmp->mhp -= rnd(m_already_trapped ? 4 : 6);
                 if (DEADMONSTER(mtmp)) {
@@ -376,7 +376,7 @@ do_earthquake(int force)
                                   Amonnam(mtmp));
                         } else if (!is_flyer(mtmp->data)) {
                             Soundeffect(se_thump, 50);
-                            You_hear("砰的一声.");
+                            You_hear("咚的一声.");
                         }
                     }
                 }
@@ -557,13 +557,13 @@ do_improvisation(struct obj *instr)
         if (!Deaf)
             You("发出令人讨厌低沉单调的声音.");
         else
-            You_feel("一个单调的振动.");
+            You_feel("到一个单调的振动.");
         break;
     case PLAY_CONFUSED:
         if (!Deaf)
             You("发出刺耳的噪音.");
         else
-            You_feel("一个不和谐的振动.");
+            You_feel("到一个不和谐的振动.");
         break;
     case PLAY_HALLU:
         You("产生出千变万化的飞舞的蝴蝶.");
@@ -589,9 +589,9 @@ do_improvisation(struct obj *instr)
     case MAGIC_FLUTE: /* Make monster fall asleep */
         consume_obj_charge(instr, TRUE);
 
-        You("%s产生出了%s%s音乐.", !Deaf ? "" : "似乎",
-            Hallucination ? "管乐的" : "柔和的",
-            same_old_song ? "" : "熟悉的");
+        You("%s产生出了%s%s.", !Deaf ? "" : "似乎",
+            same_old_song ? "" : "熟悉的",
+            Hallucination ? "管乐" : "柔和的音乐"); /*修改语序:自己看*/
         Hero_playnotes(obj_to_instr(&itmp), improvisation, 50);
         put_monsters_to_sleep(u.ulevel * 5);
         exercise(A_DEX, TRUE);
@@ -602,7 +602,7 @@ do_improvisation(struct obj *instr)
             pline("%s%s.", Tobjnam(instr, do_spec ? "吹奏出颤音" : "吹响了"),
                   same_old_song ? "一段熟悉的曲子" : "");
         else
-            You_feel("%s%s.", yname(instr), do_spec ? "一阵颤音" : "嘟嘟声");
+            You_feel("%s发出来%s.", yname(instr), do_spec ? "一阵颤音" : "嘟嘟声");
         Hero_playnotes(obj_to_instr(&itmp), improvisation, 50);
         if (do_spec)
             charm_snakes(u.ulevel * 3);
@@ -715,7 +715,7 @@ do_improvisation(struct obj *instr)
             /* TODO maybe: sound effects for these riffs */
             You("%s一段%s.",
                 rn2(2) ? "胡乱敲出" : rn2(2) ? "勉强敲出" : "成功敲出",
-                an(ROLL_FROM(beats)));
+                ROLL_FROM(beats));
             Hero_playnotes(obj_to_instr(&itmp), improvisation, 50);
         }
         awaken_monsters(u.ulevel * (mundane ? 5 : 40));
@@ -790,7 +790,7 @@ do_play_instrument(struct obj *instr)
     } else if (c == 'y') {
         Strcpy(buf, svt.tune);
     } else {
-        getlin("你要演奏什么? [5个字母,A-G]", buf);
+        getlin("你要演奏什么? [5个字母, A-G]", buf);
         (void) mungspaces(buf);
         if (*buf == '\033')
             goto nevermind;

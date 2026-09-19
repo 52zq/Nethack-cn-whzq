@@ -1,4 +1,4 @@
-/* NetHack 5.0	fountain.c	$NHDT-Date: 1699582923 2023/11/10 02:22:03 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.100 $ */
+/* NetHack 5.0	fountain.c	$NHDT-Date: 1781973050 2026/06/20 16:30:50 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.121 $ */
 /*      Copyright Scott R. Turner, srt@ucla, 10/27/86 */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -20,7 +20,7 @@ DISABLE_WARNING_FORMAT_NONLITERAL
 void
 floating_above(const char *what)
 {
-    const char *umsg = "正漂浮在%s上空.";
+    const char *umsg = "正飘浮在%s上空.";
 
     if (u.utrap && (u.utraptype == TT_INFLOOR || u.utraptype == TT_LAVA)) {
         /* when stuck in floor (not possible at fountain or sink location,
@@ -301,7 +301,7 @@ drinkfountain(void)
             if (Poison_resistance) {
                 pline("也许它是从附近的%s农场流过来的.",
                       fruitname(FALSE));
-                losehp(rnd(4), "未冷藏的果汁", KILLED_BY_AN);
+                losehp(rnd(4), "未冷藏的果汁", KILLED_BY);
                 break;
             }
             poison_strdmg(rn1(4, 3), rnd(10), "污染的水",
@@ -351,7 +351,7 @@ drinkfountain(void)
             break;
         case 26: /* See Monsters */
             if (monster_detect((struct obj *) 0, 0))
-                pline("这%s喝起来什么味道都没有.", hliquid("水")); /*危险:pline_The*/
+                pline("这%s喝起来什么味道都没有.", hliquid("水")); /*换pline:pline_The*/
             exercise(A_WIS, TRUE);
             break;
         case 27: /* Find a gem in the sparkling waters. */
@@ -426,8 +426,8 @@ dipfountain(struct obj *obj)
             /* The lady of the lake acts! - Eric Backus */
             /* Be *REAL* nice */
             pline(
-              "从黑暗深处,一只手伸上来祝福那把剑.");
-            pline("当你的手向后退时, 喷泉消失了!");
+              "从浑浊的深处, 一只手伸上来祝福那把剑.");
+            pline("随着那只手收回, 喷泉便消失了!");
             obj = oname(obj, artiname(ART_EXCALIBUR),
                         ONAME_VIA_DIP | ONAME_KNOW_ARTI);
             discover_artifact(ART_EXCALIBUR);
@@ -496,7 +496,7 @@ dipfountain(struct obj *obj)
         pline("一种奇怪的刺痛感出现在你的%s上.", body_part(ARM));
         break;
     case 27: /* Strange feeling */
-        You_feel("突然的寒意.");
+        You_feel("到突然的寒意.");
         break;
     case 28: /* Strange feeling */
         pline("想要洗澡的冲动淹没了你.");
@@ -665,7 +665,7 @@ drinksink(void)
         pline_The("%s仿佛有自己的意志般地流动!", hliquid("水"));
         if ((svm.mvitals[PM_WATER_ELEMENTAL].mvflags & G_GONE)
             || !makemon(&mons[PM_WATER_ELEMENTAL], u.ux, u.uy, MM_NOMSG))
-            pline("");
+            pline("但是它停下来了. ");
         break;
     case 8:
         pline("呕, 这%s味道糟透了.", hliquid("水"));
@@ -673,7 +673,7 @@ drinksink(void)
         newexplevel();
         break;
     case 9:
-        pline("呕... 这%s尝起来像污水! 你呕吐了.");
+        pline("呕... 这尝起来像污水! 你呕吐了.");
         morehungry(rn1(30 - ACURR(A_CON), 11));
         vomit();
         break;
@@ -770,7 +770,7 @@ dipsink(struct obj *obj)
         break;
     case POT_OBJECT_DETECTION:
         if (!(levl[u.ux][u.uy].looted & S_LRING)) {
-            You("感受到一个戒指掉进了下水道.");
+            You("感受到一枚戒指掉进了下水道.");
             try_call = TRUE;
             break;
         }

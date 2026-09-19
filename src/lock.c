@@ -1,4 +1,4 @@
-/* NetHack 5.0	lock.c	$NHDT-Date: 1741793439 2025/03/12 07:30:39 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.145 $ */
+/* NetHack 5.0	lock.c	$NHDT-Date: 1781973052 2026/06/20 16:30:52 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.150 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -84,7 +84,7 @@ picklock(void)
             You("不能锁打开的门.");
             return ((gx.xlock.usedtime = 0));
         case D_BROKEN:
-            pline("这扇门坏了.");
+            pline("这扇门已经坏了.");
             return ((gx.xlock.usedtime = 0));
         }
     }
@@ -219,7 +219,7 @@ forcelock(void)
         return ((gx.xlock.usedtime = 0)); /* you or it moved */
 
     if (gx.xlock.usedtime++ >= 50 || !uwep || nohands(gy.youmonst.data)) {
-        You("放弃了尝试撬锁.");
+        You("放弃了尝试强行开锁.");
         if (gx.xlock.usedtime >= 50) /* you made the effort */
             exercise((gx.xlock.picktyp) ? A_DEX : A_STR, TRUE);
         return ((gx.xlock.usedtime = 0));
@@ -231,7 +231,7 @@ forcelock(void)
             /* for a +0 weapon, probability that it survives an unsuccessful
              * attempt to force the lock is (.992)^50 = .67
              */
-            pline("%s%s打破了!", (uwep->quan > 1L) ? "你的一个" : "你的",
+            pline("你的%s%s%s坏了!", (uwep->quan > 1L) ? "其中一" : "", (uwep->quan > 1L) ? classifier(uwep) : "",
                   xname(uwep));
             useup(uwep);
             You("放弃了尝试强行开锁.");
@@ -433,7 +433,7 @@ pick_lock(
         int count;
 
         if (u.dz < 0 && !autounlock) { /* beware stale u.dz value */
-            There("在%s上方没有任何种类的锁.",
+            pline("%s上方没有任何种类的锁.", /*换pline:There*/
                   Levitation ? "这里" : "那里");
             return PICKLOCK_LEARNED_SOMETHING;
         } else if (is_lava(u.ux, u.uy)) {
@@ -510,7 +510,7 @@ pick_lock(
                 } else if (picktyp == CREDIT_CARD && !otmp->olocked) {
                     /* credit cards are only good for unlocking */
                     You_cant("用%s做那个.",
-                             an(simple_typename(picktyp)));
+                             simple_typename(picktyp));
                     return PICKLOCK_LEARNED_SOMETHING;
                 } else if (autounlock
                            && !touch_artifact(pick, &gy.youmonst)) {
@@ -599,7 +599,7 @@ pick_lock(
             You("不能锁打开的门.");
             return PICKLOCK_LEARNED_SOMETHING;
         case D_BROKEN:
-            pline("这扇门坏了.");
+            pline("这扇门已经坏了.");
             return PICKLOCK_LEARNED_SOMETHING;
         default:
             if ((flags.autounlock & AUTOUNLOCK_UNTRAP) != 0
@@ -613,7 +613,7 @@ pick_lock(
             }
             /* credit cards are only good for unlocking */
             if (picktyp == CREDIT_CARD && !(door->doormask & D_LOCKED)) {
-                You_cant("不能用信用卡锁门.");
+                You_cant("用信用卡锁门.");
                 return PICKLOCK_LEARNED_SOMETHING;
             }
 
@@ -691,12 +691,12 @@ doforce(void)
     if (!u_have_forceable_weapon()) {
         boolean use_plural = uwep && uwep->quan > 1;
 
-        You_cant("在%s武器%s的情况下用力推任何东西.",
+        You_cant("在%s武器的情况下用力推任何东西.",
                  !uwep ? "未装备"
                  : (uwep->oclass != WEAPON_CLASS && !is_weptool(uwep))
-                   ? (use_plural ? "没有合适的" : "没有合适的")
-                   : (use_plural ? "装备那些" : "装备那个"),
-                 use_plural ? "" : "");
+                   ? ("没有合适的")
+                   : (use_plural ? "装备那些" : "装备那个")
+                 /*冗余:use_plural ? "" : ""*/);
         return ECMD_OK;
     }
     if (!can_reach_floor(TRUE)) {
@@ -841,14 +841,14 @@ doopen_indir(coordxy x, coordxy y)
     if (portcullis || !IS_DOOR(door->typ)) {
         /* closed portcullis or spot that opened bridge would span */
         if (is_db_wall(cc.x, cc.y) || door->typ == DRAWBRIDGE_UP)
-            There("没有明显的方式来打开吊桥.");
+            pline("没有明显的方式来打开吊桥."); /*换pline:There*/
         else if (portcullis || door->typ == DRAWBRIDGE_DOWN)
             pline_The("吊桥已经打开了.");
         else if (container_at(cc.x, cc.y, TRUE))
             pline("%s那里有东西可可以搜刮.",
                   Blind ? "你感觉" : "好像");
         else
-            You("%s那里没有门.", Blind ? "感觉到" : "看到");
+            You("%s那里没有门.", Blind ? "感受到" : "看到");
         return res;
     }
 
@@ -896,7 +896,7 @@ doopen_indir(coordxy x, coordxy y)
     }
 
     if (verysmall(gy.youmonst.data)) {
-        pline("你的体型太小,拉不开门.");
+        pline("你的体型太小, 拉不开门.");
         return res;
     }
 
@@ -1009,10 +1009,10 @@ doclose(void)
         if (is_db_wall(x, y) || door->typ == DRAWBRIDGE_UP)
             pline_The("吊桥已经关闭了.");
         else if (portcullis || door->typ == DRAWBRIDGE_DOWN)
-            There("没有明显的方式来关闭吊桥.");
+            pline("没有明显的方式来关闭吊桥."); /*换pline:There*/
         else {
  nodoor:
-            You("%s那里没有门.", Blind ? "感觉到" : "看到");
+            You("%s那里没有门.", Blind ? "感受到" : "看到");
         }
         return res;
     }
@@ -1032,7 +1032,7 @@ doclose(void)
 
     if (door->doormask == D_ISOPEN) {
         if (verysmall(gy.youmonst.data) && !u.usteed) {
-            pline("你太小了,无法把门推上.");
+            pline("你太小了, 无法把门推上.");
             return res;
         }
         if (u.usteed
@@ -1062,7 +1062,7 @@ boxlock(struct obj *obj, struct obj *otmp) /* obj *is* a box */
     case SPE_WIZARD_LOCK:
         if (!obj->olocked) { /* lock it; fix if broken */
             Soundeffect(se_klunk, 50);
-            pline("哐啷!");
+            pline("哐当!");
             obj->olocked = 1;
             obj->obroken = 0;
             if (Role_if(PM_WIZARD))
@@ -1314,7 +1314,7 @@ chest_shatter_msg(struct obj *otmp)
         disposition = "被摧毁了";
         break;
     }
-    pline("%s%s!", An(thing), disposition);
+    pline("一%s%s%s!", classifier(otmp), thing, disposition);
 }
 
 /*lock.c*/

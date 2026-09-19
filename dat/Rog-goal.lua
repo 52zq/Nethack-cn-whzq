@@ -1,4 +1,4 @@
--- NetHack Rogue Rog-goal.lua	$NHDT-Date: 1652196012 2022/05/10 15:20:12 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.1 $
+-- NetHack Rogue Rog-goal.lua	$NHDT-Date: 1781994872 2026/06/20 22:34:32 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.2 $
 --	Copyright (c) 1992 by Dean Luick
 -- NetHack may be freely redistributed.  See license for details.
 --
@@ -41,7 +41,7 @@ des.non_diggable(selection.area(00,00,75,20))
 -- One trap to keep the gnomes at bay.
 des.trap("spiked pit",37,07)
 -- Objects
-des.object({ id = "skeleton key", x=38, y=10, buc="blessed", spe=0, name="The Master Key of Thievery" })
+des.object({ id = "skeleton key", x=38, y=10, buc="blessed", spe=0, name="盗窃专用万能钥匙" })
 des.object({ id = "tin", x=26, y=12, montype="chameleon" })
 des.object()
 des.object()

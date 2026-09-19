@@ -1,4 +1,4 @@
--- NetHack Tourist Tou-goal.lua	$NHDT-Date: 1652196015 2022/05/10 15:20:15 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.4 $
+-- NetHack Tourist Tou-goal.lua	$NHDT-Date: 1781994874 2026/06/20 22:34:34 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.6 $
 --	Copyright (c) 1989 by Jean-Christophe Collet
 --	Copyright (c) 1991,92 by M. Stephenson, P. Winner
 -- NetHack may be freely redistributed.  See license for details.
@@ -92,7 +92,7 @@ des.door("random",51,15)
 des.door("open",59,14)
 des.door("open",59,17)
 -- Objects
-des.object({ id = "credit card", x=04, y=01, buc="blessed", spe=0, name="The Platinum Yendorian Express Card" })
+des.object({ id = "credit card", x=04, y=01, buc="blessed", spe=0, name="岩德利亚至尊白金卡" })
 des.object()
 des.object()
 des.object()

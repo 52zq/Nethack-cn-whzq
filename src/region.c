@@ -1,4 +1,4 @@
-/* NetHack 5.0	region.c	$NHDT-Date: 1727251269 2024/09/25 08:01:09 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.104 $ */
+/* NetHack 5.0	region.c	$NHDT-Date: 1781973064 2026/06/20 16:31:04 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.112 $ */
 /* Copyright (c) 1996 by Jean-Christophe Collet  */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -1111,7 +1111,7 @@ inside_gas_cloud(genericptr_t p1, genericptr_t p2)
         if (m_poisongas_ok(&gy.youmonst) == M_POISONGAS_OK)
             return FALSE;
         if (!Blind) {
-            Your("的%s在刺痛.", makeplural(body_part(EYE)));
+            Your("%s在刺痛.", makeplural(body_part(EYE)));
             make_blinded(1L, FALSE);
         }
         if (!Poison_resistance) {
@@ -1122,7 +1122,7 @@ inside_gas_cloud(genericptr_t p1, genericptr_t p2)
             dam = Maybe_Half_Phys(rnd(dam) + 5);
             if (Half_gas_damage) /* worn towel */
                 dam = (dam + 1) / 2;
-            losehp(dam, "毒气云", KILLED_BY_AN);
+            losehp(dam, "一片毒气云", KILLED_BY);
             monstunseesu(M_SEEN_POISON);
             return FALSE;
         } else {

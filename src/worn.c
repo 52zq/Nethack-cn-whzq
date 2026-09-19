@@ -1,4 +1,4 @@
-/* NetHack 5.0	worn.c	$NHDT-Date: 1770949988 2026/02/12 18:33:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.119 $ */
+/* NetHack 5.0	worn.c	$NHDT-Date: 1781973075 2026/06/20 16:31:15 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.124 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -543,7 +543,7 @@ mon_adjust_speed(
         && !(mon->mfrozen || mon->msleeping) && canseemon(mon)) {
         /* fast to slow (skipping intermediate state) or vice versa */
         const char *howmuch =
-            (mon->mspeed + oldspeed == MFAST + MSLOW) ? "多 " : "些";
+            (mon->mspeed + oldspeed == MFAST + MSLOW) ? "多" : "些";
 
         if (petrify) {
             /* mimic the player's petrification countdown; "slowing down"
@@ -993,7 +993,7 @@ m_dowear_type(
     /* if couldn't see it but now can, or vice versa */
     if (!creation && (sawmon ^ canseemon(mon))) {
         if (mon->minvis && !See_invisible) {
-            pline("突然间你看不到%s了.", nambuf);
+            pline("突然你看不见%s了.", nambuf);
             makeknown(best->otyp);
         /* } else if (!mon->minvis) {
          *     pline("%s suddenly appears!", Amonnam(mon)); */
@@ -1236,7 +1236,7 @@ mon_break_armor(struct monst *mon, boolean polyspot)
                 pline_mon(mon, "%s的盔甲从%s身上掉下来了!",
                           s_suffix(Monnam(mon)), pronoun);
             else
-                You_hear("当啷声.");
+                You_hear("砰的一声.");
             m_lose_armor(mon, otmp, polyspot);
         }
         if ((otmp = which_armor(mon, W_ARMC)) != 0
@@ -1326,7 +1326,7 @@ mon_break_armor(struct monst *mon, boolean polyspot)
 
             You("碰到了%s.", mon_nam(u.usteed));
             Sprintf(buf, "从%s身上跌落",
-                    an(pmname(u.usteed->data, Mgender(u.usteed))));
+                    an_pmname(u.usteed->data, Mgender(u.usteed)));
             instapetrify(buf);
         }
         dismount_steed(DISMOUNT_FELL);
