@@ -1,4 +1,4 @@
-// Microsoft Visual C++ generated resource script.
+﻿// Microsoft Visual C++ generated resource script.
 //
 #include "resource.h"
 
@@ -23,7 +23,7 @@ LANGUAGE LANG_ENGLISH,SUBLANG_ENGLISH_US
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
-#pragma code_page(1252)
+#pragma code_page(65001)
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -62,8 +62,8 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "适应屏幕(&F) ",             IDM_MAP_FIT_TO_SCREEN
         MENUITEM SEPARATOR
-        MENUITEM "&复制到剪贴板(ASCII)",  IDM_SETTING_SCREEN_TO_CLIPBOARD
-        MENUITEM "&保存到文件(ASCII)",       IDM_SETTING_SCREEN_TO_FILE
+        MENUITEM "复制到剪贴板(ASCII)(&C)",  IDM_SETTING_SCREEN_TO_CLIPBOARD
+        MENUITEM "保存到文件(ASCII)(&S)",       IDM_SETTING_SCREEN_TO_FILE
     END
     POPUP "Windows选项(&S)"
     BEGIN
