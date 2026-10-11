@@ -662,6 +662,8 @@ classifier(struct obj *obj)
                 case P_MORNING_STAR:
                 case P_FLAIL:
                     return "副";
+                case P_LANCE:
+                    return "杆";
             }
             break;
     }
