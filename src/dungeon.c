@@ -1801,7 +1801,7 @@ surface(coordxy x, coordxy y)
     else if (IS_ROOM(levtyp) && !Is_earthlevel(&u.uz))
         return "地板";
     else
-        return "地";
+        return "地面";
 }
 
 /*
