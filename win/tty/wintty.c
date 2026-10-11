@@ -3264,9 +3264,9 @@ ttyinv_create_window(int newid, struct WinDesc *newwin)
                    &newwin->maxrow)) {
         tty_destroy_nhwindow(newid);
         WIN_INVEN = WIN_ERR;
-        pline("%s.", "tty perm_invent could not be enabled");
-        pline("tty perm_invent needs a terminal that is at least %dx%d, "
-              "yours is %dx%d.",
+        pline("%s.", "tty perm_invent无法启用");
+        pline("tty perm_invent需要的最小窗口是%dx%d, "
+              "你的是%dx%d.",
               (int) (minrow + 1 + ROWNO + StatusRows()), tty_perminv_mincol,
               ttyDisplay->rows, ttyDisplay->cols);
         tty_wait_synch();
@@ -3604,9 +3604,9 @@ ttyinv_render(winid window, struct WinDesc *cw)
            continue;
         if (slot == 0 && !filled_count) {
             Sprintf(invbuf, "%-4s[%s]", "",
-                    inuse_only ? "no items are in use"
-                    : (!show_gold && money_cnt(gi.invent)) ? "only gold"
-                      : "empty");
+                    inuse_only ? "没有物品在使用"
+                    : (!show_gold && money_cnt(gi.invent)) ? "只有金币"
+                      : "空");
         } else if (sparse && filled_count) {
             Sprintf(invbuf, "%c", slot_to_invlet(slot, show_gold));
         } else {
