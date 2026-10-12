@@ -307,9 +307,13 @@ priestname(
 {
     boolean do_hallu = Hallucination,
             aligned_priest = mon->data == &mons[PM_ALIGNED_CLERIC],
-            high_priest = mon->data == &mons[PM_HIGH_CLERIC];
-    char whatcode = '\0';
-    const char *what = do_hallu ? rndmonnam(&whatcode) : mon_pmname(mon);
+            high_priest = mon->data == &mons[PM_HIGH_CLERIC],
+            fake_hallu_name = FALSE;
+    char whatcode = '\0', hallu_quant[BUFSZ];
+    const char *what;
+
+    hallu_quant[0] = '\0';
+    what = do_hallu ? rndmonnam_cls(&whatcode, hallu_quant) : mon_pmname(mon);
 
     if (!mon->ispriest && !mon->isminion) /* should never happen...  */
         return strcpy(pname, what);       /* caller must be confused */
@@ -318,6 +322,8 @@ priestname(
        [this was done near the end but we want 'what' to be updated sooner] */
     if (mon->ispriest || aligned_priest || high_priest)
         what = do_hallu ? "大人物" : mon->female ? "祭司" : "祭司";
+    else if (do_hallu)
+        fake_hallu_name = TRUE;
 
     *pname = '\0';
     if (article != ARTICLE_NONE && (!do_hallu || !bogon_is_pname(whatcode))) {
@@ -329,6 +335,8 @@ priestname(
             /* bypass just_an(); it would yield "" due to treating capital A
                as indicating a personal name */
             Strcpy(pname, "");
+        } else if (fake_hallu_name) {
+            Sprintf(pname, "一%s", *hallu_quant ? hallu_quant : "个");
         } else {
             (void) just_an(pname, what);
         }

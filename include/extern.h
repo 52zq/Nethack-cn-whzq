@@ -731,8 +731,10 @@ extern char *mon_nam_too(struct monst *, struct monst *) NONNULLPTRS;
 extern char *monverbself(struct monst *, char *,
                          const char *, const char *) NONNULLARG123;
 extern char *minimal_monnam(struct monst *, boolean);
-extern char *bogusmon(char *, char *) NONNULLARG1;
+extern char *bogusmon(char *, char *, char *) NONNULLARG1;
 extern char *rndmonnam(char *);
+extern char *rndmonnam_cls(char *, char *);
+extern char *an_rndmonnam(char *);
 extern const char *hcolor(const char *);
 extern const char *rndcolor(void);
 extern const char *hliquid(const char *);

@@ -2257,9 +2257,9 @@ bhito(struct obj *obj, struct obj *otmp)
                        so just make probing be inconclusive for it */
                     You("不确定%s里装着的是%s还是它的尸体.",
                         the(xname(obj)),
-                        /* unfortunately, we can't tell whether rndmonnam()
+                        /* unfortunately, we can't tell whether an_rndmonnam()
                            picks a form which can't leave a corpse */
-                        Hallucination ? rndmonnam((char *) 0) : "一只猫");
+                        Hallucination ? an_rndmonnam((char *) 0) : "一只猫");
                     obj->cknown = 0;
                 } else {
                     struct obj *o;

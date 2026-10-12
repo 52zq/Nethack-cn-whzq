@@ -731,7 +731,7 @@ namefloorobj(void)
         unames[1] = rank_of(rn2_on_display_rng(30) + 1,
                             Role_switch, flags.female);
         /* random fake monster */
-        unames[2] = bogusmon(tmpbuf, (char *) 0);
+        unames[2] = bogusmon(tmpbuf, (char *) 0, (char *) 0);
         /* increased chance for fake monster */
         unames[3] = unames[2];
         /* traditional */
@@ -838,7 +838,7 @@ x_monnam(
             do_exact, do_name, augment_it;
     boolean name_at_start, has_adjectives, insertbuf2,
             mappear_as_mon = (M_AP_TYPE(mtmp) == M_AP_MONSTER);
-    char *bp, buf2[BUFSZ];
+    char *bp, buf2[BUFSZ], hallu_quant[BUFSZ];
 
     if (mtmp == &gy.youmonst)
         return strcpy(buf, "你"); /* ignore article, "invisible", &c */
@@ -870,6 +870,7 @@ x_monnam(
     augment_it = (suppress & AUGMENT_IT) != 0;
 
     buf[0] = '\0';
+    hallu_quant[0] = '\0';
 
     /* unseen monsters, etc.; usually "it" but sometimes more specific;
        when hallucinating, the more specific values might be inverted */
@@ -949,7 +950,7 @@ x_monnam(
        Remember whether the buffer starts with a personal name. */
     if (do_hallu) {
         char rnamecode;
-        char *rname = rndmonnam(&rnamecode);
+        char *rname = rndmonnam_cls(&rnamecode, hallu_quant);
 
         Strcat(buf, rname);
         name_at_start = bogon_is_pname(rnamecode);
@@ -1018,7 +1019,10 @@ x_monnam(
     case ARTICLE_A: {
         struct permonst *qdat = do_mappear ? &mons[mtmp->mappearance] : mdat;
 
-        Sprintf(buf2, "一%s", pm_to_classifier(qdat));
+        if (*hallu_quant)
+            Sprintf(buf2, "一%s", hallu_quant);
+        else
+            Sprintf(buf2, "一%s", pm_to_classifier(qdat));
         break;
     }
     case ARTICLE_NONE:
@@ -1548,14 +1552,20 @@ const char bogon_codes[] = "-_+|="; /* see dat/bonusmon.txt */
 
 /* fake monsters used to be in a hard-coded array, now in a data file */
 char *
-bogusmon(char *buf, char *code)
+bogusmon(char *buf, char *code, char *classifier)
 {
-    char *mnam = buf;
+    char *mnam = buf, *cp;
 
     if (code)
         *code = '\0';
+    if (classifier)
+        *classifier = '\0';
     /* might fail (return empty buf[]) if the file isn't available */
     get_rnd_text(BOGUSMONFILE, buf, rn2_on_display_rng, MD_PAD_BOGONS);
+    /* 数据文件在 Windows 下编辑会是 CRLF 行尾, 去掉可能残留的 '\r'
+       (unpadline() 只剥行尾的 '\n' 和填充用的 '_') */
+    if ((cp = eos(mnam)) > mnam && cp[-1] == '\r')
+        *--cp = '\0';
     if (!*mnam) {
         Strcpy(buf, "bogon");
     } else if (strchr(bogon_codes, *mnam)) { /* strip prefix if present */
@@ -1563,12 +1573,16 @@ bogusmon(char *buf, char *code)
             *code = *mnam;
         ++mnam;
     }
+    if ((cp = strrchr(mnam, '/')) != 0) {
+        *cp++ = '\0';
+        if (classifier)
+            Strcpy(classifier, cp);
+    }
     return mnam;
 }
 
-/* return a random monster name, for hallucination */
 char *
-rndmonnam(char *code)
+rndmonnam_cls(char *code, char *classifier)
 {
     static char buf[BUFSZ];
     char *mnam;
@@ -1577,6 +1591,8 @@ rndmonnam(char *code)
 
     if (code)
         *code = '\0';
+    if (classifier)
+        *classifier = '\0';
 
     do {
         name = rn2_on_display_rng(SPECIAL_PM + BOGUSMONSIZE - LOW_PM) + LOW_PM;
@@ -1584,12 +1600,41 @@ rndmonnam(char *code)
              && (type_is_pname(&mons[name]) || (mons[name].geno & G_NOGEN)));
 
     if (name >= SPECIAL_PM) {
-        mnam = bogusmon(buf, code);
+        mnam = bogusmon(buf, code, classifier);
     } else {
-        mnam = strcpy(buf, an_pmname(&mons[name], rn2_on_display_rng(2))); //危险:pmname
+        mnam = strcpy(buf, pmname(&mons[name], rn2_on_display_rng(2))); //危险:pmname
+        if (classifier)
+            Strcpy(classifier, pm_to_classifier(&mons[name]));
+    }
+    if (classifier) {
+        if (bogon_is_pname(code ? *code : '\0'))
+            *classifier = '\0';
+        else if (!*classifier)
+            Strcpy(classifier, "个");
     }
     return mnam;
 #undef BOGUSMONSIZE
+}
+
+/* return a random monster name, for hallucination */
+char *
+rndmonnam(char *code)
+{
+    return rndmonnam_cls(code, (char *) 0);
+}
+
+char *
+an_rndmonnam(char *code)
+{
+    static char abuf[BUFSZ];
+    char classifier[BUFSZ], nam[BUFSZ];
+
+    Strcpy(nam, rndmonnam_cls(code, classifier));
+    if (*classifier)
+        Sprintf(abuf, "一%s%s", classifier, nam);
+    else
+        Strcpy(abuf, nam);
+    return abuf;
 }
 
 /* check bogusmon prefix to decide whether it's a personal name */

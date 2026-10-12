@@ -675,7 +675,7 @@ mcast_insects(struct monst *mtmp)
     seecaster = canseemon(mtmp) || tp_sensemon(mtmp) || Detect_monsters;
     what = (let == S_SNAKE) ? "蛇" : "虫子";
     if (Hallucination)
-        what = makeplural(bogusmon(whatbuf, (char *) 0));
+        what = makeplural(bogusmon(whatbuf, (char *) 0, (char *) 0));
 
     fmt = 0;
     if (!seecaster) {
