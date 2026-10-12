@@ -11,6 +11,7 @@
 # plus          +  male, personal name
 # vertical bar  |  male, general name
 # equals        =  gender not specified, personal name
+# 斜杠/后面是量词, 如果不加则默认为"个"
 
 # misc.
 巨型虾/只
