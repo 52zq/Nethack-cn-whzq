@@ -549,7 +549,7 @@ doread(void)
             pline("糖果棒的包装纸是空白的.");
             return ECMD_OK;
         }
-        pline("包装纸上写着:\"%s \".", wrapper);
+        pline("包装纸上写着: \"%s\".", wrapper);
         if (!u.uconduct.literate++)
             livelog_printf(LL_CONDUCT,
                            "因读一张糖果包装纸上的字而脱离文盲");
