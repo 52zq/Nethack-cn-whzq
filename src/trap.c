@@ -4400,7 +4400,7 @@ domagictrap(void)
                         ? "挺奇怪的"
                         : "");
             else
-                You("突然思念%s.",
+                You("突然开始思念%s.",
                     Hallucination
                         ? "克利夫兰"
                         : (In_quest(&u.uz) || at_dgn_entrance("The Quest")) /*待写*/
