@@ -1,6 +1,6 @@
 ## Nethack-cn
 
-![](https://avatars.githubusercontent.com/u/295338404)
+[![](https://avatars.githubusercontent.com/u/295338404)](https://nethack-cn.github.io)
 
 [![Build Status](https://github.com/StackC00ki3/nethack-cn/actions/workflows//nethack-vs-package.yml/badge.svg)](http://github.com/stackC00ki3/nethack-cn/releases)
 ![Version](https://img.shields.io/badge/version-5.0.1-blue)
@@ -8,6 +8,8 @@
 [![License](https://img.shields.io/badge/license-NGPL-green)](dat/license)
 
 English README: [README_en.md](README_en.md)
+
+### 欢迎[在细微之处书写您的创意](https://github.com/StackC00ki3/Nethack-cn/discussions/15)——对这个仓库做贡献的最简单的方式。
 
 ### 快速开始
 无需本地编译，可直接在[本项目 Release 页面](http://github.com/stackC00ki3/nethack-cn/releases)下载自动构建的汉化预览版
@@ -50,7 +52,7 @@ English README: [README_en.md](README_en.md)
 
 #### 代码规范
 
-见[coding_standards.txt](docs/coding_standards.txt)。
+见[coding_standards.txt](doc/coding_standards.txt)。
 
 ### 技术细节
 
