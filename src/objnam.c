@@ -58,15 +58,15 @@ staticfn struct obj *wizterrainwish(struct _readobjnam_data *);
 staticfn void dbterrainmesg(const char *, coordxy, coordxy) NONNULLARG1;
 staticfn void readobjnam_init(char *, struct _readobjnam_data *);
 staticfn int readobjnam_preparse(struct _readobjnam_data *);
-staticfn int readobjenam_preparse(struct _readobjnam_data *);
+/*冗余:staticfn int readobjenam_preparse(struct _readobjnam_data *);*/
 staticfn void readobjnam_parse_charges(struct _readobjnam_data *);
-staticfn void readobjenam_parse_charges(struct _readobjnam_data *);
+/*冗余:staticfn void readobjenam_parse_charges(struct _readobjnam_data *);*/
 staticfn int readobjnam_postparse1(struct _readobjnam_data *);
-staticfn int readobjenam_postparse1(struct _readobjnam_data *);
+/*冗余:staticfn int readobjenam_postparse1(struct _readobjnam_data *);*/
 staticfn int readobjnam_postparse2(struct _readobjnam_data *);
-staticfn int readobjenam_postparse2(struct _readobjnam_data *);
+/*冗余:staticfn int readobjenam_postparse2(struct _readobjnam_data *);*/
 staticfn int readobjnam_postparse3(struct _readobjnam_data *);
-staticfn int readobjenam_postparse3(struct _readobjnam_data *);
+/*冗余:staticfn int readobjenam_postparse3(struct _readobjnam_data *);*/
 
 struct Jitem {
     int item;
@@ -662,14 +662,13 @@ classifier(struct obj *obj)
                 case P_MORNING_STAR:
                 case P_FLAIL:
                     return "副";
+                case P_LANCE:
+                    return "杆";
             }
             break;
     }
     return "个";
 }
-
-static const char* classifiers[] = {"块", "双", "柄", "片", "根", "把", "个", "件", "盏", "卷", "枝", "本", "面", "座", "枚", "只", "套", "副", "团", "份", "具", "支", "瓶", "瓣", "张", "顶", "条", "\0"};
-static const char* one_classifiers[] = {"一块", "一双", "一柄", "一片", "一根", "一把", "一个", "一件", "一盏", "一卷", "一枝", "一本", "一面", "一座", "一枚", "一只", "一套", "一副", "一团", "一份", "一具", "一支", "一瓶", "一瓣", "一张", "一顶", "一条", "\0"};
 
 boolean
 obj_is_pname(struct obj *obj)
@@ -1065,7 +1064,8 @@ xname_flags(
             xcalled(buf, BUFSZ - PREFIX, "护身符", un);
         }
         else{
-            Sprintf(buf, "%s%s护身符", buf, dn);
+            Strcat(buf, dn);
+            Strcat(buf, "护身符");
         }
         break;
     case WEAPON_CLASS:
@@ -1232,8 +1232,8 @@ xname_flags(
         }
         break;
     case BALL_CLASS:
-        Sprintf(buf, "%s%s沉重的铁球", buf,
-                (obj->owt > ocl->oc_weight) ? "非常 " : "");
+        Strcat(buf, (obj->owt > ocl->oc_weight) ? "非常 " : "");
+        Strcat(buf, "沉重的铁球");
         break;
     case POTION_CLASS:
         if (dknown && obj->odiluted){
@@ -1284,13 +1284,15 @@ xname_flags(
             Strcpy(buf, "魔杖");
         }
         else if (nn){
-            Sprintf(buf, "%s%s魔杖", buf, actualn);
+            Strcat(buf, actualn);
+            Strcat(buf, "魔杖");
         }
         else if (un){
             xcalled(buf, BUFSZ - PREFIX, "魔杖", un);
         }
         else{
-            Sprintf(buf, "%s%s魔杖", buf, dn);
+            Strcat(buf, dn);
+            Strcat(buf, "魔杖");
         }
         break;
     case SPBOOK_CLASS:
@@ -1313,26 +1315,28 @@ xname_flags(
             Strcpy(buf, "魔法书");
         } else if (nn) {
             if (typ != SPE_BOOK_OF_THE_DEAD)
-                Sprintf(buf, "%s%s魔法书", buf, actualn);
+                Strcat(buf, actualn), Strcat(buf, "魔法书");
             else
                 Strcat(buf, actualn);
         } else if (un) {
             xcalled(buf, BUFSZ - PREFIX, "魔法书", un);
         } else
-            Sprintf(buf, "%s%s魔法书", buf, dn);
+            Strcat(buf, dn), Strcat(buf, "魔法书");
         break;
     case RING_CLASS:
         if (!dknown){
             Strcpy(buf, "戒指");
         }
         else if (nn){
-            Sprintf(buf, "%s%s戒指", buf, actualn);
+            Strcat(buf, actualn);
+            Strcat(buf, "戒指");
         }
         else if (un){
             xcalled(buf, BUFSZ - PREFIX, "戒指", un);
         }
         else{
-            Sprintf(buf, "%s%s戒指", buf, dn);
+            Strcat(buf, dn);
+            Strcat(buf, "戒指");
         }
         break;
     case GEM_CLASS: {
@@ -1345,7 +1349,8 @@ xname_flags(
                 xcalled(buf, BUFSZ - PREFIX, rock, un);
             }
             else{
-                Sprintf(buf, "%s%s%s", buf, dn, rock);
+                Strcat(buf, dn);
+                Strcat(buf, rock);
             }
         } else {
             Strcat(buf, actualn);
@@ -2122,7 +2127,7 @@ add_erosion_words(struct obj *obj, char *prefix)
                                  : "");
 }
 
-staticfn void
+void
 add_erosion_ewords(struct obj *obj, char *prefix)
 {
     boolean iscrys = (obj->otyp == CRYSKNIFE);
@@ -3133,8 +3138,11 @@ killer_xname(struct obj *obj)
         buf = xname(obj);
     }
     /* apply an article if appropriate; caller should always use KILLED_BY */
-    if (obj->quan == 1L && !strstri(buf, "'s ") && !strstri(buf, "s' ")){
-        Sprintf(buf, "一%s%s", classifier(obj), buf);//危险:buf = (obj_is_pname(obj) || the_unique_obj(obj)) ? the(buf) : an(buf);
+    if (obj->quan == 1L && !strstri(buf, "'s ") && !strstri(buf, "s' ")) {
+        char tmpbuf[BUFSZ];
+
+        Snprintf(tmpbuf, sizeof tmpbuf, "一%s%s", classifier(obj), buf);
+        Strcpy(buf, tmpbuf);
     }
     objects[obj->otyp].oc_name_known = save_ocknown;
     objects[obj->otyp].oc_uname = save_ocuname;
@@ -3249,6 +3257,7 @@ singular(struct obj *otmp, char *(*func)(OBJ_P))
 char *
 just_an(char *outbuf, const char *str)
 {
+    nhUse(str);
     *outbuf = '\0';
     Strcpy(outbuf, "一个");
     return outbuf;
@@ -3257,6 +3266,7 @@ just_an(char *outbuf, const char *str)
 char *
 just_one(char *outbuf, const char *str)
 {
+    nhUse(str);
     *outbuf = '\0';
     Strcpy(outbuf, "1 ");
     return outbuf;
@@ -4734,6 +4744,7 @@ static const struct alt_spellings {
     { "iron ball", HEAVY_IRON_BALL },
     { "lantern", BRASS_LANTERN },
     { "mattock", DWARVISH_MATTOCK },
+    { "amulet of flight", AMULET_OF_FLYING },
     { "amulet of poison resistance", AMULET_VERSUS_POISON },
     { "amulet of protection", AMULET_OF_GUARDING },
     { "amulet of telepathy", AMULET_OF_ESP },
@@ -6106,6 +6117,7 @@ readobjnam_preparse(struct _readobjnam_data *d)
     return res;
 }
 
+#if 0 /*冗余:未使用*/
 staticfn int
 readobjenam_preparse(struct _readobjnam_data *d)
 {
@@ -6317,6 +6329,7 @@ readobjenam_preparse(struct _readobjnam_data *d)
         d->bp = save_bp;
     return res;
 }
+#endif /*冗余*/
 
 staticfn void
 readobjnam_parse_charges(struct _readobjnam_data *d)
@@ -6383,6 +6396,7 @@ readobjnam_parse_charges(struct _readobjnam_data *d)
         d->rechrg = 7; /* recharge_limit */
 }
 
+#if 0 /*冗余:未使用*/
 staticfn void
 readobjenam_parse_charges(struct _readobjnam_data *d)
 {
@@ -6444,6 +6458,7 @@ readobjenam_parse_charges(struct _readobjnam_data *d)
     if (d->rechrg < 0 || d->rechrg > 7)
         d->rechrg = 7; /* recharge_limit */
 }
+#endif /*冗余*/
 
 staticfn int
 readobjnam_postparse1(struct _readobjnam_data *d)
@@ -7252,6 +7267,7 @@ readobjnam_postparse1(struct _readobjnam_data *d)
 }
 
 
+#if 0 /*冗余:未使用*/
 staticfn int
 readobjenam_postparse1(struct _readobjnam_data *d)
 {
@@ -7677,6 +7693,7 @@ readobjenam_postparse1(struct _readobjnam_data *d)
 
     return 0;
 }
+#endif /*冗余*/
 
 staticfn int
 readobjnam_postparse2(struct _readobjnam_data *d)
@@ -7762,6 +7779,7 @@ readobjnam_postparse2(struct _readobjnam_data *d)
 }
 
 
+#if 0 /*冗余:未使用*/
 staticfn int
 readobjenam_postparse2(struct _readobjnam_data *d) /*AAAAAA*/
 {
@@ -7822,6 +7840,7 @@ readobjenam_postparse2(struct _readobjnam_data *d) /*AAAAAA*/
 
     return 0;
 }
+#endif /*冗余*/
 
 
 staticfn int
@@ -8056,6 +8075,7 @@ readobjnam_postparse3(struct _readobjnam_data *d)
     return 0;
 }
 
+#if 0 /*冗余:未使用*/
 staticfn int
 readobjenam_postparse3(struct _readobjnam_data *d)
 {
@@ -8230,6 +8250,7 @@ readobjenam_postparse3(struct _readobjnam_data *d)
 
     return 0;
 }
+#endif /*冗余*/
 
 
 /*

@@ -854,8 +854,9 @@ u_entered_shop(char *enterstring)
     /* can't do anything about blocking if teleported in */
     if (!inside_shop(u.ux, u.uy)) {
         boolean should_block, not_upset = !eshkp->surcharge;
-        int cnt;
-        const char *tool;
+        int cnt = 0;
+
+        nhUse(cnt);        const char *tool;
         struct obj *pick = carrying(PICK_AXE),
                    *mattock = carrying(DWARVISH_MATTOCK);
 
@@ -1080,8 +1081,9 @@ shop_keeper(char rmno)
             int hmm UNUSED = 1;
 #if (NH_DEVEL_STATUS != NH_STATUS_RELEASED \
      && NH_DEVEL_STATUS != NH_STATUS_POSTRELEASE)
-            impossible("untrustworthy null shkp; level_status.shkready"
-                        " is FALSE (%d, %d, %d, &d)",
+         if (wizard)
+            impossible("debug: untrustworthy null shkp; level_status.shkready"
+                        " is FALSE (%d, %d, %d, %d)",
                         level_status.making, level_status.loading,
                         level_status.shkready, level_status.ready);
 #endif

@@ -787,7 +787,7 @@ maybe_cannibal(int pm, boolean allowmsg)
             || (ismnum(u.ulycn) && were_beastie(pm) == u.ulycn))) {
         if (allowmsg) {
             if (Upolyd && your_race(fptr))
-                You("内心深处有一种不好的感觉.");
+                You("内心深处感到不祥.");
             You("吃掉了同类! 你会后悔的!");
         }
         HAggravate_monster |= FROMOUTSIDE;
@@ -3646,7 +3646,7 @@ floorfood(
             boolean nodig = (levl[u.ux][u.uy].wall_info & W_NONDIGGABLE) != 0;
 
             c = 'n';
-            Strcpy(qbuf, "这里有铁栏杆, ");
+            Strcpy(qbuf, "这里有铁栅栏, ");
             if (nodig || u.uhunger > 1500) {
                 pline("%s但你%s吃它.", qbuf,
                       nodig ? "不能" : "太饱了, 不能");

@@ -359,6 +359,7 @@ staticfn char *string_for_env_opt(const char *, char *, boolean);
 staticfn void bad_negation(const char *, boolean);
 staticfn void set_menuobjsyms_flags(int);
 staticfn int change_inv_order(char *);
+staticfn int utf8_char_len(unsigned char);
 staticfn boolean warning_opts(char *, const char *);
 staticfn int feature_alert_opts(char *, const char *);
 staticfn boolean duplicate_opt_detection(int);
@@ -6991,8 +6992,14 @@ initoptions_init(void)
 
     /* make any symbol parsing quicker, but only if
      * gd.disable_glyphname_hash_indices_prefill is not set to TRUE */
+#ifndef MAC68K
+    /* Skip on classic Mac OS — the prefill iterates thousands of glyphs
+       (Sprintf + hash insertions), taking ~2 minutes on a 68030.  Lazy
+       lookup on first use is cheaper; the cache is only needed for glyph
+       name lookups in config files. */
     if (!glyphname_hash_indices_loaded() && !gd.disable_glyphname_hash_indices_prefill)
         populate_glyphname_hash_indices();
+#endif
 
     /* set up the command parsing */
     reset_commands(TRUE); /* init */
@@ -9249,34 +9256,34 @@ sym_val(const char *strval) /* up to 4*BUFSZ-1 long; only first few
 /* data for option_help() */
 static const char *opt_intro[] = {
     "",
-    "                 NetHack Options Help:",
+    "                 NetHack选项帮助:",
     "",
 #define CONFIG_SLOT 3 /* fill in next value at run-time */
     (char *) 0,
 #if !defined(MICRO) && !defined(MAC68K)
-    "or use `NETHACKOPTIONS=\"<options>\"' in your environment",
+    "或者使用环境变量`NETHACKOPTIONS=\"<options>\"'",
 #endif
-    "(<options> is a list of options separated by commas)",
+    "(<options>是一系列选项, 用逗号隔开)",
 #ifdef VMS
-    "-- for example, $ DEFINE NETHACKOPTIONS \"noautopickup,fruit:kumquat\"",
+    "-- 比如, $ DEFINE NETHACKOPTIONS \"noautopickup,fruit:kumquat\"",
 #endif
-    "or press \"O\" while playing and use the menu.",
+    "或者游玩时按下\"O\"键打开菜单.",
     "",
-    ("Boolean options (which can be negated by prefixing them"
-     " with '!' or \"no\"):"),
+    ("布尔选项(可以前面加'!'或者\"no\"表示否定):"
+     /*" with ):"*/),
     (char *) 0
 };
 
 static const char *const opt_epilog[] = {
     "",
-    "Some of the options can only be set before the game is started;",
-    "those items will not be selectable in the 'O' command's menu.",
-    "Some options are stored in a game's save file, and will keep saved",
-    "values when restoring that game even if you have updated your config-",
-    "uration file to change them.  Such changes will matter for new games.",
-    "The \"other settings\" can be set with 'O', but when set within the",
-    "configuration file they use their own directives rather than OPTIONS.",
-    "See NetHack's \"Guidebook\" for details.",
+    "有的选项只能在游戏开始前设定; 这些选项在按下'O'打开的菜单里看不见. ",
+    "有的选项保存在游戏存档里, 即使你修改配置文件, 下次打开这些值也会保持",
+    "不变. 修改的选项会在新的游戏里生效. ",
+    "\"其他选项\"可以按'O'设定, 但是在配置文件里设置时, 它们有自己的指令, ",
+    "而不是OPTIONS. ",
+    "详情请参阅NetHack的\"说明手册\". ",
+    /*"configuration file they use their own directives rather than OPTIONS.",
+    "See NetHack's \"Guidebook\" for details.",*/
     (char *) 0
 };
 

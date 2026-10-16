@@ -2312,8 +2312,8 @@ check_and_set_font(void)
 #ifndef VIRTUAL_TERMINAL_SEQUENCES
     if (!check_font_widths()) {
         if (wizard) {
-            const char *msg = "WARNING: glyphs too wide in console font."
-                             " Changing code page to 437 and font to Consolas";
+            const char *msg = "警告: 控制台字体的字符过宽."
+                             " 将代码页更改为437, 字体更改为Consolas";
 
             if (iflags.window_inited)
                 pline ("%s", msg);
@@ -2355,7 +2355,7 @@ check_font_widths(void)
                                         (LPARAM) &matching_log_font, 0);
 
     if (matching_log_font.lfHeight == 0) {
-        raw_print("Unable to enumerate system fonts\n");
+        raw_print("无法枚举系统字体\n");
         return FALSE;
     }
 
@@ -2367,7 +2367,7 @@ check_font_widths(void)
     HFONT console_font = CreateFontIndirectW(&console_font_log_font);
 
     if (console_font == NULL) {
-        raw_print("Unable to create console font\n");
+        raw_print("无法创建控制台字体\n");
         return FALSE;
     }
 
@@ -2382,7 +2382,7 @@ check_font_widths(void)
     success = GetTextMetricsA(hDC, &tm);
 
     if (!success) {
-        raw_print("Unable to get console font text metrics\n");
+        raw_print("无法获取控制台字体的文本度量值\n");
         goto clean_up;
     }
 
@@ -2480,11 +2480,11 @@ restore_original_console_font(void)
     if (console.font_changed) {
         BOOL success;
 #ifndef VIRTUAL_TERMINAL_SEQUENCES
-        raw_print("Restoring original font and code page\n");
+        raw_print("恢复原始字体和代码页\n");
         success = SetConsoleOutputCP(console.orig_code_page);
 #else /* VIRTUAL_TERMINAL_SEQUENCES */
         if (wizard)
-            raw_print("Restoring original font, code page and locale\n");
+            raw_print("恢复原始字体, 代码页和区域设置\n");
 
         tmplocalestr = setlocale(LC_ALL, console.orig_localestr);
         if (tmplocalestr) {
@@ -2495,12 +2495,12 @@ restore_original_console_font(void)
         success = SetConsoleOutputCP(console.orig_code_page);
 #endif /* VIRTUAL_TERMINAL_SEQUENCES */
         if (!success)
-            raw_print("Unable to restore original code page\n");
+            raw_print("无法恢复原始代码页\n");
 
         success = SetCurrentConsoleFontEx(console.hConOut, FALSE,
                                             &console.orig_font_info);
         if (!success)
-            raw_print("Unable to restore original font\n");
+            raw_print("无法恢复原始字体\n");
 
         console.font_changed = FALSE;
     }
@@ -2911,7 +2911,7 @@ VA_DECL(const char *, fmt)
          * confirm and then clear.
          */
         if (console.cursor.Y > console.height - 4) {
-            xputs("Hit <Enter> to continue.");
+            xputs("按<Enter>键继续.");
             while (pgetchar() != '\n')
                ;
             raw_clear_screen();
@@ -3155,7 +3155,7 @@ set_keyhandling_via_option(void)
                  0, ATR_NONE, clr,
                  legal_key_handling[i], MENU_ITEMFLAGS_NONE);
     }
-    end_menu(tmpwin, "Select windows console key handling:");
+    end_menu(tmpwin, "选择Windows控制台按键处理方式:");
     if (select_menu(tmpwin, PICK_ONE, &console_key_handling_pick) > 0) {
         iflags.key_handling = keyh[console_key_handling_pick->item.a_int - 1];
         free((genericptr_t) console_key_handling_pick);

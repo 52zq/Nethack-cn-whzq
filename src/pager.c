@@ -2916,7 +2916,7 @@ docontact(void)
     putstr(cwin, 0, "(译者注: 中文版请访问");
     Sprintf(buf, "\"https://nethack-cn.github.io/\". )");
     putstr(cwin, 0, buf);
-    Sprintf(buf, "\"仓库: https://github.com/StackC00ki3/Nethack-cn\". )");
+    Sprintf(buf, "仓库: https://github.com/StackC00ki3/Nethack-cn. )");
     putstr(cwin, 0, buf);
     display_nhwindow(cwin, FALSE);
     destroy_nhwindow(cwin);
@@ -3013,7 +3013,7 @@ static const struct {
     { dispfile_help, "游戏及命令的详细说明." },
     { dispfile_shelp, "游戏命令列表." },
     { hmenu_dohistory, "NetHack的简要历史." },
-    { hmenu_dowhatis, "游戏中现实的某个特定符号的信息." },
+    { hmenu_dowhatis, "游戏中显示的某个特定符号的信息." },
     { hmenu_dowhatdoes, "某个特定按键的功能说明." },
     { option_help, "游戏选项列表." },
     { dispfile_optionfile, "游戏选项的详细说明." },

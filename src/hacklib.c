@@ -351,7 +351,7 @@ strcasecpy(char *dst, const char *src)
 char *
 s_suffix(const char *s)
 {
-    return s;
+    return (char *) s;
 }
 
 /* construct a gerund (a verb formed by appending "ing" to a noun) */
@@ -621,6 +621,7 @@ const char *
 ordin(int n)               /* note: should be non-negative */
 {
     //int dd = n % 10;
+    nhUse(n);
     return ""; /*危险*/
 }
 

@@ -106,7 +106,7 @@ dynamic_multi_reason(struct monst *mon, const char *verb, boolean by_gaze)
     /* combination of noname_monnam() and m_monnam(), more or less;
        accurate regardless of visibility or hallucination (only seen
        if game ends) and without personal name (M2_PNAME excepted) */
-    char *who = x_monnam(mon, ARTICLE_A, (char *) 0,
+    char *who = x_monnam(mon, ARTICLE_NONE, (char *) 0,
                          (SUPPRESS_IT | SUPPRESS_INVISIBLE
                           | SUPPRESS_HALLUCINATION | SUPPRESS_SADDLE
                           | SUPPRESS_NAME),
@@ -1002,7 +1002,7 @@ hmon_hitmon_weapon_melee(
                monster detection will name mon but not its weapon */
             Sprintf(buf, "%s的武器%s%s", s_suffix(Monnam(mon)),
                     plur(monwep->quan), otense(monwep, from_your_blow));
-        /*冗余:buf[sizeof buf - sizeof from_your_blow] = '\0';/ /*Francium-223:写的什么傻逼代码？？？*/
+        /*冗余:buf[sizeof buf - sizeof from_your_blow] = '\0';/ Francium-223:写的什么傻逼代码？？？*/
         pline("%s", buf); /*修改语序:pline("%s%s", buf, from_your_blow);*/
         m_useupall(mon, monwep);
         /* If someone just shattered MY weapon, I'd flee! */ /*你还知道要跑呢(ˉ▽ˉ；)...*/
@@ -1278,7 +1278,7 @@ hmon_hitmon_misc_obj(
                           mon_nam(mon)); /*修改语序:  mon->mcansee ? "" : "进一步");*/
             } else {
                 char *whom = mon_nam(mon);
-                char *what = The(xname(obj));
+                const char *what = The(xname(obj));
 
                 if (!hmd->thrown && obj->quan > 1L)
                     what = singular(obj, xname);//冗余:An(singular(obj, xname));

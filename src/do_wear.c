@@ -2615,7 +2615,7 @@ glibr(void)
         }
         pline("%s%s%s%s%s%s从你的%s中%s.", /*修改语序:pline("%s%s%s%s%s从你的%s%s.",*/
               !strncmp(thiswep, "尸体", 6) ? "" : "你的",
-              otherwep ? "另一" : "", xfl ? classifier(otmp) : "", thiswep, xfl ? "也" : "",
+              otherwep ? "另一" : "", otherwep ? classifier(otmp) : "", thiswep, xfl ? "也" : "",
               which, hand, otense(otmp, "滑落")); /*修改语序:otense(otmp, "滑落"), which, hand);*/
         /* xfl++; */
         otmp->quan = savequan;
@@ -3132,7 +3132,7 @@ menu_remarm(int retry)
             (void) select_off(pick_list[i].item.a_obj);
         free((genericptr_t) pick_list);
     } else if (n < 0 && flags.menu_style != MENU_COMBINATION) {
-        There("没有别的能脱下的东西.");
+        You("没有别的能脱下的东西."); //换pline:There
     }
     return 0;
 }

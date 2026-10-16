@@ -293,7 +293,7 @@ win32_abort(void)
         iflags.window_inited = FALSE;
     }
     if (wizard) {
-        raw_print("Execute debug breakpoint wizard?");
+        raw_print("执行调试断点向导?");
         if ((c = nhgetch()) == 'y' || c == 'Y')
             DebugBreak();
     }
@@ -330,9 +330,9 @@ interject_assistance(int num, int interjection_type, genericptr_t ptr1, genericp
                 || (tempdir && strstri(datadir, tempdir))) {
                 (void) strncpy(
                     interjection_buf[INTERJECT_PANIC],
-                    "\nOne common cause of this error is attempting to "
-                    "execute\n"
-                    "the game by double-clicking on it while it is "
+                    "\n请勿直接在压缩包里打开游戏.\n\n 请先把这个zip解压, 到解压的文件夹里打开\n"
+                    "\"NetHack.exe\"或\"NetHackW.exe\".\n\n如果不是这种情况, 请联系我们.\n\n"
+                    /*"One common cause of this error is attempting to " "execute\n" "the game by double-clicking on it while it is "
                     "displayed\n"
                     "inside an unzip utility.\n\n"
                     "You have to unzip the contents of the zip file into a\n"
@@ -340,7 +340,7 @@ interject_assistance(int num, int interjection_type, genericptr_t ptr1, genericp
                     "\n"
                     "\"NetHackW.exe\" from there.\n\n"
                     "If that is not the situation, you are encouraged to\n"
-                    "report the error as shown above.\n\n",
+                    "report the error as shown above.\n\n"*/,
                     1023);
             }
         }
@@ -419,7 +419,7 @@ void port_insert_pastebuf(char *buf)
         /* put it on the clipboard */
         hresult = SetClipboardData(CF_UNICODETEXT, hglbCopy);
         if (!hresult) {
-            raw_printf("Error copying to clipboard.\n");
+            raw_printf("复制到剪切板时时发生错误.\n");
             GlobalFree(
                 hglbCopy); /* only needed if clipboard didn't accept data */
         }
@@ -588,7 +588,7 @@ getreturn(const char *str)
     if (in_getreturn || !getreturn_enabled)
         return;
     in_getreturn = TRUE;
-    Sprintf(buf,"Hit <Enter> %s.", str);
+    Sprintf(buf,"按<Enter>键%s.", str);
     raw_print(buf);
     if (WINDOWPORT(tty))
         windows_console_custom_nhgetch();
@@ -732,7 +732,7 @@ windows_early_options(const char *window_opt)
         return 1;
     } else {
         raw_printf(
-            "-%s windows:cursorblink is the only supported option.\n",
+            "只允许-%s windows:cursorblink.\n",
             window_opt);
     }
     return 0;
@@ -775,9 +775,9 @@ sys_random_seed(void)
         const char *emsg;
 
         if (status == (NTSTATUS) STATUS_NOT_FOUND)
-            emsg = "BCRYPT_RNG_ALGORITHM not avail, falling back";
+            emsg = "BCRYPT_RNG_ALGORITHM不可用, 回退";
         else
-            emsg = "Other failure than algorithm not avail";
+            emsg = "其他故障, 不是算法不可用";
         paniclog("sys_random_seed", emsg); /* leaves clue, doesn't exit */
         (void) time(&datetime);
         ourseed = (unsigned long) datetime;
@@ -843,7 +843,7 @@ get_executable_path(void)
 #else
     DWORD length = GetModuleFileName((HANDLE) 0, path_buffer, MAX_PATH);
     if (length == ERROR_INSUFFICIENT_BUFFER)
-        error("Unable to get module name");
+        error("无法获取模块名");
     path_buffer[length] = '\0';
 #endif
 
@@ -926,7 +926,7 @@ get_known_folder_path(const KNOWNFOLDERID *folder_id, char *path,
 {
     PWSTR wide_path;
     if (FAILED(SHGetKnownFolderPath(folder_id, 0, NULL, &wide_path))) {
-        error("Unable to get known folder path");
+        error("无法获取已知文件夹路径");
         return FALSE;
     }
 
@@ -942,7 +942,7 @@ get_known_folder_path(const KNOWNFOLDERID *folder_id, char *path,
         return FALSE;
     } else if (err != 0) {
         error(
-            "Failed folder (%lu) path string conversion, unexpected err = %d",
+            "文件夹(%lu)路径转换失败, unexpected err = %d",
             folder_id->Data1, err);
         return FALSE;
     }
@@ -959,7 +959,7 @@ create_directory(const char *path)
         DWORD dw = GetLastError();
 
         if (dw != ERROR_ALREADY_EXISTS)
-            error("Unable to create directory '%s'", path);
+            error("无法创建目录'%s'", path);
     }
 }
 
@@ -1246,7 +1246,7 @@ win32_cr_helper(char cmd, struct CRctxt *contextp, void *p, int d){
     }
     return 0;        /* ok */
 error:
-    raw_printf("WIN32 function %s failed: status=%" PRIx64 "\n",
+    raw_printf("WIN32函数%s失败: status=%" PRIx64 "\n",
             errname, (uint64)contextp->st);
     return 1;        /* fail */
 }

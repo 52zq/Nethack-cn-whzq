@@ -286,7 +286,7 @@ mswin_player_selection(void)
                 flags.initrole = pick_role(flags.initrace, flags.initgend,
                                            flags.initalign, PICK_RANDOM);
                 if (flags.initrole < 0) {
-                    raw_print("Incompatible role!");
+                    raw_print("职业无效!");
                     flags.initrole = randrole(FALSE);
                 }
             }
@@ -296,7 +296,7 @@ mswin_player_selection(void)
                 flags.initrace = pick_race(flags.initrole, flags.initgend,
                                            flags.initalign, PICK_RANDOM);
                 if (flags.initrace < 0) {
-                    raw_print("Incompatible race!");
+                    raw_print("种族无效!");
                     flags.initrace = randrace(flags.initrole);
                 }
             }
@@ -307,7 +307,7 @@ mswin_player_selection(void)
                 flags.initgend = pick_gend(flags.initrole, flags.initrace,
                                            flags.initalign, PICK_RANDOM);
                 if (flags.initgend < 0) {
-                    raw_print("Incompatible gender!");
+                    raw_print("性别无效!");
                     flags.initgend = randgend(flags.initrole, flags.initrace);
                 }
             }
@@ -318,7 +318,7 @@ mswin_player_selection(void)
                 flags.initalign = pick_align(flags.initrole, flags.initrace,
                                              flags.initgend, PICK_RANDOM);
                 if (flags.initalign < 0) {
-                    raw_print("Incompatible alignment!");
+                    raw_print("阵营无效!");
                     flags.initalign =
                         randalign(flags.initrole, flags.initrace);
                 }
@@ -453,11 +453,11 @@ prompt_for_player_selection(void)
             if (any.a_int == 0) /* must be non-zero */
                 any.a_int = randrole(FALSE) + 1;
             add_menu(win, &nul_glyphinfo, &any, '*', 0,
-                     ATR_NONE, clr, "Random", MENU_ITEMFLAGS_NONE);
+                     ATR_NONE, clr, "随机", MENU_ITEMFLAGS_NONE);
             any.a_int = i + 1; /* must be non-zero */
             add_menu(win, &nul_glyphinfo, &any, 'q', 0,
-                     ATR_NONE, clr, "Quit", MENU_ITEMFLAGS_NONE);
-            Snprintf(pbuf, sizeof pbuf, "Pick a role for your %s", plbuf);
+                     ATR_NONE, clr, "退出", MENU_ITEMFLAGS_NONE);
+            Snprintf(pbuf, sizeof pbuf, "选择你的%s的职业", plbuf);
             end_menu(win, pbuf);
             n = select_menu(win, PICK_ONE, &selected);
             destroy_nhwindow(win);
@@ -527,11 +527,11 @@ prompt_for_player_selection(void)
                 if (any.a_int == 0) /* must be non-zero */
                     any.a_int = randrace(flags.initrole) + 1;
                 add_menu(win, &nul_glyphinfo, &any, '*', 0,
-                         ATR_NONE, clr, "Random", MENU_ITEMFLAGS_NONE);
+                         ATR_NONE, clr, "随机", MENU_ITEMFLAGS_NONE);
                 any.a_int = i + 1; /* must be non-zero */
                 add_menu(win, &nul_glyphinfo, &any, 'q', 0,
-                         ATR_NONE, clr, "Quit", MENU_ITEMFLAGS_NONE);
-                Snprintf(pbuf, sizeof pbuf, "Pick the race of your %s", plbuf);
+                         ATR_NONE, clr, "退出", MENU_ITEMFLAGS_NONE);
+                Snprintf(pbuf, sizeof pbuf, "选择你的%s的种族", plbuf);
                 end_menu(win, pbuf);
                 n = select_menu(win, PICK_ONE, &selected);
                 destroy_nhwindow(win);
@@ -602,11 +602,11 @@ prompt_for_player_selection(void)
                 if (any.a_int == 0) /* must be non-zero */
                     any.a_int = randgend(flags.initrole, flags.initrace) + 1;
                 add_menu(win, &nul_glyphinfo, &any, '*', 0,
-                         ATR_NONE, clr, "Random", MENU_ITEMFLAGS_NONE);
+                         ATR_NONE, clr, "随机", MENU_ITEMFLAGS_NONE);
                 any.a_int = i + 1; /* must be non-zero */
                 add_menu(win, &nul_glyphinfo, &any, 'q', 0,
-                         ATR_NONE, clr, "Quit", MENU_ITEMFLAGS_NONE);
-                Snprintf(pbuf, sizeof pbuf, "Pick the gender of your %s", plbuf);
+                         ATR_NONE, clr, "退出", MENU_ITEMFLAGS_NONE);
+                Snprintf(pbuf, sizeof pbuf, "选择你的%s的性别", plbuf);
                 end_menu(win, pbuf);
                 n = select_menu(win, PICK_ONE, &selected);
                 destroy_nhwindow(win);
@@ -676,11 +676,11 @@ prompt_for_player_selection(void)
                 if (any.a_int == 0) /* must be non-zero */
                     any.a_int = randalign(flags.initrole, flags.initrace) + 1;
                 add_menu(win, &nul_glyphinfo, &any, '*', 0,
-                         ATR_NONE, clr, "Random", MENU_ITEMFLAGS_NONE);
+                         ATR_NONE, clr, "随机", MENU_ITEMFLAGS_NONE);
                 any.a_int = i + 1; /* must be non-zero */
                 add_menu(win, &nul_glyphinfo, &any, 'q', 0,
-                         ATR_NONE, clr, "Quit", MENU_ITEMFLAGS_NONE);
-                Snprintf(pbuf, sizeof pbuf, "Pick the alignment of your %s", plbuf);
+                         ATR_NONE, clr, "退出", MENU_ITEMFLAGS_NONE);
+                Snprintf(pbuf, sizeof pbuf, "选择你的%s的阵营", plbuf);
                 end_menu(win, pbuf);
                 n = select_menu(win, PICK_ONE, &selected);
                 destroy_nhwindow(win);
@@ -703,7 +703,7 @@ mswin_askname(void)
 {
     logDebug("mswin_askname()\n");
 
-    if (mswin_getlin_window("Who are you?", svp.plname, PL_NSIZ) == IDCANCEL) {
+    if (mswin_getlin_window("你是谁?", svp.plname, PL_NSIZ) == IDCANCEL) {
         bail("bye-bye");
         /* not reached */
     }
@@ -1921,7 +1921,7 @@ mswin_get_ext_cmd(void)
                         break;
 
                 if (extcmdlist[i].ef_txt == (char *) 0) {
-                    pline("%s%s: unknown extended command.",
+                    pline("%s%s: 未知扩展命令.",
                           visctrl(extcmd_initiator()), cmd);
                     i = -1;
                 }
@@ -2306,7 +2306,7 @@ initMapTiles(void)
 
         errcode = GetLastError();
         Sprintf(errmsg, "%s (0x%lx).",
-            "Cannot load tiles from the file. Reverting back to default",
+            "无法载入贴图文件. 恢复默认",
             errcode);
         raw_print(errmsg);
         return FALSE;
@@ -2317,8 +2317,8 @@ initMapTiles(void)
     if (bm.bmWidth % iflags.wc_tile_width
         || bm.bmHeight % iflags.wc_tile_height) {
         DeleteObject(hBmp);
-        raw_print("Tiles bitmap does not match tile_width and tile_height "
-                  "options. Reverting back to default.");
+        raw_print("贴图大小和tile_width和tile_height选项"
+                  "不匹配. 恢复默认.");
         return FALSE;
     }
 
@@ -2326,8 +2326,8 @@ initMapTiles(void)
              * (bm.bmHeight / iflags.wc_tile_height);
     if (tl_num < total_tiles_used) {
         DeleteObject(hBmp);
-        raw_print("Number of tiles in the bitmap is less than required by "
-                  "the game. Reverting back to default.");
+        raw_print("贴图数少于游戏所需下限. "
+                  "恢复默认.");
         return FALSE;
     }
 
@@ -2462,7 +2462,7 @@ logDebug(const char *fmt, ...)
 /* Reading and writing settings from the registry. */
 #define CATEGORYKEY "Software"
 #define COMPANYKEY "NetHack"
-#define PRODUCTKEY "NetHack 5.0.0"
+#define PRODUCTKEY "NetHack 5.0.1"
 #define SETTINGSKEY "Settings"
 #define MAINSHOWSTATEKEY "MainShowState"
 #define MAINMINXKEY "MainMinX"

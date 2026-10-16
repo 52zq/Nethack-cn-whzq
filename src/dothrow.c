@@ -2207,6 +2207,8 @@ thitmonst(
 
     dieroll = rnd(20);
 
+    check_caitiff(mon);
+
     if (obj->oclass == WEAPON_CLASS || is_weptool(obj)
         || obj->oclass == GEM_CLASS) {
         if (hmode == HMON_KICKED) {
@@ -2518,7 +2520,7 @@ release_camera_demon(struct obj *obj, coordxy x, coordxy y)
                            MM_NOMSG)) != 0) {
         if (canspotmon(mtmp))
             pline("%s被释放了!", Hallucination
-                                         ? An(rndmonnam(NULL))
+                                         ? an_rndmonnam(NULL)
                                          : "画图恶魔");
         mtmp->mpeaceful = !obj->cursed;
         set_malign(mtmp);

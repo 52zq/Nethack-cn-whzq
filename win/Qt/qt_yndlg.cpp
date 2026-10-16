@@ -41,7 +41,7 @@ NetHackQtYnDialog::NetHackQtYnDialog(QWidget *parent, const QString &q,
     le((QLineEdit *) NULL),
     y_btn((QPushButton *) NULL)
 {
-    setWindowTitle("NetHack: Question");
+    setWindowTitle("NetHack: 询问");
 
     // plain prompt doesn't show any room for an answer (answer won't be
     // echoed but the fact that a prompt is pending and accepts typed
@@ -76,7 +76,7 @@ NetHackQtYnDialog::NetHackQtYnDialog(QWidget *parent, const QString &q,
 
 char NetHackQtYnDialog::Exec()
 {
-    QString ch(QString::fromLatin1(choices));
+    QString ch(QString::fromUtf8(choices)); //危险:fromLatin1
 //    int ch_per_line=6;
     QString qlabel;
     QString enable;
@@ -113,7 +113,9 @@ char NetHackQtYnDialog::Exec()
 		}
 	    }
 	}
-	if ( question.indexOf("what direction") >= 0 ) {
+	if ( question.indexOf("what direction") >= 0
+	    || question.indexOf("方向") >= 0
+	    || question.indexOf("哪里") >= 0 ) { //危险:又硬编码,,,
 	    // We replace this regardless, since sometimes you get choices.
 	    const char* d = gc.Cmd.dirchars;
 	    enable=ch;
@@ -135,7 +137,7 @@ char NetHackQtYnDialog::Exec()
 	    // Hmm... they'll have to use a virtual keyboard
 	}
     } else {
-        ch = QString::fromLatin1(choices);
+        ch = QString::fromUtf8(choices); //危险:fromLatin1
 	qlabel = question.replace(QChar(0x200B), QString(""));
     }
     if (!ch.isNull()) {
@@ -199,21 +201,23 @@ char NetHackQtYnDialog::Exec()
                 // use alternate text is needed
                 switch (ch[i].cell()) {
                 case 'y':
-                    button_name = "Yes";
+                    button_name = "是";
                     making_y = true;
                     break;
                 case 'n':
-                    button_name = "No";
+                    button_name = "否";
                     break;
                 case 'a':
                     // the display of vanquished monsters uses "ynaq" for
                     // convenience, where 'a' requests a sort-by menu;
                     // show "sort" instead of "all" and allow player to
                     // type either 'a' or 's' when not clicking on button
-                    if (question.contains(QString("vanquished?")))
-                        button_name = "Sort", AltChoice('s', 'a');
+                    if (question.contains(QString("vanquished?"))
+                        || question.contains(QString("击败的生物"))
+                        || question.contains(QString("物种列表")))
+                        button_name = "排序", AltChoice('s', 'a');
                     else
-                        button_name = "All";
+                        button_name = "全部";
                     break;
                 case 'q':
                     // most 'q' replies are actually for "cancel" but
@@ -221,18 +225,19 @@ char NetHackQtYnDialog::Exec()
                     // and for end of game disclosure it really is "quit"
                     if (question.left(10) == QString("Dump core?")
                         || (::program_state.gameover
-                            && question.left(11) == QString("Do you want")))
-                        button_name = "Quit";
+                            && (question.left(11) == QString("Do you want")
+                                || question.startsWith(QString("你想")))))
+                        button_name = "退出";
                     else if (is_ynaq)
-                        button_name = "Stop", AltChoice('s', 'q');
+                        button_name = "停止", AltChoice('s', 'q');
                     else
-                        button_name = "Cancel", AltChoice('c', 'q');
+                        button_name = "取消", AltChoice('c', 'q');
                     break;
                 case 'l':
-                    button_name = "Left";
+                    button_name = "左";
                     break;
                 case 'r':
-                    button_name = "Right";
+                    button_name = "右";
                     break;
                 }
             } else {
@@ -303,7 +308,7 @@ char NetHackQtYnDialog::Exec()
         QLabel *lb = 0;
         if (allow_count) {
             // insert Count widget in front of [n], between [y] and [n][a][q]
-            lb = new QLabel("Count:");
+            lb = new QLabel("计数:");
             groupbox->insertWidget(1, lb); // [y] button is item #0, [n] is #1
             le = new QLineEdit();
             groupbox->insertWidget(2, le); // [n] became #2, Count label is #1
@@ -357,7 +362,7 @@ char NetHackQtYnDialog::Exec()
 
     } else {
 	QLabel label(qlabel,this);
-	QPushButton cancel("Dismiss",this);
+	QPushButton cancel("关闭",this);
 #if __cplusplus >= 202002L
 	label.setFrameStyle(static_cast<int>(QFrame::Box)
                                 | static_cast<int>(QFrame::Sunken));
@@ -399,7 +404,7 @@ void NetHackQtYnDialog::keyPressEvent(QKeyEvent *event)
         this->done(1);
 
     } else {
-	int where = QString::fromLatin1(choices).indexOf(QChar(keypress));
+	int where = QString::fromUtf8(choices).indexOf(QChar(keypress)); //危险:fromLatin1
 
         if (allow_count && strchr("#0123456789", keypress)) {
             if (keypress == '#') {

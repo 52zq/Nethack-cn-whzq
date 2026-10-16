@@ -1844,7 +1844,7 @@ build_english_list(char *in)
         if (words == 2) {
             /* "first or second" */
             bel_copy1(&p, out);
-            Strcat(out, " ");
+            //冗余:Strcat(out, " ");
         } else {
             /* "first, second, or third */
             do {
@@ -1852,7 +1852,7 @@ build_english_list(char *in)
                 Strcat(out, ", ");
             } while (--words > 1);
         }
-        Strcat(out, "或 ");
+        Strcat(out, "或");
         bel_copy1(&p, out);
         break;
     }

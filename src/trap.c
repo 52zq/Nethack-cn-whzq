@@ -4400,7 +4400,7 @@ domagictrap(void)
                         ? "挺奇怪的"
                         : "");
             else
-                You("突然思念%s.",
+                You("突然开始思念%s.",
                     Hallucination
                         ? "克利夫兰"
                         : (In_quest(&u.uz) || at_dgn_entrance("The Quest")) /*待写*/
@@ -6023,7 +6023,7 @@ untrap(
                     }
                     /* 'n' => continue to next box */
             }
-            There("没有其他箱子或盒子了.");
+            There("没有其他箱子或盒子.");
         }
 
         if (stumble_on_door_mimic(x, y))

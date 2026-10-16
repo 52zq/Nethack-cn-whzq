@@ -22,6 +22,7 @@ staticfn struct fruit *loadfruitchn(NHFILE *);
 staticfn void freefruitchn(struct fruit *);
 staticfn void rest_levl(NHFILE *);
 staticfn void rest_stairs(NHFILE *);
+staticfn void savedgame_to_cfilecode(char *);
 #ifndef SFCTOOL
 staticfn void ghostfruit(struct obj *);
 staticfn boolean restgamestate(NHFILE *);
@@ -1139,13 +1140,15 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
         }
     }
     Sfi_long(nhfp, &svo.omoves, "lev-timestmp");
+    if (ghostly)
+        ga.articulo_mortis = svo.omoves;
     elapsed = (svm.moves - svo.omoves);
 
     rest_stairs(nhfp);
     Sfi_dest_area(nhfp, &svu.updest, "lev-updest");
     Sfi_dest_area(nhfp, &svd.dndest, "lev-dndest");
     Sfi_levelflags(nhfp, &svl.level.flags, "lev-level_flags");
-    rest_adjust_levelflags(elapsed);
+    rest_adjust_levelflags(elapsed, ghostly);
     if (svd.doors) {
         free(svd.doors);
         svd.doors = 0;
@@ -1247,6 +1250,9 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
                                   : peace_minded(mtmp->data);
             set_malign(mtmp);
         } else if (elapsed > 0L) {
+            /* restmon() based hunger on now; account for time away */
+            if (has_edog(mtmp))
+                EDOG(mtmp)->hungrytime -= elapsed;
             mon_catchup_elapsed_time(mtmp, elapsed);
         }
         /* update shape-changers in case protection against
@@ -1345,6 +1351,8 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
     if (ghostly)
         clear_id_mapping();
 #endif
+    if (ghostly)
+        ga.articulo_mortis = 0L;
     level_status.loading = 0, level_status.ready = 1;
     program_state.in_getlev = FALSE;
 #ifdef SFCTOOL
@@ -1354,11 +1362,15 @@ getlev(NHFILE *nhfp, int pid, xint8 lev)
 }
 
 void
-rest_adjust_levelflags(long elapsed)
+rest_adjust_levelflags(long elapsed, boolean ghostly)
 {
     /* adjust timestamps */
-    relative_time_to_moves(&svl.level.flags.stasis_until);
-    svl.level.flags.stasis_until -= elapsed;
+    if (!ghostly) {
+        relative_time_to_moves(&svl.level.flags.stasis_until);
+        svl.level.flags.stasis_until -= elapsed;
+    } else {
+        bones_time_adjust(&svl.level.flags.stasis_until);
+    }
 }
 
 void
@@ -1376,6 +1388,17 @@ relative_time_to_moves(long *timestamp)
 
     *timestamp = svm.moves + prevts;
 }
+
+void
+bones_time_adjust(long *timestamp)
+{
+    long prevts = *timestamp;
+
+    /* svl.level.flags.stasis_until was already converted to relative offset
+     * from ga.articulo_mortis on bones save */
+    *timestamp = svm.moves + prevts;
+}
+
 
 /* "name-role-race-gend-algn" occurs very early in a save file; sometimes we
    want the whole thing, other times just "name" (for svp.plname[]) */

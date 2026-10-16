@@ -738,7 +738,8 @@ doextlist(void)
     return ECMD_OK;
 }
 
-#if defined(TTY_GRAPHICS) || defined(CURSES_GRAPHICS)
+#if defined(TTY_GRAPHICS) || defined(CURSES_GRAPHICS) \
+    || defined(AMIGA_INTUITION)
 #define MAX_EXT_CMD 200 /* Change if we ever have more ext cmds */
 
 DISABLE_WARNING_FORMAT_NONLITERAL
@@ -978,7 +979,7 @@ enter_explore_mode(void)
             discover = TRUE;
             wizard = FALSE;
             clear_nhwindow(WIN_MESSAGE);
-            You("现在是无分数探索模式.");
+            You("现在是不计分的探索模式.");
         } else {
             clear_nhwindow(WIN_MESSAGE);
             pline("继续%s.", oldmode);
@@ -1892,7 +1893,7 @@ struct ext_func_tab extcmdlist[] = {
               dotakeoff, 0, NULL },
     { 'A',    "takeoffall", "脱下所有防具",
               doddoremarm, 0, NULL },
-    { C('t'), "teleport", "层间传送",
+    { C('t'), "teleport", "传送",
               dotelecmd, IFBURIED | CMD_M_PREFIX, NULL },
     /* \177 == <del> aka <delete> aka <rubout>; some terminals have an
        option to swap it with <backspace> so if there's a key labeled

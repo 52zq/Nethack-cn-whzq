@@ -1,4 +1,4 @@
-﻿/* NetHack 5.0	botl.c	$NHDT-Date: 1781973042 2026/06/20 16:30:42 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.286 $ */
+/* NetHack 5.0	botl.c	$NHDT-Date: 1781973042 2026/06/20 16:30:42 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.286 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -666,7 +666,7 @@ staticfn char *anything_to_s(char *, anything *, int);
 staticfn int percentage(struct istat_s *, struct istat_s *);
 staticfn int exp_percentage(void);
 staticfn int QSORTCALLBACK cond_cmp(const genericptr, const genericptr);
-staticfn int QSORTCALLBACK menualpha_cmp(const genericptr, const genericptr);
+/*冗余:staticfn int QSORTCALLBACK menualpha_cmp(const genericptr, const genericptr);*/
 // 修改: 增加一个回调用于实现拼音排序
 staticfn int QSORTCALLBACK pinyin_cmp(const genericptr, const genericptr);
 
@@ -1528,6 +1528,7 @@ cond_cmp(const genericptr vptr1, const genericptr vptr2)
 }
 
 /* qsort callback routine for alphabetical sorting of index */
+#if 0 /*冗余:未使用*/
 staticfn int QSORTCALLBACK
 menualpha_cmp(const genericptr vptr1, const genericptr vptr2)
 {
@@ -1535,6 +1536,7 @@ menualpha_cmp(const genericptr vptr1, const genericptr vptr2)
 
     return strcmpi(condtests[indx1].useroption, condtests[indx2].useroption);
 }
+#endif /*冗余*/
 
 /* qsort 回调，用于拼音排序 */
 staticfn int QSORTCALLBACK
@@ -3615,7 +3617,7 @@ static int status_hilite_str_id = 0;
 
 staticfn void
 status_hilite_linestr_add(int fld, struct hilite_s *hl, unsigned long mask,
-                          unsigned int color_attr, const char *str)
+                          unsigned int attr, const char *str)
 {
     struct _status_hilite_line_str *tmp, *nxt;
 
@@ -3627,7 +3629,7 @@ status_hilite_linestr_add(int fld, struct hilite_s *hl, unsigned long mask,
     tmp->fld = fld;
     tmp->hl = hl;
     tmp->mask = mask;
-    tmp->color_attr = color_attr;
+    tmp->color_attr = attr;
     if (fld == BL_TITLE)
         Strcpy(tmp->str, str);
     else

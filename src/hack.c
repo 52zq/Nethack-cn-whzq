@@ -1113,7 +1113,7 @@ test_move(
                         if (Blind || Stunned || ACURR(A_DEX) < 10
                             || Fumbling) {
                             if (u.usteed) {
-                                You_cant("领着%s穿过那个关闭的门.",
+                                You_cant("领着%s穿过那扇关闭的门.",
                                          y_monnam(u.usteed));
                             } else {
                                 pline("哎哟! 你撞到一扇门.");
@@ -3688,7 +3688,7 @@ check_special_room(boolean newlev)
 
                 pline("快%s! 快%s!", run, run);
             } else
-                You("有一种莫名其妙的感觉...");
+                You("感到莫名其妙...");
             break;
         case BEEHIVE:
             You("进入了一个巨型蜂巢!");
@@ -3842,7 +3842,7 @@ pickup_checks(void)
         else if (lev->typ == STAIRS)
             pline_The("楼梯被牢牢固定住了.");
         else
-            There("没有什么可捡起的.");
+            There("没有可以捡起的东西.");
         return 0;
     }
     traphere = t_at(u.ux, u.uy);

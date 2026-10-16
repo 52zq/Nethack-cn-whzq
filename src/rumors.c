@@ -888,6 +888,11 @@ init_CapMons(void)
                 else
                     code = xbuf[0], startp = &xbuf[1]; /* special */
 
+                if ((endp = strrchr(startp, '/')) != 0)
+                    *endp = '\0';
+                if ((endp = eos(startp)) > startp && endp[-1] == '\r')
+                    *--endp = '\0';
+
                 if (*startp != lowc(*startp) && !bogon_is_pname(code)) {
                     if (pass == 2)
                         CapMons[CapMonstCnt + CapBogonCnt] = dupstr(startp);

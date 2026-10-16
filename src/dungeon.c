@@ -1801,7 +1801,7 @@ surface(coordxy x, coordxy y)
     else if (IS_ROOM(levtyp) && !Is_earthlevel(&u.uz))
         return "地板";
     else
-        return "地";
+        return "地面";
 }
 
 /*
@@ -3375,6 +3375,7 @@ staticfn const char *
 seen_string(xint16 x, const char *obj)
 {
     /* players are computer scientists: 0, 1, 2, n */
+    nhUse(obj);
     switch (x) {
     case 0:
         return "没有";

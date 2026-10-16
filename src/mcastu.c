@@ -393,7 +393,7 @@ mcast_death_touch(struct monst *mtmp)
         You("看起来并不比之前死得更彻底.");
     } else if (!Antimagic && rn2(mtmp->m_lev) > 12) {
         if (Hallucination) {
-            You("有一种灵魂出窍的体验.");
+            You("体验了一次灵魂出窍.");
         } else {
             touch_of_death(mtmp);
         }
@@ -675,7 +675,7 @@ mcast_insects(struct monst *mtmp)
     seecaster = canseemon(mtmp) || tp_sensemon(mtmp) || Detect_monsters;
     what = (let == S_SNAKE) ? "蛇" : "虫子";
     if (Hallucination)
-        what = makeplural(bogusmon(whatbuf, (char *) 0));
+        what = makeplural(bogusmon(whatbuf, (char *) 0, (char *) 0));
 
     fmt = 0;
     if (!seecaster) {
