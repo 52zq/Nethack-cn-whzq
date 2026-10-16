@@ -339,12 +339,12 @@ dosounds(void)
 }
 
 static const char *const h_sounds[] = {
-    "哔",   "咻",   "唱",   "打嗝", "嘎吱", "咳",
-    "咔嗒", "哀号", "噗",   "叮当", "抽鼻", "叮咚",
-    "吱",   "哐当", "嗡",   "滋滋", "啁啾", "喘息",
-    "沙沙", "嘟",   "咬舌", "假",   "咕",   "打饱嗝",
-    "哞",   "嘭",   "低语", "嗷嗷", "嘎嘎", "隆隆",
-    "吭气",   "嘟嘟", "咕噜", "呼啸", "咏叹"
+    "发出哔声",   "发出咻声",   "唱歌",   "打嗝", "嘎吱作响", "咳嗽",
+    "发出咔嗒声", "哀号", "发出噗声",   "发出叮当声", "抽鼻", "发出叮咚声",
+    "吱吱叫",   "发出哐当声", "发出嗡嗡声",   "滋滋作响", "啁啾", "喘息",
+    "发出沙沙声", "发出嘟声",   "咬舌", "发出假声",   "咕咕叫",   "打饱嗝",
+    "哞哞叫",   "爆出嘭声",   "低语", "嗷嗷叫", "嘎嘎叫", "隆隆叫",
+    "吭气",   "发出嘟嘟声", "咕噜叫", "呼啸", "咏叹"
 };
 
 const char *
@@ -413,7 +413,7 @@ growl(struct monst *mtmp)
         growl_verb = growl_sound(mtmp);
     if (growl_verb) {
         if (canseemon(mtmp) || !Deaf) {
-            pline("%s发出%s声!", Monnam(mtmp), vtense((char *) 0, growl_verb));
+            pline("%s%s!", Monnam(mtmp), vtense((char *) 0, growl_verb));
             iflags.last_msg = PLNMSG_GROWL;
             if (svc.context.run)
                 nomul(0);
