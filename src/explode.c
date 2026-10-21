@@ -308,7 +308,7 @@ explode(
 
         if (Hallucination) {
             do_hallu = ((strstri(str, "'s explosion")
-                         || strstri(str, "s' explosion")))
+                         || strstri(str, "s' explosion") || strstri(str, "爆炸")) || strstri(str, "的爆炸"))
                            ? 1
                        : (strstr(str, "explosion of an ")) ? 2
                        : (strstr(str, "explosion of a "))  ? 3
