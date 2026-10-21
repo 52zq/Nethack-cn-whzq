@@ -1077,10 +1077,10 @@ function make_dig_engraving(data)
       dig = " here";
    else
       if (tx < 0 or tx > 0) then
-         dig = string.format(" %i %s", math.abs(tx), (tx > 0) and "east" or "west");
+         dig = string.format(" %i %s", math.abs(tx), (tx > 0) and "东" or "西");
       end
       if (ty < 0 or ty > 0) then
-         dig = dig .. string.format(" %i %s", math.abs(ty), (ty > 0) and "south" or "north");
+         dig = dig .. string.format(" %i %s", math.abs(ty), (ty > 0) and "南" or "北");
       end
    end
    des.engraving({ coord = pos, type = "burn", text = "Dig" .. dig });
