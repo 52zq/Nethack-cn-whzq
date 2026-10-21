@@ -222,7 +222,7 @@ local tutorial_events = {
             local o = obj.new("blessed food ration");
             o:placeobj(u.ux, u.uy);
             nh.pline("看上去你在饿肚子. 要是再不吃的话就要饿死了.", true);
-            nh.pline("按'" .. nh.eckey("eat") .. "'可以吃东西", true);
+            nh.pline("按'" .. nh.eckey("eat") .. "'可以吃东西.", true);
             return true;
          end
       end
