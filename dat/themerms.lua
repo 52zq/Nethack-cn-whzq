@@ -1077,13 +1077,13 @@ function make_dig_engraving(data)
       dig = " here";
    else
       if (tx < 0 or tx > 0) then
-         dig = string.format(" %i %s", math.abs(tx), (tx > 0) and "东" or "西");
+         dig = string.format("%s挖%i格", (tx > 0) and "东" or "西", math.abs(tx));
       end
       if (ty < 0 or ty > 0) then
-         dig = dig .. string.format(" %i %s", math.abs(ty), (ty > 0) and "南" or "北");
+         dig = dig .. string.format("%s挖%i格", (ty > 0) and "南" or "北", math.abs(ty));
       end
    end
-   des.engraving({ coord = pos, type = "burn", text = "Dig" .. dig });
+   des.engraving({ coord = pos, type = "burn", text = "向" .. dig });
 end
 
 -- postprocess callback: turn room walls into trees
