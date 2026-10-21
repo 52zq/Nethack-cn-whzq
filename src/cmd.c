@@ -979,7 +979,7 @@ enter_explore_mode(void)
             discover = TRUE;
             wizard = FALSE;
             clear_nhwindow(WIN_MESSAGE);
-            You("现在是不计分的探索模式.");
+            You("正在游玩不计分的探索模式.");
         } else {
             clear_nhwindow(WIN_MESSAGE);
             pline("继续%s.", oldmode);

@@ -653,10 +653,10 @@ wd_message(void)
         if (!iflags.explore_error_flag)
             pline("进入探索模式.");
     } else if (iflags.explore_error_flag) {
-        You("无法进入调试(巫师)模式."); /* same as enter_explore_mode */
+        You("无法进入探索模式."); /* same as enter_explore_mode */
         discover = iflags.deferred_X = FALSE; /* (more paranoia) */
     } else if (discover)
-        You("现在是不计分的探索模式.");
+        You("正在游玩不计分的探索模式.");
 }
 
 /*
