@@ -55,9 +55,7 @@ static void curses_line_span(const char *, int, size_t *, size_t *);
         while (1) {
             ch = getch();
             if (ch == ERR && !done_a_checkpoint) {
-#ifdef INSURANCE
-                save_currentstate();
-#endif /* INSURANCE */
+                do_idlecheckpoint();
                 done_a_checkpoint = TRUE;
                 timeout(-1);
                 timeoutset = FALSE;

@@ -1867,11 +1867,11 @@ attributes_enlightenment(
              && u.umonnum == PM_GREEN_SLIME && !Unchanging)) {
         /* foreign shape (except were-form which is handled below) */
         if (!vampshifted(&gy.youmonst))
-            Sprintf(buf, "已变形为%s",
+            Sprintf(buf, "变形成了%s",
                     an_pmname(gy.youmonst.data,
                               flags.female ? FEMALE : MALE));
         else
-            Sprintf(buf, "变形为%s的%s形态",
+            Sprintf(buf, "变形成了%s的%s形态",
                     an_pmname(&mons[gy.youmonst.cham],
                               flags.female ? FEMALE : MALE),
                     pmname(gy.youmonst.data, flags.female ? FEMALE : MALE));
