@@ -1729,7 +1729,7 @@ nhl_gamestate(lua_State *L)
 
         /* restore game state */
         svm.moves = gg.gmst_moves;
-        pline("Resetting time to move #%ld.", svm.moves);
+        pline("时间重设至回合#%ld.", svm.moves);
         gg.gmst_moves = 0L;
 
         gl.lastinvnr = 51;
