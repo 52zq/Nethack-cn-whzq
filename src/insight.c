@@ -490,7 +490,7 @@ background_enlightenment(int unused_mode UNUSED, int final)
        (with countdown timer appended for wizard mode); we really want
        the player to know he's not a samurai at the moment... */
     if (Upolyd) {
-        char anbuf[20]; /* includes trailing space; [4] suffices */
+        char anbuf[BUFSZ];
         struct permonst *uasmon = gy.youmonst.data;
         boolean altphrasing = vampshifted(&gy.youmonst);
 
@@ -608,7 +608,7 @@ background_enlightenment(int unused_mode UNUSED, int final)
 
         (void) endgamelevelname(tmpbuf, egdepth);
         Snprintf(buf, sizeof(buf), "在终局的%s%s",
-                 !strncmp(tmpbuf, "位面", 5) ? "元素" : "", tmpbuf);
+                 !strncmp(tmpbuf, "位面", strlen("位面")) ? "元素" : "", tmpbuf);
     } else if (Is_knox(&u.uz)) {
         /* this gives away the fact that the knox branch is only 1 level */
         Sprintf(buf, "在%s中", svd.dcname[u.uz.dnum]);
@@ -1101,7 +1101,7 @@ status_enlightenment(int mode, int final)
     heldmon[0] = '\0'; /* lint suppression */
     if (u.ustuck) { /* includes u.uswallow */
         Strcpy(heldmon, a_monnam(u.ustuck));
-        if (!strcmp(heldmon, "it")
+        if ((!strcmp(heldmon, "它") || !strcmp(heldmon, "某物"))
             && (!has_mgivenname(u.ustuck)
                 || strcmp(MGIVENNAME(u.ustuck), "it") != 0))
             Strcpy(heldmon, "一个看不见的生物");
@@ -1204,7 +1204,7 @@ status_enlightenment(int mode, int final)
         *buf = lowc(*buf); /* override capitalization */
         if (!strcmp(buf, "weak") || !strcmp(buf, "虚弱"))
             Strcat(buf, "因饥饿");
-        else if (!strncmp(buf, "faint", 5) || !strcmp(buf, "晕厥")) /* fainting, fainted */
+        else if (!strncmp(buf, "faint", 5) || !strcmp(buf, "晕厥") || !strcmp(buf, "昏倒"))
             Strcat(buf, "因严重饥饿");
         if (wizard)
             Sprintf(eos(buf), " <%d>", u.uhunger);
@@ -1543,7 +1543,7 @@ attributes_enlightenment(
     if (Poison_resistance)
         you_are("有毒抗性", from_what(POISON_RES));
     if (Acid_resistance) {
-        Sprintf(buf, "%.20s%.30s",
+        Sprintf(buf, "%s%s",
                 temp_resist(ACID_RES) ? "暂时" : "",
                 "有酸抗性");
         you_are(buf, from_what(ACID_RES));
@@ -1554,7 +1554,7 @@ attributes_enlightenment(
     if (Sick_resistance)
         you_are("对疾病免疫", from_what(SICK_RES));
     if (Stone_resistance) {
-        Sprintf(buf, "%.20s%.30s",
+        Sprintf(buf, "%s%s",
                 temp_resist(STONE_RES) ? "暂时" : "",
                 "有石化抗性");
         you_are(buf, from_what(STONE_RES));
@@ -3237,7 +3237,7 @@ size_str(int msize)
 char *
 piousness(boolean showneg, const char *suffix)
 {
-    static char buf[32]; /* bigger than "insufficiently neutral" */
+    static char buf[64];
     const char *pio;
 
     /* note: piousness 20 matches MIN_QUEST_ALIGN (quest.h) */
