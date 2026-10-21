@@ -119,7 +119,7 @@ des.engraving({ coord = { 5,12 }, type = "engrave", text = "按'" .. tut_key("gl
 
 des.engraving({ coord = { 10,13 }, type = "engrave", text = "按'" .. tut_key("search") .. "'搜索隐藏门", degrade = false });
 
-des.engraving({ coord = { 10,15 }, type = "engrave", text = "错误的密码", degrade = false });
+des.engraving({ coord = { 10,15 }, type = "engrave", text = "没有秘密", degrade = false });
 
 --
 
@@ -270,7 +270,7 @@ des.object({ coord = { 50,3 }, id = "corpse", montype = "lichen", buc = "not-cur
 
 des.door({ coord = { 46,11 }, state = "closed" });
 
-des.engraving({ coord = { 43,11 }, type = "burn", text = "按'" .. tut_key("twoweapon") .. "' to use two weapons at once", degrade = false });
+des.engraving({ coord = { 43,11 }, type = "burn", text = "按'" .. tut_key("twoweapon") .. "'同时使用两件武器", degrade = false });
 des.object({ coord = { 43,13 }, id = "knife", buc = "uncursed" });
 des.object({ coord = { 43,14 }, id = "dagger", buc = "blessed" });
 
