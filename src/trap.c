@@ -7152,7 +7152,7 @@ trapname(
                                                           : gu.urole.name.m)
                               : rank_of(u.ulevel, Role_switch, fem),
                        (int) (sizeof roletrap - sizeof "陷阱"));
-            Strcat(roletrap, "陷阱陷阱");
+            Strcat(roletrap, "陷阱");
             return lcase(roletrap);
         } else if (nameidx >= TRAPNUM) {
             nameidx -= TRAPNUM;
