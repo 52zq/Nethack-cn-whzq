@@ -1350,7 +1350,7 @@ see_lamp_flicker(struct obj *obj, const char *tailer)
         pline("%s在闪烁%s.", Yname2(obj), tailer);
         break;
     case OBJ_FLOOR:
-        You_see("一%s%s在闪烁%s.", classifier(obj), xname(obj), tailer);
+        You_see("一%s%s在闪烁%s.", obj_classifier(obj), xname(obj), tailer);
         break;
     }
 }
@@ -1497,7 +1497,7 @@ burn_object(anything *arg, long timeout)
                         pline("%s看上去要熄灭了.", Yname2(obj));
                         break;
                     case OBJ_FLOOR:
-                        You_see("一%s%s快要熄灭了.", classifier(obj), xname(obj));
+                        You_see("一%s%s快要熄灭了.", obj_classifier(obj), xname(obj));
                         break;
                     }
                 }
@@ -1522,7 +1522,7 @@ burn_object(anything *arg, long timeout)
                     if (obj->otyp == BRASS_LANTERN)
                         You_see("一盏灯笼燃尽了.");
                     else
-                        You_see("一%s%s燃尽了.", classifier(obj), xname(obj));
+                        You_see("一%s%s燃尽了.", obj_classifier(obj), xname(obj));
                     break;
                 }
             }

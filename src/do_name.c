@@ -300,7 +300,7 @@ do_oname(struct obj *obj)
     }
 
     Sprintf(qbuf, "你想要把%s%s",
-            is_plural(obj) ? "这些" : "这", is_plural(obj) ? "" : classifier(obj));
+            is_plural(obj) ? "这些" : "这", is_plural(obj) ? "" : obj_classifier(obj));
     (void) safe_qbuf(qbuf, qbuf, "命名为什么?", obj, xname, simpleonames, "物品");
     /* use getlin() to get a name string from the player */
     if (!name_from_player(buf, qbuf, safe_oname(obj)))
@@ -417,7 +417,7 @@ oname(
             else
                 livelog_printf(LL_ARTIFACT,
                                "将一%s%s命名成了\"%s\"",
-                               ansimpleoname(obj), classifier(obj), bare_artifactname(obj));
+                               ansimpleoname(obj), obj_classifier(obj), bare_artifactname(obj));
         }
     }
     if (carried(obj) && !skip_inv_update)

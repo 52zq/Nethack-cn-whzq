@@ -416,7 +416,7 @@ dowield(void)
         if (uquiver->quan > 1L && inv_cnt(FALSE) < invlet_basic
                                     && splittable(uquiver)) {
             Sprintf(qbuf, "你已经准备好了%ld%s%s. 要手持其中一%s吗?",
-                    uquiver->quan, classifier(uquiver), simpleonames(uquiver), classifier(uquiver));
+                    uquiver->quan, obj_classifier(uquiver), simpleonames(uquiver), obj_classifier(uquiver));
             switch (ynq(qbuf)) {
             case 'q':
                 return ECMD_OK;
@@ -582,7 +582,7 @@ doquiver_core(const char *verb) /* "ready" or "fire" */
         if (uwep->quan > 1L && inv_cnt(FALSE) < invlet_basic
                                     && splittable(uwep)) {
             Sprintf(qbuf, "你正拿着%ld%s%s. 将它们中的%ld%s准备?",
-                    uwep->quan, classifier(uwep), simpleonames(uwep), uwep->quan - 1L, classifier(uwep));
+                    uwep->quan, obj_classifier(uwep), simpleonames(uwep), uwep->quan - 1L, obj_classifier(uwep));
             switch (ynq(qbuf)) {
             case 'q':
                 return ECMD_OK;
@@ -619,8 +619,8 @@ doquiver_core(const char *verb) /* "ready" or "fire" */
             Sprintf(qbuf, "%s%ld%s%s. 将它们中的%ld%s准备?",
                     u.twoweap ? "你正以副手手持"
                               : "你的备用武器是",
-                    uswapwep->quan, classifier(uswapwep), simpleonames(uswapwep),
-                    uswapwep->quan - 1L, classifier(uswapwep));
+                    uswapwep->quan, obj_classifier(uswapwep), simpleonames(uswapwep),
+                    uswapwep->quan - 1L, obj_classifier(uswapwep));
             switch (ynq(qbuf)) {
             case 'q':
                 return ECMD_OK;

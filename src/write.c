@@ -105,7 +105,7 @@ dowrite(struct obj *pen)
                  : "卷轴";
     if (Blind) {
         if (!paper->dknown) {
-            You("不知道那%s%s是否空白.", classifier(paper), typeword);
+            You("不知道那%s%s是否空白.", obj_classifier(paper), typeword);
             return ECMD_OK;
         } else if (paper->oclass == SPBOOK_CLASS) {
             /* can't write a magic book while blind */
@@ -116,7 +116,7 @@ dowrite(struct obj *pen)
     }
     observe_object(paper);
     if (paper->otyp != SCR_BLANK_PAPER && paper->otyp != SPE_BLANK_PAPER) {
-        pline("那个%s%s不是空白的!", classifier(paper), typeword);
+        pline("那%s%s不是空白的!", obj_classifier(paper), typeword);
         exercise(A_WIS, FALSE);
         return ECMD_TIME;
     }
@@ -244,7 +244,7 @@ dowrite(struct obj *pen)
     /* KMH, conduct */
     if (!u.uconduct.literate++)
         livelog_printf(LL_CONDUCT,
-                       "因写一%s%s而脱离文盲", classifier(paper), typeword);
+                       "因写一%s%s而脱离文盲", obj_classifier(paper), typeword);
 
     new_obj = mksobj(i, FALSE, FALSE);
     new_obj->bknown = (paper->bknown && pen->bknown);

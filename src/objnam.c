@@ -511,7 +511,7 @@ safe_etypename(int otyp)
 }
 
 const char *
-classifier(struct obj *obj)
+obj_classifier(struct obj *obj)
 {
     switch (obj->otyp)
     {
@@ -2017,7 +2017,7 @@ mshot_xname(struct obj *obj)
     if (gm.m_shot.n > 1 && gm.m_shot.o == obj->otyp) {
         /* "the Nth arrow"; value will eventually be passed to an() or
            The(), both of which correctly handle this "the " prefix */
-        Sprintf(tmpbuf, "第%d%s", gm.m_shot.i, classifier(obj));
+        Sprintf(tmpbuf, "第%d%s", gm.m_shot.i, obj_classifier(obj));
         onm = strprepend(onm, tmpbuf);
     }
     return onm;
@@ -2282,13 +2282,13 @@ doname_base(
                      || type_is_pname(&mons[obj->corpsenm]))) {
                 if (with_space) {
                     if (obj->quan != 1L || force_class) {
-                        Sprintf(prefix, "%ld %s", obj->quan, classifier(obj));
+                        Sprintf(prefix, "%ld %s", obj->quan, obj_classifier(obj));
                     }
                 } else {
                     if (obj->quan != 1L || force_class) {
-                        Sprintf(prefix, "%ld%s", obj->quan, classifier(obj));
+                        Sprintf(prefix, "%ld%s", obj->quan, obj_classifier(obj));
                     } else if (obj->quan == 1L) {
-                        Sprintf(prefix, "一%s", classifier(obj));
+                        Sprintf(prefix, "一%s", obj_classifier(obj));
                     }
                 }
             }
@@ -3141,7 +3141,7 @@ killer_xname(struct obj *obj)
     if (obj->quan == 1L && !strstri(buf, "'s ") && !strstri(buf, "s' ")) {
         char tmpbuf[BUFSZ];
 
-        Snprintf(tmpbuf, sizeof tmpbuf, "一%s%s", classifier(obj), buf);
+        Snprintf(tmpbuf, sizeof tmpbuf, "一%s%s", obj_classifier(obj), buf);
         Strcpy(buf, tmpbuf);
     }
     objects[obj->otyp].oc_name_known = save_ocknown;
@@ -3391,7 +3391,7 @@ aobjnam(struct obj *otmp, const char *verb)
     char *bp = cxname(otmp);
 
     if (otmp->quan != 1L) {
-        Sprintf(prefix, "%ld%s", otmp->quan, classifier(otmp));
+        Sprintf(prefix, "%ld%s", otmp->quan, obj_classifier(otmp));
         bp = strprepend(bp, prefix);
     }
     if (verb) {
@@ -3624,7 +3624,7 @@ ansimpleoname(struct obj *obj)
         char namebuf[BUFSZ];
 
         Strcpy(namebuf, simpleoname);
-        Sprintf(simpleoname, "一%s%s", classifier(obj), namebuf);
+        Sprintf(simpleoname, "一%s%s", obj_classifier(obj), namebuf);
     }
     return simpleoname;
 }

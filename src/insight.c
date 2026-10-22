@@ -1302,7 +1302,7 @@ weapon_insight(int final)
             Sprintf(buf, "手持着%s", what);}
         else{
             /* [maybe include known blessed?] */
-            Sprintf(buf, "装备着%s%s%s", (uwep->quan == 1L) ? "一" : "", (uwep->quan == 1L) ? classifier(uwep) : "",
+            Sprintf(buf, "装备着%s%s%s", (uwep->quan == 1L) ? "一" : "", (uwep->quan == 1L) ? obj_classifier(uwep) : "",
                     what);}
         you_are(buf, "");
     }

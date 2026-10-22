@@ -1236,7 +1236,7 @@ doengrave(void)
 
     /* Tell adventurer what is going on */
     if (de->otmp != &hands_obj)
-        You("用%s%s%s在%s%s字.", (de->type == ENGRAVE && de->otmp->quan > 1L) ? "一" : "", (de->type == ENGRAVE && de->otmp->quan > 1L) ? classifier(de->otmp) : "", doname(de->otmp), /*修改语序:You("%s在%s上用%s%s。", de->everb, de->eloc,*/
+        You("用%s%s%s在%s%s字.", (de->type == ENGRAVE && de->otmp->quan > 1L) ? "一" : "", (de->type == ENGRAVE && de->otmp->quan > 1L) ? obj_classifier(de->otmp) : "", doname(de->otmp), /*修改语序:You("%s在%s上用%s%s。", de->everb, de->eloc,*/
             /* since doname() yields "N items" when quantity is more than
                one, match that by using "1 of" rather than "one of" when
                informing the player that the stack will be split */
@@ -1417,7 +1417,7 @@ engrave(void)
            not welded to the hero's hand(s) */
         if (stylus->quan > 1L) {
             if (firsttime)
-                pline("%s中的一%s变钝了.", yname(stylus), classifier(stylus));
+                pline("%s中的一%s变钝了.", yname(stylus), obj_classifier(stylus));
             stylus = svc.context.engraving.stylus = splitobj(stylus, 1L);
             /* if stack is wielded or quivered, the split-off one isn't */
             stylus->owornmask = 0L;

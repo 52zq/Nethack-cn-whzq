@@ -94,7 +94,7 @@ on_msg(struct obj *otmp)
         if (otmp->otyp == TOWEL)
             Sprintf(how, "围住了你的%s", body_part(HEAD));
         You("%s%s%s%s%s.", /*修改语序:多一个%s*/
-            (otmp->otyp == TOWEL) ? "用" : "穿上了", obj_is_pname(otmp) ? "" : "一", obj_is_pname(otmp) ? "" : classifier(otmp), otmp_name, how); /*修改语序:obj_is_pname(otmp) ? the(otmp_name) : an(otmp_name), how);*/
+            (otmp->otyp == TOWEL) ? "用" : "穿上了", obj_is_pname(otmp) ? "" : "一", obj_is_pname(otmp) ? "" : obj_classifier(otmp), otmp_name, how); /*修改语序:obj_is_pname(otmp) ? the(otmp_name) : an(otmp_name), how);*/
     }
 }
 
@@ -1793,7 +1793,7 @@ armor_or_accessory_off(struct obj *obj)
         } else {
             Strcpy(why, "; 它嵌在你身上");
         }
-        You_cant("脱下那%s%s.", classifier(obj), why);
+        You_cant("脱下那%s%s.", obj_classifier(obj), why);
         return ECMD_OK;
     }
 
@@ -2615,7 +2615,7 @@ glibr(void)
         }
         pline("%s%s%s%s%s%s从你的%s中%s.", /*修改语序:pline("%s%s%s%s%s从你的%s%s.",*/
               !strncmp(thiswep, "尸体", 6) ? "" : "你的",
-              otherwep ? "另一" : "", otherwep ? classifier(otmp) : "", thiswep, xfl ? "也" : "",
+              otherwep ? "另一" : "", otherwep ? obj_classifier(otmp) : "", thiswep, xfl ? "也" : "",
               which, hand, otense(otmp, "滑落")); /*修改语序:otense(otmp, "滑落"), which, hand);*/
         /* xfl++; */
         otmp->quan = savequan;

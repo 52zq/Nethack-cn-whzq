@@ -2527,7 +2527,7 @@ potion_dip(struct obj *obj, struct obj *potion)
 
             if ((long) amt < obj->quan) {
                 obj = splitobj(obj, (long) amt);
-                Sprintf(qbuf, "%ld%s", obj->quan, classifier(obj));
+                Sprintf(qbuf, "%ld%s", obj->quan, obj_classifier(obj));
             }
         }
         /* [N of] the {obj(s)} mix(es) with [one of] {the potion}... */

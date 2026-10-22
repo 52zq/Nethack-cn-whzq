@@ -225,7 +225,7 @@ mhidden_description(
                    : obj_descr[STRANGE_OBJECT].oc_name;
             if (incl_article && (!otmp || otmp->quan == 1L))
                 Sprintf(eos(outbuf), "一%s%s",
-                        otmp ? classifier(otmp) : "个", what);
+                        otmp ? obj_classifier(otmp) : "个", what);
             else
                 Strcat(outbuf, what);
 

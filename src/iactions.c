@@ -554,7 +554,7 @@ itemactions(struct obj *otmp)
 
     /* R: remove accessory or rub item */
     if (otmp->owornmask & W_ACCESSORY) {
-        Sprintf(buf, "摘下这%s%s", classifier(otmp),
+        Sprintf(buf, "摘下这%s%s", obj_classifier(otmp),
                 (otmp->owornmask & W_AMUL) ? "护身符"
                 : (otmp->owornmask & W_RING) ? "戒指"
                   : (otmp->owornmask & W_TOOL) ? "眼镜"
@@ -563,7 +563,7 @@ itemactions(struct obj *otmp)
     }
     if (otmp->otyp == OIL_LAMP || otmp->otyp == MAGIC_LAMP
         || otmp->otyp == BRASS_LANTERN) {
-        Sprintf(buf, "摩擦这%s%s", classifier(otmp), simpleonames(otmp));
+        Sprintf(buf, "摩擦这%s%s", obj_classifier(otmp), simpleonames(otmp));
         ia_addmenu(win, IA_RUB_OBJ, 'R', buf);
     } else if (otmp->oclass == GEM_CLASS && is_graystone(otmp))
         ia_addmenu(win, IA_RUB_OBJ, 'R', "在这块石头上摩擦物品");

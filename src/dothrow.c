@@ -244,7 +244,7 @@ throw_obj(struct obj *obj, int shotlimit)
         /* "You shoot N arrows." or "You throw N daggers." */
         You("%s了%d%s%s.", gm.m_shot.s ? "射出" : "投掷",
             multishot, /* (might be 1 if player gave shotlimit) */
-            classifier(obj), (multishot == 1) ? singular(obj, xname) : xname(obj));
+            obj_classifier(obj), (multishot == 1) ? singular(obj, xname) : xname(obj));
     }
 
     wep_mask = obj->owornmask;
@@ -814,7 +814,7 @@ hurtle_step(genericptr_t arg, coordxy x, coordxy y)
             You("撞到了铁栅栏上. 嗷!");
         } else if ((obj = sobj_at(BOULDER, x, y)) != 0) {
             why = "撞到巨石上";
-            You("撞到了一%s%s上. 嗷!", classifier(obj), xname(obj));
+            You("撞到了一%s%s上. 嗷!", obj_classifier(obj), xname(obj));
         }  else if (!may_pass) {
             /* did we hit a no-dig non-wall position? */
             why = "触摸宇宙的边界";

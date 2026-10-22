@@ -1684,7 +1684,7 @@ carry_count(struct obj *obj,            /* object to pick up... */
     if (qq > 0) {
         if (qq < count)
             You("只能%s%s%s的%s中的一%s.", verb, verb2, /*修改语序:You("只能%s %s %s %s.", verb,*/
-                where, obj_nambuf, (qq == 1L) ? classifier(obj) : "些"); /*修改语序:(qq == 1L) ? "一个" : "一些", obj_nambuf, where);*/
+                where, obj_nambuf, (qq == 1L) ? obj_classifier(obj) : "些"); /*修改语序:(qq == 1L) ? "一个" : "一些", obj_nambuf, where);*/
         *wt_after = wt;
         return qq;
     }
@@ -1718,7 +1718,7 @@ lift_object(
     int result, old_wt, new_wt, prev_encumbr, next_encumbr;
 
     if (obj->otyp == BOULDER && Sokoban) {
-        You("无法用你的%s抱住这%s%s.", body_part(HAND), classifier(obj),
+        You("无法用你的%s抱住这%s%s.", body_part(HAND), obj_classifier(obj),
             xname(obj));
         return -1;
     }
@@ -1736,7 +1736,7 @@ lift_object(
            that's suboptimal for loadstones because it omits user-assigned
            type name which is something of interest for gray stones] */
         You("携带的物品太多, 不能再拾取%s%s%s.",
-            (obj->quan == 1L) ? "另一" : "更多", (obj->quan == 1L) ? classifier(obj) : "", xname(obj));
+            (obj->quan == 1L) ? "另一" : "更多", (obj->quan == 1L) ? obj_classifier(obj) : "", xname(obj));
         return -1;
     }
 

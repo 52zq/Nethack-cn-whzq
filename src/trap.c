@@ -1347,7 +1347,7 @@ trapeffect_rocktrap(
             place_object(otmp, u.ux, u.uy);
 
             pline("%s上的陷阱门打开了, 一%s%s落到了你的%s上!",
-                  the(ceiling(u.ux, u.uy)), classifier(otmp), xname(otmp), body_part(HEAD));
+                  the(ceiling(u.ux, u.uy)), obj_classifier(otmp), xname(otmp), body_part(HEAD));
             if (uarmh) {
                 /* normally passes_rocks() would protect against a falling
                    rock, but not when wearing a helmet */
@@ -3322,7 +3322,7 @@ launch_obj(
     case ROLL | LAUNCH_UNSEEN:
         if (otyp == BOULDER) {
             if (cansee(x1, y1)) {
-                You_see("%s%s在滚动.", classifier(singleobj), xname(singleobj));
+                You_see("%s%s在滚动.", obj_classifier(singleobj), xname(singleobj));
             } else if (Hallucination) {
                 Soundeffect(se_someone_bowling, 60);
                 You_hear("有人在打保龄球.");
