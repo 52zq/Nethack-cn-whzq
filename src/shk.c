@@ -1225,8 +1225,11 @@ obfree(struct obj *obj, struct obj *merge)
             if (onbill(obj, shkp, TRUE))
                 break;
     }
-    /* sanity check, in case obj is on bill but not marked 'unpaid' */
-    if (!shkp)
+    /* sanity check, in case obj is on bill but not marked 'unpaid';
+       while a level is being restored the shops have not been initialized
+       yet, so u.ushops still refers to the level being left and no bill
+       can be settled during that phase anyway */
+    if (!shkp && level_status.shkready) //危险:我看不懂. DeepSeek帮我加的.
         shkp = shop_keeper(*u.ushops);
     /*
      * Note:  `shkp = shop_keeper(*u.ushops)' used to be

@@ -3070,7 +3070,7 @@ trapnote(struct trap *trap, boolean noprefix)
         "E音",  "F音", "升F音", "G音",
         "升G音", "A音", "降B音",  "B音",
     };
-    static char tnbuf[12]; /* result buffer */
+    static char tnbuf[32]; /* result buffer */
     const char *tn;
 
     tnbuf[0] = '\0';

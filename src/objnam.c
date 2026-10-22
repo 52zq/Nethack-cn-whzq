@@ -5405,8 +5405,8 @@ wizterrainwish(struct _readobjnam_data *d)
         if ((t = maketrap(x, y, trap)) != 0) {
             trap = t->ttyp;
             tname = trapname(trap, TRUE);
-            pline("%s%s.", An(tname),
-                  (trap != MAGIC_PORTAL) ? "" : "通往虚无");
+            pline("一个%s%s.", (trap != MAGIC_PORTAL) ? "" : "通往虚无的",
+                  tname);
         } else {
             pline("生成%s失败.", an(tname));
         }
