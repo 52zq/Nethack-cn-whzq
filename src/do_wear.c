@@ -2735,7 +2735,7 @@ select_off(struct obj *otmp)
             return 0;
         } else if (Glib) {
             pline("%s%s%s太滑了, 脱不下来.",
-                  uarmg->unpaid ? "这" : "你的", uarmg->unpaid ? classifier(uarmg) : "", /* simplified Shk_Your() */
+                  uarmg->unpaid ? "这" : "你的", uarmg->unpaid ? obj_classifier(uarmg) : "", /* simplified Shk_Your() */
                   gloves_simple_name(uarmg));
             return 0;
         }

@@ -231,7 +231,7 @@ forcelock(void)
             /* for a +0 weapon, probability that it survives an unsuccessful
              * attempt to force the lock is (.992)^50 = .67
              */
-            pline("你的%s%s%s坏了!", (uwep->quan > 1L) ? "其中一" : "", (uwep->quan > 1L) ? classifier(uwep) : "",
+            pline("你的%s%s%s坏了!", (uwep->quan > 1L) ? "其中一" : "", (uwep->quan > 1L) ? obj_classifier(uwep) : "",
                   xname(uwep));
             useup(uwep);
             You("放弃了尝试强行开锁.");
@@ -845,7 +845,7 @@ doopen_indir(coordxy x, coordxy y)
         else if (portcullis || door->typ == DRAWBRIDGE_DOWN)
             pline_The("吊桥已经打开了.");
         else if (container_at(cc.x, cc.y, TRUE))
-            pline("%s那里有东西可可以搜刮.",
+            pline("%s那里有东西可以搜刮.",
                   Blind ? "你感觉" : "好像");
         else
             You("%s那里没有门.", Blind ? "感受到" : "看到");
@@ -1314,7 +1314,7 @@ chest_shatter_msg(struct obj *otmp)
         disposition = "被摧毁了";
         break;
     }
-    pline("一%s%s%s!", classifier(otmp), thing, disposition);
+    pline("一%s%s%s!", obj_classifier(otmp), thing, disposition);
 }
 
 /*lock.c*/

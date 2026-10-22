@@ -2040,9 +2040,9 @@ getobj(
             coins = (otmp->oclass == COIN_CLASS);
             if (cnt > 1L && (!coins || cnt > otmp->quan)) {
                 if (cnt > otmp->quan)
-                    You("只有%ld%s%s%s%s.", otmp->quan, classifier(otmp),
+                    You("只有%ld%s%s%s%s.", otmp->quan, obj_classifier(otmp),
                         (!coins && otmp->quan > 1L) ? ", 而且" : "",
-                        (!coins && otmp->quan > 1L) ? only_one : "", (!coins && otmp->quan > 1L) ? classifier(otmp) : "");
+                        (!coins && otmp->quan > 1L) ? only_one : "", (!coins && otmp->quan > 1L) ? obj_classifier(otmp) : "");
                 else
                     You("%s个.", only_one);
                 continue;
@@ -2063,7 +2063,7 @@ getobj(
                 return (struct obj *) 0;
             continue;
         } else if (cnt < 0L || otmp->quan < cnt) {
-            You("没有那么多! 你只有%ld%s.", otmp->quan, classifier(otmp));
+            You("没有那么多! 你只有%ld%s.", otmp->quan, obj_classifier(otmp));
             if (gi.in_doagain)
                 return (struct obj *) 0;
             continue;
@@ -2119,7 +2119,7 @@ silly_thing(const char *word,
     }
     if (s1)
         pline("使用'%s'键以%s%s%s%s.", s1, s2,
-              !(is_plural(otmp)) ? "那" : "那些", !(is_plural(otmp)) ? classifier(otmp) : "", s3); //危险:原来有pair_of的
+              !(is_plural(otmp)) ? "那" : "那些", !(is_plural(otmp)) ? obj_classifier(otmp) : "", s3); //危险:原来有pair_of的
     else
 #endif
     /* see comment about Amulet of Yendor in objtyp_is_callable(do_name.c);
@@ -2928,7 +2928,7 @@ prinv(const char *prefix, struct obj *obj, long quan)
     totalbuf[0] = '\0';
     if (total_of)
         Snprintf(totalbuf, sizeof totalbuf,
-                 " (共%ld%s).", obj->quan, classifier(obj));
+                 " (共%ld%s).", obj->quan, obj_classifier(obj));
     pline("%s%s%s%s", prefix, *prefix ? " " : "",
           xprname(obj, (char *) 0, obj_to_let(obj), !total_of, 0L, quan),
           flags.verbose ? totalbuf : "");

@@ -2046,7 +2046,7 @@ trapeffect_hole(
                     seetrap(trap);
                     if (tt == TRAPDOOR)
                         pline_mon(mtmp,
-                            "一个陷阱门打开了, 但是%s没有没有掉进去.",
+                            "一个陷阱门打开了, 但是%s没有掉进去.",
                               mon_nam(mtmp));
                     else /* (tt == HOLE) */
                         pline_mon(mtmp,
@@ -3322,7 +3322,7 @@ launch_obj(
     case ROLL | LAUNCH_UNSEEN:
         if (otyp == BOULDER) {
             if (cansee(x1, y1)) {
-                You_see("%s%s在滚动.", obj_classifier(singleobj), xname(singleobj));
+                You_see("一%s%s在滚动.", obj_classifier(singleobj), xname(singleobj));
             } else if (Hallucination) {
                 Soundeffect(se_someone_bowling, 60);
                 You_hear("有人在打保龄球.");
@@ -3964,7 +3964,7 @@ float_up(void)
                 body_part(LEG),
                 IS_ROOM(levl[cc.x][cc.y].typ) ? "地板" : "地面");
         } else if (u.utraptype == WEB) {
-            You("微微上浮, 但仍仍然卡在%s中.",
+            You("微微上浮, 但仍然卡在%s中.",
                 trapname(WEB, FALSE));
         } else { /* bear trap */
             You("微微上浮, 但你的%s仍然卡在里面.",

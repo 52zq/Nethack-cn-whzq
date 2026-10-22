@@ -2289,6 +2289,7 @@ extern char *corpse_xname(struct obj *, const char *, unsigned) NONNULLARG1;
 extern char *cxname(struct obj *) NONNULLARG1;
 extern char *cxname_singular(struct obj *) NONNULLARG1;
 extern char *killer_xname(struct obj *) NONNULLARG1;
+extern const char *obj_classifier(struct obj *) NONNULLARG1;
 extern char *short_oname(struct obj *, char *(*)(struct obj *),
                          char *(*)(struct obj *), unsigned) NONNULLARG12;
 extern const char *singular(struct obj *, char *(*)(struct obj *)) NONNULLPTRS;

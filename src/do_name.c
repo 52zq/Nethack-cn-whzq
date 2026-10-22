@@ -416,8 +416,8 @@ oname(
                                bare_artifactname(obj));
             else
                 livelog_printf(LL_ARTIFACT,
-                               "将一%s%s命名成了\"%s\"",
-                               ansimpleoname(obj), obj_classifier(obj), bare_artifactname(obj));
+                               "将%s命名成了\"%s\"",
+                               ansimpleoname(obj), bare_artifactname(obj));
         }
     }
     if (carried(obj) && !skip_inv_update)
@@ -743,10 +743,10 @@ namefloorobj(void)
               unames[rn2_on_display_rng(SIZE(unames))]);
     } else if (call_ok(obj) == GETOBJ_EXCLUDE) {
         pline("%s%s%s不能被指定类型名字.",
-              use_plural ? "那些" : "那", use_plural ? "" : classifier(obj), buf);
+              use_plural ? "那些" : "那", use_plural ? "" : obj_classifier(obj), buf);
     } else if (!obj->dknown) {
         You("对%s%s%s了解不多, 所以不能命名%s.",
-            use_plural ? "那些" : "那", use_plural ? "" : classifier(obj), buf, use_plural ? "它们" : "它");
+            use_plural ? "那些" : "那", use_plural ? "" : obj_classifier(obj), buf, use_plural ? "它们" : "它");
     } else {
         docall(obj);
     }

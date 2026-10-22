@@ -419,7 +419,7 @@ void port_insert_pastebuf(char *buf)
         /* put it on the clipboard */
         hresult = SetClipboardData(CF_UNICODETEXT, hglbCopy);
         if (!hresult) {
-            raw_printf("复制到剪切板时时发生错误.\n");
+            raw_printf("复制到剪切板时发生错误.\n");
             GlobalFree(
                 hglbCopy); /* only needed if clipboard didn't accept data */
         }

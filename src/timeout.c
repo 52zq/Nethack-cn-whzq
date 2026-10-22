@@ -1618,7 +1618,7 @@ burn_object(anything *arg, long timeout)
                           You see a wax candle consumed!
                          */
                         You_see("一%s%s燃尽了!", //冗余:many ? "" : "",
-                                many ? "些" : classifier(obj), xname(obj));
+                                many ? "些" : obj_classifier(obj), xname(obj));
                         need_newsym = TRUE;
                         break;
                     }
