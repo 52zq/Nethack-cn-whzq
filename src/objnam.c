@@ -5531,7 +5531,7 @@ wizterrainwish(struct _readobjnam_data *d)
             al = A_NEUTRAL;
         else if (!strncmpi(bp, "lawful ", 7) || !strncmpi(bp, "秩序", strlen("秩序")) || !strncmpi(bp, "秩序", strlen("守序")))
             al = A_LAWFUL;
-        else if (!strncmpi(bp, "unaligned ", 10) !strncmpi(bp, "无阵营", strlen("无阵营")))
+        else if (!strncmpi(bp, "unaligned ", 10) || !strncmpi(bp, "无阵营", strlen("无阵营")))
             al = A_NONE;
         else /* -1 - A_CHAOTIC, 0 - A_NEUTRAL, 1 - A_LAWFUL */
             al = !rn2(6) ? A_NONE : (rn2((int) A_LAWFUL + 2) - 1);
