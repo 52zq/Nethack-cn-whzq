@@ -4534,7 +4534,7 @@ there_cmd_menu_self(winid win, coordxy x, coordxy y, int *act UNUSED)
                          "尝试接触陷阱"), ++K;
     }
     if (Jumping) {
-        mcmd_addmenu(win, MCMD_JUMP, "Jump"), ++K;
+        mcmd_addmenu(win, MCMD_JUMP, "跳跃"), ++K;
     }
     return K;
 }
