@@ -1,4 +1,4 @@
-/* NetHack 5.0	windows.c	$NHDT-Date: 1737345149 2025/01/19 19:52:29 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.138 $ */
+/* NetHack 5.0	windows.c	$NHDT-Date: 1781973074 2026/06/20 16:31:14 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.147 $ */
 /* Copyright (c) D. Cohrs, 1993. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -20,9 +20,10 @@ extern void win_X11_init(int);
 extern struct window_procs Qt_procs;
 #endif
 #ifdef GEM_GRAPHICS
-/*#include "wingem.h"*/
+extern struct window_procs Gem_procs;
+extern void win_Gem_init(int);
 #endif
-#ifdef MACOS9
+#ifdef MAC68K
 extern struct window_procs mac_procs;
 #endif
 #ifdef BEOS_GRAPHICS
@@ -111,7 +112,7 @@ static struct win_choices {
 #ifdef GEM_GRAPHICS
     { &Gem_procs, win_Gem_init CHAINR(0) },
 #endif
-#ifdef MACOS9
+#ifdef MAC68K
     { &mac_procs, 0 CHAINR(0) },
 #endif
 #ifdef BEOS_GRAPHICS
@@ -543,7 +544,7 @@ staticfn void hup_cliparound(int, int);
 #endif
 #ifdef CHANGE_COLOR
 staticfn void hup_change_color(int, long, int);
-#ifdef MACOS9
+#ifdef MAC68K
 staticfn short hup_set_font_name(winid, char *);
 #endif
 staticfn char *hup_get_color_string(void);
@@ -592,7 +593,7 @@ static struct window_procs hup_procs = {
     hup_void_ndecl,                                   /* nh_delay_output  */
 #ifdef CHANGE_COLOR
     hup_change_color,
-#ifdef MACOS9
+#ifdef MAC68K
     hup_void_fdecl_int,                               /* change_background */
     hup_set_font_name,
 #endif
@@ -795,14 +796,14 @@ hup_change_color(int color UNUSED, long rgb UNUSED, int reverse UNUSED)
     return;
 }
 
-#ifdef MACOS9
+#ifdef MAC68K
 /*ARGSUSED*/
 staticfn short
 hup_set_font_name(winid window UNUSED, char *fontname UNUSED)
 {
     return 0;
 }
-#endif /* MACOS9 */
+#endif /* MAC68K */
 
 staticfn char *
 hup_get_color_string(void)
@@ -1186,7 +1187,7 @@ dump_fmtstr(
                 else
                     Strcpy(tmpbuf, "{current date+time}");
                 break;
-            case 'v': /* version, eg. "5.0.0,-0" */
+            case 'v': /* version, eg. "5.0.1,-0" */
                 Sprintf(tmpbuf, "%s", version_string(verbuf, sizeof verbuf));
                 break;
             case 'u': /* UID */

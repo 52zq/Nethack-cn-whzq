@@ -1,4 +1,4 @@
-/* NetHack 5.0	cfgfiles.c	$NHDT-Date: 1740532826 2025/02/25 17:20:26 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.417 $ */
+/* NetHack 5.0	cfgfiles.c	$NHDT-Date: 1781973042 2026/06/20 16:30:42 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.23 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -9,7 +9,7 @@
 #include "dlb.h"
 #include <errno.h>
 
-#if (!defined(MACOS9) && !defined(O_WRONLY) && !defined(AZTEC_C)) \
+#if (!defined(MAC68K) && !defined(O_WRONLY) && !defined(AZTEC_C)) \
     || defined(USE_FCNTL)
 #include <fcntl.h>
 #endif
@@ -74,6 +74,7 @@ staticfn boolean cnf_line_CHECK_PLNAME(char *);
 staticfn boolean cnf_line_SEDUCE(char *);
 staticfn boolean cnf_line_HIDEUSAGE(char *);
 staticfn boolean cnf_line_MAXPLAYERS(char *);
+staticfn boolean cnf_line_MAX_REROLL_RATE(char *);
 staticfn boolean cnf_line_PERSMAX(char *);
 staticfn boolean cnf_line_PERS_IS_UID(char *);
 staticfn boolean cnf_line_ENTRYMAX(char *);
@@ -130,7 +131,7 @@ static const char *default_configfile =
 #ifdef UNIX
     ".nethackrc";
 #else
-#if defined(MACOS9) || defined(__BEOS__)
+#if defined(MAC68K) || defined(__BEOS__)
     "NetHack Defaults";
 #else
 #if defined(MSDOS) || defined(WIN32)
@@ -175,19 +176,19 @@ do_write_config_file(void)
     char tmp[BUFSZ];
 
     if (!configfile[0]) {
-        pline("奇怪，无法确定配置文件名。");
+        pline("奇怪, 无法确定配置文件名.");
         return ECMD_OK;
     }
     if (flags.suppress_alert < FEATURE_NOTICE_VER(3,7,0)) {
-        pline("警告: saveoptions 是高度实验性的!");
+        pline("警告: saveoptions是高度实验性的!");
         wait_synch();
-        pline("某些设置未保存！");
+        pline("某些设置未保存!");
         wait_synch();
-        pline("All manual customization and comments are removed"
-              " from the file!");
+        pline("文件中所有手动自定义内容已"
+              "删除!");
         wait_synch();
     }
-#define overwrite_prompt "Overwrite config file %.*s?"
+#define overwrite_prompt "确定要覆盖配置文件%.*s?"
     Sprintf(tmp, overwrite_prompt,
             (int) (BUFSZ - sizeof overwrite_prompt - 2), configfile);
 #undef overwrite_prompt
@@ -206,7 +207,7 @@ do_write_config_file(void)
         fclose(fp);
         strbuf_empty(&buf);
         if (wrote != len)
-            pline("发生错误，仅写入部分数据（%zu/%zu）。",
+            pline("发生错误, 仅写入部分数据(%zu/%zu).",
                   wrote, len);
     }
     return ECMD_OK;
@@ -279,7 +280,7 @@ fopen_config_file(const char *filename, int src)
     }
     /* fall through to standard names */
 
-#if defined(MICRO) || defined(MACOS9) || defined(__BEOS__) || defined(WIN32)
+#if defined(MICRO) || defined(MAC68K) || defined(__BEOS__) || defined(WIN32)
     set_configfile_name(fqname(default_configfile, CONFIGPREFIX, 0));
     if ((fp = fopen(configfile, "r")) != (FILE *) 0) {
         return fp;
@@ -370,7 +371,7 @@ fopen_config_file(const char *filename, int src)
         wait_synch();
     }
 #endif /* !VMS => Unix */
-#endif /* !(MICRO || MACOS9 || __BEOS__ || WIN32) */
+#endif /* !(MICRO || MAC68K || __BEOS__ || WIN32) */
     return (FILE *) 0;
 }
 
@@ -969,6 +970,19 @@ cnf_line_MAXPLAYERS(char *bufp)
 }
 
 staticfn boolean
+cnf_line_MAX_REROLL_RATE(char *bufp)
+{
+    int n = atoi(bufp);
+
+    if (n < 0 || n > 255) {
+        config_error_add("Illegal value in MAX_REROLL_RATE (maximum is 255)");
+        n = 10;
+    }
+    sysopt.maxrerollrate = n;
+    return TRUE;
+}
+
+staticfn boolean
 cnf_line_PERSMAX(char *bufp)
 {
     int n = atoi(bufp);
@@ -1349,6 +1363,7 @@ static const struct match_config_line_stmt {
     CNFL_S(SEDUCE, 6),
     CNFL_S(HIDEUSAGE, 9),
     CNFL_S(MAXPLAYERS, 10),
+    CNFL_S(MAX_REROLL_RATE, 10),
     CNFL_S(PERSMAX, 7),
     CNFL_S(PERS_IS_UID, 11),
     CNFL_S(ENTRYMAX, 8),
@@ -1852,6 +1867,22 @@ parse_conf_file(FILE *fp, boolean (*proc)(char *arg))
     free_config_sections();
 
     while (fgets(parser.inbuf, parser.inbufsz, fp)) {
+#ifdef MAC68K
+        /* Classic Mac text files use CR line endings; fgets() only
+           stops at LF, so a CR-only file is read as one long line.
+           Convert the first bare CR to LF so parse_conf_buf sees it
+           as a line ending, then seek back so the rest is re-read. */
+        if (!strchr(parser.inbuf, '\n')) {
+            char *cr = strchr(parser.inbuf, '\r');
+            if (cr) {
+                long remaining = (long) strlen(cr + 1);
+                *cr = '\n';
+                *(cr + 1) = '\0';
+                if (remaining > 0)
+                    fseek(fp, -remaining, SEEK_CUR);
+            }
+        }
+#endif
         parse_conf_buf(&parser, proc);
         if (parser.pbreak)
             break;
@@ -1992,7 +2023,7 @@ disregard_this_config_statement(int statement_idx)
 }
 
 void
-clear_ignore_errors_on_unmatched(void)
+clear_ignore_errors_on_unmatch(void)
 {
     ignore_errors_on_unmatched = FALSE;
 }
@@ -2023,7 +2054,7 @@ rcfile_interface_options(void)
     heed_all_options();
     disregard_this_option(opt_windowtype);
     disregard_this_option(opt_soundlib);
-    clear_ignore_errors_on_unmatched();
+    clear_ignore_errors_on_unmatch();
     ignore_statement_errors = FALSE;
 }
 
@@ -2039,7 +2070,7 @@ rcfile_only_this_option(enum opt heeded_option)
     rcfile();
     heed_all_config_statements();
     heed_all_options();
-    clear_ignore_errors_on_unmatched();
+    clear_ignore_errors_on_unmatch();
     ignore_statement_errors = FALSE;
 }
 
@@ -2055,7 +2086,7 @@ rcfile_only_this_statement(int statementid)
     rcfile();
     heed_all_config_statements();
     heed_all_options();
-    clear_ignore_errors_on_unmatched();
+    clear_ignore_errors_on_unmatch();
     ignore_statement_errors = FALSE;
 }
 
@@ -2089,7 +2120,7 @@ portable_sysconf_only_this_statement(int statementid)
             config_error_done();
             heed_all_config_statements();
             heed_all_options();
-            clear_ignore_errors_on_unmatched();
+            clear_ignore_errors_on_unmatch();
             ignore_statement_errors = FALSE;
             if (sysopt.portable_device_paths) {
                 Snprintf(portable_device_path, sizeof portable_device_path,
@@ -2159,7 +2190,7 @@ rcfile_only_some_mswin_options(void)
     rcfile();
     heed_all_config_statements();
     heed_all_options();
-    clear_ignore_errors_on_unmatched();
+    clear_ignore_errors_on_unmatch();
     ignore_statement_errors = FALSE;
 }
 #endif /* MSWIN_GRAPHICS */

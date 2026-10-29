@@ -1,4 +1,4 @@
-/* NetHack 5.0  uhitm.c $NHDT-Date: 1752823766 2025/07/17 23:29:26 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.477 $ */
+/* NetHack 5.0	uhitm.c	$NHDT-Date: 1781973071 2026/06/20 16:31:11 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.503 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -106,7 +106,7 @@ dynamic_multi_reason(struct monst *mon, const char *verb, boolean by_gaze)
     /* combination of noname_monnam() and m_monnam(), more or less;
        accurate regardless of visibility or hallucination (only seen
        if game ends) and without personal name (M2_PNAME excepted) */
-    char *who = x_monnam(mon, ARTICLE_A, (char *) 0,
+    char *who = x_monnam(mon, ARTICLE_NONE, (char *) 0,
                          (SUPPRESS_IT | SUPPRESS_INVISIBLE
                           | SUPPRESS_HALLUCINATION | SUPPRESS_SADDLE
                           | SUPPRESS_NAME),
@@ -289,7 +289,7 @@ attack_checks(
             else if (Blind || (is_pool(mtmp->mx, mtmp->my) && !Underwater))
                 pline("等等! 那里有一个隐藏的怪物!");
             else if ((obj = svl.level.objects[mtmp->mx][mtmp->my]) != 0)
-                pline("等等! 有%s藏在%s底下!",
+                pline("等等! 有%s%s%s藏在%s底下!", notseen ? "" : "一", notseen ? "" : mon_classifier(mtmp),
                       notseen ? something : (const char *) an(lmonbuf),
                       doname(obj));
             return TRUE;
@@ -1002,7 +1002,7 @@ hmon_hitmon_weapon_melee(
                monster detection will name mon but not its weapon */
             Sprintf(buf, "%s的武器%s%s", s_suffix(Monnam(mon)),
                     plur(monwep->quan), otense(monwep, from_your_blow));
-        /*冗余:buf[sizeof buf - sizeof from_your_blow] = '\0';/ /*Francium-223:写的什么傻逼代码？？？*/
+        /*冗余:buf[sizeof buf - sizeof from_your_blow] = '\0';/ Francium-223:写的什么傻逼代码？？？*/
         pline("%s", buf); /*修改语序:pline("%s%s", buf, from_your_blow);*/
         m_useupall(mon, monwep);
         /* If someone just shattered MY weapon, I'd flee! */ /*你还知道要跑呢(ˉ▽ˉ；)...*/
@@ -1278,10 +1278,10 @@ hmon_hitmon_misc_obj(
                           mon_nam(mon)); /*修改语序:  mon->mcansee ? "" : "进一步");*/
             } else {
                 char *whom = mon_nam(mon);
-                char *what = The(xname(obj));
+                const char *what = The(xname(obj));
 
                 if (!hmd->thrown && obj->quan > 1L)
-                    what = An(singular(obj, xname));
+                    what = singular(obj, xname);//冗余:An(singular(obj, xname));
                 /* note: s_suffix returns a modifiable buffer */
                 if (haseyes(hmd->mdat)
                     && hmd->mdat != &mons[PM_FLOATING_EYE])
@@ -3067,7 +3067,7 @@ mhitm_ad_curs(
                 were_change(mdef);
             if (pd == &mons[PM_CLAY_GOLEM]) {
                 if (gv.vis && canseemon(mdef)) {
-                    pline("%s被消灭了!",
+                    pline("%s头上的文字消失了!",
                           s_suffix(mon_nam(mdef)));
                     pline_mon(mdef, "%s被摧毁了!", Monnam(mdef));
                 }
@@ -3394,9 +3394,9 @@ mhitm_ad_wrap(
                                    && !Is_waterlevel(&u.uz);
 
                     urgent_pline("%s把你淹死了...", Monnam(magr));
-                    svk.killer.format = KILLED_BY_AN;
-                    Sprintf(svk.killer.name, "%s淹死于%s中",
-                            an(pmname(magr->data, Mgender(magr))), /*修改语序:moat ? "moat" : "pool of water",*/
+                    svk.killer.format = NO_KILLER_PREFIX;
+                    Sprintf(svk.killer.name, "被%s淹死于%s中",
+                            an_pmname(magr->data, Mgender(magr)), /*修改语序:moat ? "moat" : "pool of water",*/
                             moat ? "护城河" : "水池"); /*修改语序:an(pmname(magr->data, Mgender(magr))));*/
                     done(DROWNING);
                 } else if (mattk->aatyp == AT_HUGS) {
@@ -5021,7 +5021,7 @@ gulpum(struct monst *mdef, struct attack *mattk)
             const char *mnam = pmname(pd, Mgender(mdef));
 
             if (!type_is_pname(pd))
-                mnam = an(mnam);
+                mnam = an_pmname(pd, Mgender(mdef));
             You("%s了%s.", u_digest ? "吞下" : "围住", mon_nam(mdef));
             Sprintf(kbuf, "%s%s%s",
                     u_digest ? "吞下"

@@ -1,4 +1,4 @@
-/* NetHack 5.0	o_init.c	$NHDT-Date: 1771216675 2026/02/15 20:37:55 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.101 $ */
+/* NetHack 5.0	o_init.c	$NHDT-Date: 1781973060 2026/06/20 16:31:00 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.106 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -1066,7 +1066,7 @@ doclassdisco(void)
            but requires at least one artifact discovery for other styles
            [could fix that by forcing the 'a' choice into the pick-class
            menu when running in wizard mode] */
-        if (wizard && y_n("Dump information about all artifacts?") == 'y') {
+        if (wizard && y_n("导出所有神器的信息?") == 'y') {
             dump_artifact_info(tmpwin);
             ct = NROFARTIFACTS; /* non-zero vs zero is what matters below */
             break;
@@ -1081,10 +1081,10 @@ doclassdisco(void)
         /* this should never happen but has been observed via the fuzzer */
         if (oclass == MAXOCLASSES)
             impossible("doclassdisco: invalid object class '%s'", visctrl(c));
-        Sprintf(buf, "Discovered %s in %s", let_to_name(oclass, FALSE, FALSE),
-                (flags.discosort == 'o') ? "order of discovery"
-                : (flags.discosort == 's') ? "'sortloot' order"
-                  : "alphabetical order");
+        Sprintf(buf, "已发现的%s, 按%s", let_to_name(oclass, FALSE, FALSE),
+                (flags.discosort == 'o') ? "发现顺序"
+                : (flags.discosort == 's') ? "'战利品'顺序"
+                  : "字母顺序");
         putstr(tmpwin, 0, buf); /* skip iflags.menu_headings */
         sorted_ct = 0;
         for (i = svb.bases[(int) oclass]; i <= svb.bases[oclass + 1] - 1;
@@ -1180,7 +1180,7 @@ rename_disco(void)
     if (ct == 0) {
         You("目前还没有发现任何物品...");
     } else if (mn == 0) {
-        pline("你的发现的物品没有一个能被指定名字...");
+        pline("你发现的物品没有一个能被指定名字...");
     } else {
         end_menu(tmpwin, "选择一个物品来命名");
         dis = STRANGE_OBJECT;

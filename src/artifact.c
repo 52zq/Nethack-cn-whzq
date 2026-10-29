@@ -1,4 +1,4 @@
-/* NetHack 5.0	artifact.c	$NHDT-Date: 1715889721 2024/05/16 20:02:01 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.236 $ */
+/* NetHack 5.0	artifact.c	$NHDT-Date: 1781973041 2026/06/20 16:30:41 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.264 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -1904,7 +1904,7 @@ invoke_create_portal(struct obj *obj)
         any.a_int = i + 1;
         add_menu(tmpwin, &nul_glyphinfo, &any, 0, 0,
                  ATR_NONE, clr,
-                 svd.dungeons[i].dcname, MENU_ITEMFLAGS_NONE);
+                 svd.dcname[i], MENU_ITEMFLAGS_NONE);
         num_ok_dungeons++;
         last_ok_dungeon = i;
     }
@@ -2562,9 +2562,9 @@ retouch_object(
                    game's silver item without stating that it is silver
                    potentially leads to confusion about cause of death */
                 if (obj->oclass == RING_CLASS)
-                    what = "一个银戒指";
+                    what = "一枚银戒指";
                 else if (obj->oclass == WAND_CLASS)
-                    what = "一个银魔杖";
+                    what = "一根银魔杖";
                 /* for anything else, stick with killer_xname() */
             }
             /* damage is somewhat arbitrary; half the usual 1d20 physical

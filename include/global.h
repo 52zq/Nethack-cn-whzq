@@ -172,7 +172,15 @@ typedef uchar nhsym;
 #include "windconf.h"
 #endif
 
+#ifdef TOS
+#include "tosconf.h"
+#endif
+
 #include "warnings.h"
+
+#ifdef MAC68K
+#include "mac68kconf.h"
+#endif
 
 /* amiconf.h needs to be the last nested #include of config.h because
    'make depend' will turn it into a comment, hiding anything after it */
@@ -185,7 +193,7 @@ typedef uchar nhsym;
 #ifdef AMIGA
 #define PORT_ID "Amiga"
 #endif
-#ifdef MACOS9
+#ifdef MAC68K
 #define PORT_ID "Mac"
 #endif
 #ifdef __APPLE__

@@ -1,4 +1,4 @@
-/* NetHack 5.0	mplayer.c	$NHDT-Date: 1596498188 2020/08/03 23:43:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.30 $ */
+/* NetHack 5.0	mplayer.c	$NHDT-Date: 1781973057 2026/06/20 16:30:57 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.54 $ */
 /*      Copyright (c) Izchak Miller, 1992.                        */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -75,20 +75,20 @@ get_mplname(struct monst *mtmp, char *nam)
     const char *devnam;
 
     devnam = dev_name();
+    Strcpy(nam, rank_of((int) mtmp->m_lev, monsndx(mtmp->data),
+                        (boolean) mtmp->female)); //修改语序
     if (!devnam)
-        Strcpy(nam, fmlkind ? "Eve" : "Adam");
+        Strcat(nam, fmlkind ? "Eve" : "Adam");
     else if (fmlkind && !!strcmp(devnam, "Janet"))
-        Strcpy(nam, rn2(2) ? "Maud" : "Eve");
+        Strcat(nam, rn2(2) ? "Maud" : "Eve");
     else
-        Strcpy(nam, devnam);
+        Strcat(nam, devnam);
 
     if (fmlkind || !strcmp(nam, "Janet"))
         mtmp->female = 1;
     else
         mtmp->female = 0;
-    Strcat(nam, ",");
-    Strcat(nam, rank_of((int) mtmp->m_lev, monsndx(mtmp->data),
-                        (boolean) mtmp->female));
+    //Strcat(nam, ",");
 }
 
 staticfn void

@@ -1,4 +1,4 @@
-/* NetHack 5.0	mkobj.c	$NHDT-Date: 1764044196 2025/11/24 20:16:36 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.326 $ */
+/* NetHack 5.0	mkobj.c	$NHDT-Date: 1781973055 2026/06/20 16:30:55 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.335 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -740,13 +740,15 @@ bill_dummy_object(struct obj *otmp)
     return;
 }
 
-/* alteration types; must match COST_xxx macros in hack.h */
+/*冗余:英文量词
 static const char *const alteration_verbs[] = {
     "cancel", "drain", "uncharge", "unbless", "uncurse", "disenchant",
     "degrade", "dilute", "erase", "burn", "neutralize", "destroy", "splatter",
     "bite", "open", "break the lock on", "rust", "rot", "tarnish", "crack",
 };
+*/
 
+/* alteration types; must match COST_xxx macros in hack.h */
 static const char *const calteration_verbs[] = {
     "取消", "吸干", "消耗", "诅咒", "去诅咒", "祛魔",
     "降解", "稀释", "抹掉", "烧掉", "中和", "摧毁", "溅出",
@@ -763,7 +765,7 @@ costly_alteration(struct obj *obj, int alter_type)
     const char *those, *them;
     struct monst *shkp = 0;
 
-    if (alter_type < 0 || alter_type >= SIZE(alteration_verbs)) {
+    if (alter_type < 0 || alter_type >= SIZE(calteration_verbs)) {
         impossible("invalid alteration type (%d)", alter_type);
         alter_type = 0;
     }
@@ -1516,7 +1518,7 @@ shrink_glob(
             shrink = FALSE, gone = FALSE, updinv = FALSE;
     struct obj *contnr = (obj->where == OBJ_CONTAINED) ? obj->ocontainer : 0,
                *topcontnr = 0;
-    unsigned old_top_owt = 0;
+    unsigned old_top_owt = 0, old_owt = obj->owt;
 
     if (!obj->globby) {
         impossible("shrink_glob for non-glob [%d: %s]?",
@@ -1545,12 +1547,25 @@ shrink_glob(
             obj->owt = 0; /* not required; accurately reflects obj's state */
             shrinking_glob_gone(obj);
         } else {
-            /* shrank but not gone; reduce remaining weight */
+
+            /* shrank but not gone; reduce remaining weight
+               and food-content (if needed) */
             obj->owt -= (unsigned) delta;
             /* when contained, update container's weight (recursively if
                nested); won't be in a container carried by hero (since
                catching up for lost time never applies in that situation)
                but might be in one on floor or one carried by a monster */
+            if (old_owt && obj->oeaten) {
+                unsigned percent_reduction = 100 - ((obj->owt * 100) / old_owt),
+                         oeaten_reduction;
+
+                /* reduce remaining nutrition by same percentage */
+                oeaten_reduction = (percent_reduction * obj->oeaten + 50) / 100;
+
+                if (oeaten_reduction <= obj->oeaten)
+                    obj->oeaten -= oeaten_reduction;
+
+            }
             if (contnr)
                 container_weight(contnr);
             /* resume regular shrinking */
@@ -1679,6 +1694,8 @@ staticfn void
 shrinking_glob_gone(struct obj *obj)
 {
     xint16 owhere = obj->where;
+
+    /* obfree() should take care of eating_glob() food fixups */
 
     if (owhere == OBJ_INVENT) {
         if (obj->owornmask) {
@@ -2360,7 +2377,7 @@ place_object(struct obj *otmp, coordxy x, coordxy y)
     otmp->where = OBJ_FLOOR;
 
     /* if placed outside of shop, no_charge is no longer applicable */
-    if (otmp->no_charge && !costly_spot(x, y)
+    if (level_status.shkready && otmp->no_charge && !costly_spot(x, y)
         && !costly_adjacent(find_objowner(otmp, x, y), x, y))
         otmp->no_charge = 0;
 

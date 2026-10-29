@@ -1,4 +1,4 @@
-/* NetHack 5.0	priest.c	$NHDT-Date: 1764567778 2025/11/30 21:42:58 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.106 $ */
+/* NetHack 5.0	priest.c	$NHDT-Date: 1781973062 2026/06/20 16:31:02 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.110 $ */
 /* Copyright (c) Izchak Miller, Steve Linhart, 1989.              */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -307,9 +307,13 @@ priestname(
 {
     boolean do_hallu = Hallucination,
             aligned_priest = mon->data == &mons[PM_ALIGNED_CLERIC],
-            high_priest = mon->data == &mons[PM_HIGH_CLERIC];
-    char whatcode = '\0';
-    const char *what = do_hallu ? rndmonnam(&whatcode) : mon_pmname(mon);
+            high_priest = mon->data == &mons[PM_HIGH_CLERIC],
+            fake_hallu_name = FALSE;
+    char whatcode = '\0', hallu_quant[BUFSZ];
+    const char *what;
+
+    hallu_quant[0] = '\0';
+    what = do_hallu ? rndmonnam_cls(&whatcode, hallu_quant) : mon_pmname(mon);
 
     if (!mon->ispriest && !mon->isminion) /* should never happen...  */
         return strcpy(pname, what);       /* caller must be confused */
@@ -318,6 +322,8 @@ priestname(
        [this was done near the end but we want 'what' to be updated sooner] */
     if (mon->ispriest || aligned_priest || high_priest)
         what = do_hallu ? "大人物" : mon->female ? "祭司" : "祭司";
+    else if (do_hallu)
+        fake_hallu_name = TRUE;
 
     *pname = '\0';
     if (article != ARTICLE_NONE && (!do_hallu || !bogon_is_pname(whatcode))) {
@@ -329,6 +335,8 @@ priestname(
             /* bypass just_an(); it would yield "" due to treating capital A
                as indicating a personal name */
             Strcpy(pname, "");
+        } else if (fake_hallu_name) {
+            Sprintf(pname, "一%s", *hallu_quant ? hallu_quant : "个");
         } else {
             (void) just_an(pname, what);
         }
@@ -340,12 +348,6 @@ priestname(
             Strcpy(pname, "一个");*/
         Strcat(pname, "隐形的");
     }
-    if (mon->isminion && EMIN(mon)->renegade) {
-        /* avoid "an renegade Angel" */
-        /*冗余:if (!strcmp(pname, "an") && !mon->minvis)
-            Strcpy(pname, "一个");*/
-        Strcat(pname, "反叛的");
-    }
 
     /* same as distant_monnam(), more or less... */
     if (do_hallu || !high_priest || reveal_high_priest
@@ -353,6 +355,12 @@ priestname(
         || m_next2u(mon) || program_state.gameover) {
         Strcat(pname, halu_gname(mon_aligntyp(mon)));
         Strcat(pname, "的");
+    }
+    if (mon->isminion && EMIN(mon)->renegade) { //修改语序:原本应该放在前面
+        /* avoid "an renegade Angel" */
+        /*冗余:if (!strcmp(pname, "an") && !mon->minvis)
+            Strcpy(pname, "一个");*/
+        Strcat(pname, "叛逆");
     }
     if (mon->ispriest || aligned_priest) {
         if (high_priest)
@@ -502,7 +510,7 @@ intemple(int roomno)
 
         switch (rn2(4)) {
         case 0:
-            You("有一阵诡异感...");
+            You("感觉到有点诡异...");
             break;
         case 1:
             You_feel("好像你正被注视着.");

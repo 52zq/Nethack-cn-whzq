@@ -1,4 +1,4 @@
-/* NetHack 5.0	pager.c	$NHDT-Date: 1774846177 2026/03/29 20:49:37 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.296 $ */
+/* NetHack 5.0	pager.c	$NHDT-Date: 1781973061 2026/06/20 16:31:01 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.302 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -81,7 +81,7 @@ is_swallow_sym(int c)
 staticfn int
 append_str(char *buf, const char *new_str)
 {
-    static const char sep[] = " or ";
+    static const char sep[] = "或"; //很危险, 我也不知道为什么
     size_t oldlen, space_left;
 
     if (strstri(buf, new_str))
@@ -209,8 +209,11 @@ mhidden_description(
         if (M_AP_TYPE(mon) == M_AP_FURNITURE) {
             what = defsyms[mon->mappearance].explanation;
             if (incl_article)
-                what = an(what);
-            Strcat(outbuf, what); Strcat(outbuf, ")"); /*危险:删掉第二句*/
+                Sprintf(eos(outbuf), "一%s%s",
+                        terrain_classifier(mon->mappearance), what);
+            else
+                Strcat(outbuf, what);
+            Strcat(outbuf, ")");
         } else if (M_AP_TYPE(mon) == M_AP_OBJECT
                    /* remembered glyph, not glyph_at() which is 'mon' */
                    && glyph_is_object(glyph)) {
@@ -221,8 +224,10 @@ mhidden_description(
                    ? simpleonames(otmp)
                    : obj_descr[STRANGE_OBJECT].oc_name;
             if (incl_article && (!otmp || otmp->quan == 1L))
-                what = an(what);
-            Strcat(outbuf, what);
+                Sprintf(eos(outbuf), "一%s%s",
+                        otmp ? obj_classifier(otmp) : "个", what);
+            else
+                Strcat(outbuf, what);
 
             if (fakeobj && otmp) {
                 otmp->where = OBJ_FREE; /* object_from_map set to OBJ_FLOOR */
@@ -237,7 +242,7 @@ mhidden_description(
                 Strcat(outbuf, " (伪装成");
             what = pmname(&mons[mon->mappearance], Mgender(mon));
             if (incl_prefix)
-                what = an(what);
+                what = an_pmname(&mons[mon->mappearance], Mgender(mon)); //同上
             Strcat(outbuf, what); Strcat(outbuf, ")"); /*危险:删掉第二句*/
         }
     } else if (isyou ? u.uundetected : mon->mundetected) {
@@ -928,6 +933,8 @@ checkfile(
         dbase_str += 8;
     if (!strncmp(dbase_str, "被祝福的", strlen("被祝福的")))
         dbase_str += strlen("被祝福的");
+    if (!strncmp(dbase_str, "受祝福的", strlen("受祝福的")))
+        dbase_str += strlen("受祝福的");
     if (!strncmp(dbase_str, "uncursed ", 9))
         dbase_str += 9;
     if (!strncmp(dbase_str, "无祖咒的", strlen("无祖咒的")))
@@ -1001,6 +1008,114 @@ checkfile(
             alt = ep + strlen("的");
             if ((ap = strstri(dbase_str, "的")) != 0 && ap < ep)
                 ep = ap; /* "named" is alt but truncate at "called" */
+		} else if ((ep = strstri(dbase_str, "块")) != 0) { //见objnam.c
+            alt = ep + strlen("块");
+            if ((ap = strstri(dbase_str, "块")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "双")) != 0) {
+            alt = ep + strlen("双");
+            if ((ap = strstri(dbase_str, "双")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "柄")) != 0) {
+            alt = ep + strlen("柄");
+            if ((ap = strstri(dbase_str, "柄")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "片")) != 0) {
+            alt = ep + strlen("片");
+            if ((ap = strstri(dbase_str, "片")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "根")) != 0) {
+            alt = ep + strlen("根");
+            if ((ap = strstri(dbase_str, "根")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "把")) != 0) {
+            alt = ep + strlen("把");
+            if ((ap = strstri(dbase_str, "把")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "个")) != 0) {
+            alt = ep + strlen("个");
+            if ((ap = strstri(dbase_str, "个")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "件")) != 0) {
+            alt = ep + strlen("件");
+            if ((ap = strstri(dbase_str, "件")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "盏")) != 0) {
+            alt = ep + strlen("盏");
+            if ((ap = strstri(dbase_str, "盏")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "卷")) != 0) {
+            alt = ep + strlen("卷");
+            if ((ap = strstri(dbase_str, "卷")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "枝")) != 0) {
+            alt = ep + strlen("枝");
+            if ((ap = strstri(dbase_str, "枝")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "本")) != 0) {
+            alt = ep + strlen("本");
+            if ((ap = strstri(dbase_str, "本")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "面")) != 0) {
+            alt = ep + strlen("面");
+            if ((ap = strstri(dbase_str, "面")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "座")) != 0) {
+            alt = ep + strlen("座");
+            if ((ap = strstri(dbase_str, "座")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "枚")) != 0) {
+            alt = ep + strlen("枚");
+            if ((ap = strstri(dbase_str, "枚")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "只")) != 0) {
+            alt = ep + strlen("只");
+            if ((ap = strstri(dbase_str, "只")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "套")) != 0) {
+            alt = ep + strlen("套");
+            if ((ap = strstri(dbase_str, "套")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "副")) != 0) {
+            alt = ep + strlen("副");
+            if ((ap = strstri(dbase_str, "副")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "团")) != 0) {
+            alt = ep + strlen("团");
+            if ((ap = strstri(dbase_str, "团")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "份")) != 0) {
+            alt = ep + strlen("份");
+            if ((ap = strstri(dbase_str, "份")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "具")) != 0) {
+            alt = ep + strlen("具");
+            if ((ap = strstri(dbase_str, "具")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "支")) != 0) {
+            alt = ep + strlen("支");
+            if ((ap = strstri(dbase_str, "支")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "瓶")) != 0) {
+            alt = ep + strlen("瓶");
+            if ((ap = strstri(dbase_str, "瓶")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "瓣")) != 0) {
+            alt = ep + strlen("瓣");
+            if ((ap = strstri(dbase_str, "瓣")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "张")) != 0) {
+            alt = ep + strlen("张");
+            if ((ap = strstri(dbase_str, "张")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "顶")) != 0) {
+            alt = ep + strlen("顶");
+            if ((ap = strstri(dbase_str, "顶")) != 0 && ap < ep)
+                ep = ap;
+        } else if ((ep = strstri(dbase_str, "条")) != 0) {
+            alt = ep + strlen("条");
+            if ((ap = strstri(dbase_str, "条")) != 0 && ap < ep)
+                ep = ap;
         } else if ((ep = strstri(dbase_str, " called ")) != 0) {
             copynchars(givenname, ep + 8, BUFSZ - 1);
             alt = givenname;
@@ -1278,7 +1393,7 @@ add_cmap_descr(
             *hit_trap = TRUE;
         } else {
             Sprintf(out_str, "%s%s", prefix, (article == 2) ? x_str /*危险:Sprintf(out_str, "%s%s", prefix, (article == 2) ? the(x_str)*/
-                                             : (article == 1) ? one(x_str) /*危险:: (article == 1) ? an(x_str)*/
+                                             : (article == 1) ? x_str /*危险:: (article == 1) ? an(x_str)*/
                                                : x_str);
         }
         *firstmatch = x_str;
@@ -1292,7 +1407,7 @@ add_cmap_descr(
                        && glyph_to_trap(glyph) == VIBRATING_SQUARE))) {
         /* append unless out_str already contains the string to append */
         found += append_str(out_str, (article == 2) ? x_str /*危险:同上*/
-                                     : (article == 1) ? one(x_str) /*危险:同上*/
+                                     : (article == 1) ? x_str /*危险:同上*/
                                        : x_str);
         if (is_cmap_trap(idx) && idx != S_vibrating_square)
             *hit_trap = TRUE;
@@ -1392,11 +1507,11 @@ do_screen_description(
                 need_to_look = TRUE;
                 if (!found) {
                     Sprintf(out_str, "%s%s",
-                            prefix, an(def_monsyms[i].explain));
+                            prefix, def_monsyms[i].explain); //冗余:an(野蛮岛国语言什么东西都得加个冠词不加就难受,,,)
                     *firstmatch = def_monsyms[i].explain;
                     found++;
                 } else {
-                    found += append_str(out_str, an(def_monsyms[i].explain));
+                    found += append_str(out_str, def_monsyms[i].explain); //冗余:an
                 }
             }
         }
@@ -1446,7 +1561,7 @@ do_screen_description(
                     continue;
                 }
                 if (!found) {
-                    Sprintf(out_str, "%s%s", prefix, an(oc_ptr));
+                    Sprintf(out_str, "%s%s", prefix, oc_ptr);  //冗余:an
                     /* note: if the value assigned to *firstmatch ever
                        becomes dynamically constructed, it will need to be
                        copied into a static buffer; as of now, all alternate
@@ -1454,7 +1569,7 @@ do_screen_description(
                     *firstmatch = oc_ptr;
                     found++;
                 } else {
-                    found += append_str(out_str, an(oc_ptr));
+                    found += append_str(out_str, oc_ptr);  //冗余:an
                 }
             }
         }
@@ -1467,11 +1582,11 @@ do_screen_description(
                                                        : invisexplain;
 
         if (!found) {
-            Sprintf(out_str, "%s%s", prefix, an(unseen_explain));
+            Sprintf(out_str, "%s%s", prefix, unseen_explain); //冗余:an
             *firstmatch = unseen_explain;
             found++;
         } else {
-            found += append_str(out_str, an(unseen_explain));
+            found += append_str(out_str, unseen_explain); //冗余:an
         }
     }
     if ((glyph && glyph_is_nothing(glyph))
@@ -1588,11 +1703,11 @@ do_screen_description(
     if (skipped_venom && found < 2) {
         x_str = def_oc_syms[VENOM_CLASS].explain;
         if (!found) {
-            Sprintf(out_str, "%s%s", prefix, an(x_str));
+            Sprintf(out_str, "%s%s", prefix, x_str); //冗余:an
             *firstmatch = x_str;
             found++;
         } else {
-            found += append_str(out_str, an(x_str));
+            found += append_str(out_str, x_str);  //冗余:an
         }
     }
 
@@ -1660,7 +1775,7 @@ do_screen_description(
                 (void) ice_descr(cc.x, cc.y, look_buf);
             if (!strcmp(look_buf, "下行楼梯")
                 && on_level(&u.uz, &qstart_level) && !ok_to_quest())
-                Strcpy(look_buf, "堵塞的行楼梯");
+                Strcpy(look_buf, "堵塞的下行楼梯");
 
             if (look_buf[0] != '\0')
                 *firstmatch = look_buf;
@@ -2166,9 +2281,9 @@ look_traps(boolean nearby)
                 cmode = (iflags.getpos_coords != GPCOORDS_NONE)
                            ? iflags.getpos_coords : GPCOORDS_MAP;
                 if (count == 1) {
-                    Sprintf(outbuf, "%s看到或记得的陷阱%s:",
-                            nearby ? "附近" : "该层",
-                            nearby ? "" : "");
+                    Sprintf(outbuf, "%s看到或记得的陷阱:",
+                            nearby ? "附近" : "该层"
+                            /*冗余:nearby ? "" : ""*/);
                     putstr(win, 0, upstart(outbuf));
                     /* hack alert! Qt watches a text window for any line
                        with 4 consecutive spaces and renders the window
@@ -2438,7 +2553,7 @@ doidtrap(void)
                         : (tt == HOLE || tt == PIT)
                            ? "挖出的"
                            : "设置的",
-                  an(trapname(tt, FALSE))); /*修改语序:!trap->madeby_u ? "" : "由你");*/
+                  trapname(tt, FALSE)); /*修改语序:!trap->madeby_u ? "" : "由你");*/
             return ECMD_OK;
         }
     pline("那里看不到陷阱.");
@@ -2765,7 +2880,7 @@ dowhatdoes(void)
             pline("%8.8s%s", reslt, p + 1);
         }
     } else {
-        pline("没有这种命令'%s', char code %d (0%03o or 0x%02x).",
+        pline("没有'%s'这种命令, char code %d (0%03o or 0x%02x).",
               visctrl(q), (uchar) q, (uchar) q, (uchar) q);
     }
     return ECMD_OK;
@@ -2801,7 +2916,7 @@ docontact(void)
     putstr(cwin, 0, "(译者注: 中文版请访问");
     Sprintf(buf, "\"https://nethack-cn.github.io/\". )");
     putstr(cwin, 0, buf);
-    Sprintf(buf, "\"仓库: https://github.com/StackC00ki3/Nethack-cn\". )");
+    Sprintf(buf, "仓库: https://github.com/StackC00ki3/Nethack-cn. )");
     putstr(cwin, 0, buf);
     display_nhwindow(cwin, FALSE);
     destroy_nhwindow(cwin);
@@ -2898,7 +3013,7 @@ static const struct {
     { dispfile_help, "游戏及命令的详细说明." },
     { dispfile_shelp, "游戏命令列表." },
     { hmenu_dohistory, "NetHack的简要历史." },
-    { hmenu_dowhatis, "游戏中现实的某个特定符号的信息." },
+    { hmenu_dowhatis, "游戏中显示的某个特定符号的信息." },
     { hmenu_dowhatdoes, "某个特定按键的功能说明." },
     { option_help, "游戏选项列表." },
     { dispfile_optionfile, "游戏选项的详细说明." },
@@ -2910,7 +3025,7 @@ static const struct {
     { dispfile_license, "NetHack许可协议." },
     { docontact, "支持信息." },
 #ifdef PORT_HELP
-    { port_help, "%s特定的的帮助和命令." },
+    { port_help, "%s特定的帮助和命令." },
 #endif
     { dispfile_debughelp, "巫师模式命令列表." },
     { (void (*)(void)) 0, (char *) 0 }

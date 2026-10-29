@@ -1,4 +1,4 @@
-/* NetHack 5.0	fountain.c	$NHDT-Date: 1699582923 2023/11/10 02:22:03 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.100 $ */
+/* NetHack 5.0	fountain.c	$NHDT-Date: 1781973050 2026/06/20 16:30:50 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.121 $ */
 /*      Copyright Scott R. Turner, srt@ucla, 10/27/86 */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -301,7 +301,7 @@ drinkfountain(void)
             if (Poison_resistance) {
                 pline("也许它是从附近的%s农场流过来的.",
                       fruitname(FALSE));
-                losehp(rnd(4), "未冷藏的果汁", KILLED_BY_AN);
+                losehp(rnd(4), "未冷藏的果汁", KILLED_BY);
                 break;
             }
             poison_strdmg(rn1(4, 3), rnd(10), "污染的水",
@@ -496,7 +496,7 @@ dipfountain(struct obj *obj)
         pline("一种奇怪的刺痛感出现在你的%s上.", body_part(ARM));
         break;
     case 27: /* Strange feeling */
-        You_feel("突然的寒意.");
+        You_feel("到突然的寒意.");
         break;
     case 28: /* Strange feeling */
         pline("想要洗澡的冲动淹没了你.");
@@ -770,7 +770,7 @@ dipsink(struct obj *obj)
         break;
     case POT_OBJECT_DETECTION:
         if (!(levl[u.ux][u.uy].looted & S_LRING)) {
-            You("感受到一个戒指掉进了下水道.");
+            You("感受到一枚戒指掉进了下水道.");
             try_call = TRUE;
             break;
         }

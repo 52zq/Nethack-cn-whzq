@@ -1,4 +1,4 @@
-/* NetHack 5.0	topl.c	$NHDT-Date: 1717967339 2024/06/09 21:08:59 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.89 $ */
+/* NetHack 5.0	topl.c	$NHDT-Date: 1781973100 2026/06/20 16:31:40 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.94 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2009. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -16,8 +16,10 @@
 
 static void redotoplin(const char *);
 static void topl_putsym(char);
+#ifdef WIN32CON
 static void topl_putsymw(unsigned short c);
 static int is_utf8(const char *str);
+#endif
 static void removetopl(int);
 static void msghistory_snapshot(boolean);
 static void free_msghistory_snapshot(boolean);
@@ -222,7 +224,7 @@ more(void)
     ttyDisplay->inmore++;
 
     if (ttyDisplay->toplin) {
-        int morecols = (int) utf8str_width(defmorestr);
+        int morecols = utf8str_width(defmorestr);
 
         tty_curs(BASE_WINDOW, cw->curx + 1, cw->cury);
         if (cw->curx >= CO - morecols)
@@ -267,10 +269,9 @@ update_topl(const char *bp)
     /* If there is room on the line, print message on same line */
     /* But messages like "You die..." deserve their own line */
     n0 = strlen(bp);
-    if ((ttyDisplay->toplin == TOPLINE_NEED_MORE || skip)
-        && cw->cury == 0
-        && (int) utf8str_width(gt.toplines) + (int) utf8str_width(bp) + 3
-               < CO - (int) utf8str_width(defmorestr)
+    if ((ttyDisplay->toplin == TOPLINE_NEED_MORE || skip) && cw->cury == 0
+        && utf8str_width(gt.toplines) + utf8str_width(bp) + 3
+               < CO - utf8str_width(defmorestr)
         && (notdied = strncmp(bp, "You die", 7)) != 0) {
         Strcat(gt.toplines, "  ");
         Strcat(gt.toplines, bp);
@@ -377,6 +378,7 @@ topl_putsym(char c)
 #endif
 }
 
+#ifdef WIN32CON
 /* output a wide character (UTF-16-LE) to the topline message window */
 static void
 topl_putsymw(unsigned short c)
@@ -481,6 +483,7 @@ is_utf8(const char *str)
     }
     return 0;
 }
+#endif /* WIN32CON */
 
 void
 putsyms(const char *str)

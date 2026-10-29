@@ -1,4 +1,4 @@
-/* NetHack 5.0	do_wear.c	$NHDT-Date: 1737343372 2025/01/19 19:22:52 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.201 $ */
+/* NetHack 5.0	do_wear.c	$NHDT-Date: 1781973047 2026/06/20 16:30:47 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.212 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -93,8 +93,8 @@ on_msg(struct obj *otmp)
         how[0] = '\0';
         if (otmp->otyp == TOWEL)
             Sprintf(how, "围住了你的%s", body_part(HEAD));
-        You("%s%s%s.", /*修改语序:多一个%s*/
-            (otmp->otyp == TOWEL) ? "用" : "穿上了", obj_is_pname(otmp) ? the(otmp_name) : an(otmp_name), how); /*修改语序:obj_is_pname(otmp) ? the(otmp_name) : an(otmp_name), how);*/
+        You("%s%s%s%s%s.", /*修改语序:多一个%s*/
+            (otmp->otyp == TOWEL) ? "用" : "穿上了", obj_is_pname(otmp) ? "" : "一", obj_is_pname(otmp) ? "" : obj_classifier(otmp), otmp_name, how); /*修改语序:obj_is_pname(otmp) ? the(otmp_name) : an(otmp_name), how);*/
     }
 }
 
@@ -1793,7 +1793,7 @@ armor_or_accessory_off(struct obj *obj)
         } else {
             Strcpy(why, "; 它嵌在你身上");
         }
-        You_cant("脱那个%s.", why);
+        You_cant("脱下那%s%s.", obj_classifier(obj), why);
         return ECMD_OK;
     }
 
@@ -2070,7 +2070,7 @@ canwearobj(struct obj *otmp, long *mask, boolean noisy)
     if (is_helmet(otmp)) {
         if (uarmh) {
             if (noisy)
-                already_wearing(an(helm_simple_name(uarmh)));
+                already_wearing(helm_simple_name(uarmh));
             err++;
         } else if (Upolyd && has_horns(gy.youmonst.data) && !is_flimsy(otmp)) {
             /* (flimsy exception matches polyself handling) */
@@ -2084,7 +2084,7 @@ canwearobj(struct obj *otmp, long *mask, boolean noisy)
     } else if (is_shield(otmp)) {
         if (uarms) {
             if (noisy)
-                already_wearing(an(c_shield));
+                already_wearing(c_shield);
             err++;
         } else if (uwep && bimanual(uwep)) {
             if (noisy)
@@ -2095,7 +2095,7 @@ canwearobj(struct obj *otmp, long *mask, boolean noisy)
             err++;
         } else if (u.twoweap) {
             if (noisy)
-                You("没有脚...");
+                You("不能在使用双武器时佩戴盾牌.");
             err++;
         } else
             *mask = W_ARMS;
@@ -2158,7 +2158,7 @@ canwearobj(struct obj *otmp, long *mask, boolean noisy)
         if (uarm || uarmc || uarmu) {
             if (uarmu) {
                 if (noisy)
-                    already_wearing(an(c_shirt));
+                    already_wearing(c_shirt);
             } else {
                 if (noisy)
                     You_cant("把它穿在你的%s外面.",
@@ -2171,7 +2171,7 @@ canwearobj(struct obj *otmp, long *mask, boolean noisy)
     } else if (is_cloak(otmp)) {
         if (uarmc) {
             if (noisy)
-                already_wearing(an(cloak_simple_name(uarmc)));
+                already_wearing(cloak_simple_name(uarmc));
             err++;
         } else
             *mask = W_ARMC;
@@ -2256,7 +2256,7 @@ accessory_or_armor_on(struct obj *obj)
                 return ECMD_OK;
             }
             if (uleft && uright) {
-                There("没有多余的%s可以戴戒指.", /*危险:%s%s*/
+                You("没有多余的%s可以戴戒指.", /*危险:%s%s*/ //There
                       humanoid(gy.youmonst.data) ? "无名指" 
                       : fingers_or_gloves(FALSE)); /*修改语序:自己看*/
                 return ECMD_OK;
@@ -2267,7 +2267,7 @@ accessory_or_armor_on(struct obj *obj)
                 mask = LEFT_RING;
             } else {
                 do {
-                    Sprintf(qbuf, "戴在哪个%s上, 右边或左边?",
+                    Sprintf(qbuf, "戴在哪个%s上, 右边还是左边?",
                             humanoid(gy.youmonst.data) ? "无名指"
                             : body_part(FINGER)); /*修改语序:自己看*/
                     answer = yn_function(qbuf, rightleftchars, '\0', TRUE);
@@ -2328,7 +2328,7 @@ accessory_or_armor_on(struct obj *obj)
 
             if (ublindf) {
                 if (ublindf->otyp == TOWEL)
-                    Your("%s已经盖着一个毛巾了.",
+                    Your("%s已经盖着一根毛巾了.",
                          body_part(FACE));
                 else if (ublindf->otyp == BLINDFOLD) {
                     if (obj->otyp == LENSES)
@@ -2341,7 +2341,7 @@ accessory_or_armor_on(struct obj *obj)
                     else
                         already_wearing("眼镜");
                 } else {
-                    already_wearing(something); /* ??? */
+                    already_wearing("什么东西"); /* ??? */
                 }
                 return ECMD_OK;
             }
@@ -2613,9 +2613,9 @@ glibr(void)
             /* preceding msg was about non-dominant hand */
             which = URIGHTY ? "右" : "左";
         }
-        pline("%s%s%s%s%s从你的%s%s.", /*修改语序:pline("%s%s%s%s%s从你的%s%s.",*/
+        pline("%s%s%s%s%s%s从你的%s中%s.", /*修改语序:pline("%s%s%s%s%s从你的%s%s.",*/
               !strncmp(thiswep, "尸体", 6) ? "" : "你的",
-              otherwep ? "另一个" : "", thiswep, xfl ? "也" : "",
+              otherwep ? "另一" : "", otherwep ? obj_classifier(otmp) : "", thiswep, xfl ? "也" : "",
               which, hand, otense(otmp, "滑落")); /*修改语序:otense(otmp, "滑落"), which, hand);*/
         /* xfl++; */
         otmp->quan = savequan;
@@ -2729,13 +2729,13 @@ select_off(struct obj *otmp)
     /* special glove checks */
     if (otmp == uarmg) {
         if (welded(uwep)) {
-            You("不能在拿着那个%s时取下你的%s.",
-                is_sword(uwep) ? c_sword : c_weapon, c_gloves); /*修改语序:c_gloves, is_sword(uwep) ? c_sword : c_weapon);*/
+            You("不能在拿着那%s%s时取下你的%s.",
+                is_sword(uwep) ? "把" : "个", is_sword(uwep) ? c_sword : c_weapon, c_gloves); /*修改语序:c_gloves, is_sword(uwep) ? c_sword : c_weapon);*/
             set_bknown(uwep, 1);
             return 0;
         } else if (Glib) {
-            pline("%s%s太滑了, 脱不下来.",
-                  uarmg->unpaid ? "这个" : "你的", /* simplified Shk_Your() */
+            pline("%s%s%s太滑了, 脱不下来.",
+                  uarmg->unpaid ? "这" : "你的", uarmg->unpaid ? obj_classifier(uarmg) : "", /* simplified Shk_Your() */
                   gloves_simple_name(uarmg));
             return 0;
         }
@@ -3132,7 +3132,7 @@ menu_remarm(int retry)
             (void) select_off(pick_list[i].item.a_obj);
         free((genericptr_t) pick_list);
     } else if (n < 0 && flags.menu_style != MENU_COMBINATION) {
-        There("没有别的能脱下的东西.");
+        You("没有别的能脱下的东西."); //换pline:There
     }
     return 0;
 }

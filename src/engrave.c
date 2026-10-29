@@ -1,4 +1,4 @@
-﻿/* NetHack 5.0	engrave.c	$NHDT-Date: 1737345573 2025/01/19 19:59:33 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.165 $ */
+/* NetHack 5.0	engrave.c	$NHDT-Date: 1781973048 2026/06/20 16:30:48 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.179 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -18,6 +18,7 @@ struct _doengrave_ctx {
     boolean disprefresh; /* TRUE if the display needs a refresh */
     boolean frosted;  /* TRUE if engraving on ice */
     boolean adding;   /* TRUE if adding to existing engraving */
+    boolean hero_told_it_vanished;
 
     int ret;          /* doengrave return value */
     int type;         /* Type of engraving made */
@@ -136,10 +137,16 @@ wipeout_text(
     int i, j, nxt, use_rubout;
     
     unsigned num_chars = 0;
+    char *end = engr + strlen(engr); /* points at the terminating NUL */
     char *p = engr;
-    while (*p) {
+
+    while (p < end) {
+        int clen = utf8_char_len((unsigned char) *p);
+
         num_chars++;
-        p += utf8_char_len((unsigned char)*p);
+        p += clen;
+        if (p > end) /* truncated trailing multibyte char */
+            p = end;
     }
 
     if (num_chars && cnt > 0) {
@@ -158,14 +165,23 @@ wipeout_text(
             
             s = engr;
             for (int k = 0; k < nxt; k++) {
-                s += utf8_char_len((unsigned char)*s);
-            }
+                int clen = utf8_char_len((unsigned char) *s);
 
-            int char_bytes = utf8_char_len((unsigned char)*s);
+                s += clen;
+                if (s > end)
+                    s = end;
+            }
+            if (s >= end)
+                continue;
+
+            int char_bytes = utf8_char_len((unsigned char) *s);
+            if (s + char_bytes > end) /* truncated multibyte char */
+                char_bytes = 1;
 
             if (char_bytes > 1) {
                 *s = '?';
                 memmove(s + 1, s + char_bytes, strlen(s + char_bytes) + 1);
+                end = engr + strlen(engr); /* string shrank */
                 continue;
             }
 
@@ -204,9 +220,8 @@ wipeout_text(
         }
     }
 
-    unsigned byte_len = (unsigned) strlen(engr);
-    while (byte_len && engr[byte_len - 1] == ' ')
-        engr[--byte_len] = '\0';
+    while (end > engr && end[-1] == ' ')
+        *--end = '\0';
 }
 
 /* check whether hero can reach something at ground level */
@@ -364,7 +379,7 @@ read_engr_at(coordxy x, coordxy y)
         case HEADSTONE:
             if (!Blind || can_reach_floor(TRUE)) {
                 sensed = 1;
-                pline("%s被刻在%s上.", Something, eloc);
+                pline("%s刻在%s上.", Something, eloc);
             }
             break;
         case BURN:
@@ -580,6 +595,7 @@ doengrave_ctx_init(struct _doengrave_ctx *de)
     de->zapwand = FALSE;
     de->disprefresh = FALSE;
     de->adding = FALSE;
+    de->hero_told_it_vanished = FALSE;
 
     de->ret = ECMD_OK;
     de->type = DUST;
@@ -693,17 +709,21 @@ doengrave_sfx_item_WAN(struct _doengrave_ctx *de)
     case WAN_CANCELLATION:
     case WAN_MAKE_INVISIBLE:
         if (de->oep && de->oep->engr_type != HEADSTONE) {
-            if (!Blind)
+            if (!Blind) {
                 pline_The("%s上的刻字消失了!",
                           surface(u.ux, u.uy));
+                de->hero_told_it_vanished = TRUE;
+            }
             de->dengr = TRUE;
         }
         break;
     case WAN_TELEPORTATION:
         if (de->oep && de->oep->engr_type != HEADSTONE) {
-            if (!Blind)
+            if (!Blind) {
                 pline_The("%s上的刻字消失了!",
                           surface(u.ux, u.uy));
+                de->hero_told_it_vanished = TRUE;
+            }
             de->teleengr = TRUE;
         }
         break;
@@ -713,7 +733,7 @@ doengrave_sfx_item_WAN(struct _doengrave_ctx *de)
         de->type = ENGRAVE;
         if (!objects[de->otmp->otyp].oc_name_known) {
             if (flags.verbose)
-                pline("这个%s是一把挖掘魔杖!", xname(de->otmp));
+                pline("这根%s是挖掘魔杖!", xname(de->otmp));
             de->doknown = TRUE;
         }
         Strcpy(de->post_engr_text,
@@ -736,7 +756,7 @@ doengrave_sfx_item_WAN(struct _doengrave_ctx *de)
         de->type = BURN;
         if (!objects[de->otmp->otyp].oc_name_known) {
             if (flags.verbose)
-                pline("这个%s是一把火焰魔杖!", xname(de->otmp));
+                pline("这根%s是火焰魔杖!", xname(de->otmp));
             de->doknown = TRUE;
         }
         Strcpy(de->post_engr_text, Blind ? "你感到魔杖热了起来."
@@ -747,7 +767,7 @@ doengrave_sfx_item_WAN(struct _doengrave_ctx *de)
         de->type = BURN;
         if (!objects[de->otmp->otyp].oc_name_known) {
             if (flags.verbose)
-                pline("这个%s是一根闪电魔杖!", xname(de->otmp));
+                pline("这根%s是闪电魔杖!", xname(de->otmp));
             de->doknown = TRUE;
         }
         if (!Blind) {
@@ -890,7 +910,7 @@ doengrave_sfx_item(struct _doengrave_ctx *de)
                               de->frosted ? "很冷" : "布满灰尘");
                     de->dengr = TRUE;
                 } else {
-                    pline("%s无法擦除这个雕刻.",
+                    pline("%s无法擦除这里的刻字.",
                           Yname2(de->otmp));
                 }
             } else {
@@ -1087,12 +1107,28 @@ doengrave(void)
         rloc_engr(de->oep);
         de->oep->eread = 0;
         de->oep->erevealed = 0;
+        /* The old engraving indicator is probably still showing
+         * if, for example, the hero is invisible. Get rid of it
+         * right now, if the player has already been told that
+         * it vanished.
+         */
+        if (de->hero_told_it_vanished)
+            newsym(u.ux, u.uy);
+
         de->disprefresh = TRUE;
         de->oep = (struct engr *) 0;
     }
     if (de->dengr) {
         del_engr(de->oep);
         de->oep = (struct engr *) 0;
+        /* The old engraving indicator is probably still showing
+         * if, for example, the hero is invisible. Get rid of it
+         * right now, if the player has already been told that
+         * it vanished.
+         */
+        if (de->hero_told_it_vanished)
+            newsym(u.ux, u.uy);
+
         de->disprefresh = TRUE;
     }
     /* Something has changed the engraving here */
@@ -1200,7 +1236,7 @@ doengrave(void)
 
     /* Tell adventurer what is going on */
     if (de->otmp != &hands_obj)
-        You("用%s%s在%s%s字.", (de->type == ENGRAVE && de->otmp->quan > 1L) ? "一个" : "", doname(de->otmp), /*修改语序:You("%s在%s上用%s%s。", de->everb, de->eloc,*/
+        You("用%s%s%s在%s%s字.", (de->type == ENGRAVE && de->otmp->quan > 1L) ? "一" : "", (de->type == ENGRAVE && de->otmp->quan > 1L) ? obj_classifier(de->otmp) : "", doname(de->otmp), /*修改语序:You("%s在%s上用%s%s。", de->everb, de->eloc,*/
             /* since doname() yields "N items" when quantity is more than
                one, match that by using "1 of" rather than "one of" when
                informing the player that the stack will be split */
@@ -1366,10 +1402,11 @@ engrave(void)
 
     /* Step 2: Compute last character that can be engraved this action. */
     i = rate;
-    for (endc = svc.context.engraving.nextc; *endc && i > 0; endc++) {
+    for (endc = svc.context.engraving.nextc; *endc && i > 0; ) {
         if (*endc != ' ') {
             i--;
         }
+        endc += utf8_char_len((unsigned char) *endc);
     }
 
     /* Step 3: affect stylus from engraving - it might wear out. */
@@ -1380,7 +1417,7 @@ engrave(void)
            not welded to the hero's hand(s) */
         if (stylus->quan > 1L) {
             if (firsttime)
-                pline("%s中的一个变钝了.", yname(stylus));
+                pline("%s中的一%s变钝了.", yname(stylus), obj_classifier(stylus));
             stylus = svc.context.engraving.stylus = splitobj(stylus, 1L);
             /* if stack is wielded or quivered, the split-off one isn't */
             stylus->owornmask = 0L;
@@ -1418,7 +1455,7 @@ engrave(void)
         }
         if (splitstack) {
             obj_extract_self(stylus);
-            stylus = hold_another_object(stylus, "你丢下了一个%s!",
+            stylus = hold_another_object(stylus, "你丢下了%s!",
                                          doname(stylus), (char *) NULL);
             nhUse(stylus);
         } else if (dulled && stylus->known) {
@@ -1476,8 +1513,13 @@ engrave(void)
 
     space_left = (int) (sizeof buf - strlen(buf) - 1U);
     if (endc - svc.context.engraving.nextc > space_left) {
+        char *tmp = svc.context.engraving.nextc;
+
         You("写不下了.");
-        endc = svc.context.engraving.nextc + space_left;
+        while (*tmp && tmp + utf8_char_len((unsigned char) *tmp)
+                       <= svc.context.engraving.nextc + space_left)
+            tmp += utf8_char_len((unsigned char) *tmp);
+        endc = tmp;
         truncate = TRUE;
     }
 

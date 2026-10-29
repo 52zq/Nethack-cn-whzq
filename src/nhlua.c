@@ -1,25 +1,18 @@
-/* NetHack 5.0	nhlua.c	$NHDT-Date: 1744963460 2025/04/18 00:04:20 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.153 $ */
+/* NetHack 5.0	nhlua.c	$NHDT-Date: 1781973059 2026/06/20 16:30:59 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.168 $ */
 /*      Copyright (c) 2018 by Pasi Kallinen */
 /* NetHack may be freely redistributed.  See license for details. */
 
 #include "hack.h"
 #include "dlb.h"
 
-#ifndef LUA_VERSION_RELEASE_NUM
-#ifdef NHL_SANDBOX
-#undef NHL_SANDBOX
-#endif
-#endif
+/* Sanity check: sandbox may be version specific.  Minimum and maximum LUA_VERSION_NUM
+ * expected by this version of NetHack. */
+#define NHL_MIN_VERSION_NUM_EXPECTED 505
+#define NHL_MAX_VERSION_NUM_EXPECTED 505
 
 #ifdef NHL_SANDBOX
 #include <setjmp.h>
 #endif
-
-/*
-#- include <lua5.3/lua.h>
-#- include <lua5.3/lualib.h>
-#- include <lua5.3/lauxlib.h>
-*/
 
 /*  */
 
@@ -163,6 +156,7 @@ l_nhcore_done(void)
         gl.luacore = 0;
     }
     end_luapat();
+    free_questpager();
 }
 
 void
@@ -1735,7 +1729,7 @@ nhl_gamestate(lua_State *L)
 
         /* restore game state */
         svm.moves = gg.gmst_moves;
-        pline("Resetting time to move #%ld.", svm.moves);
+        pline("时间重设至回合#%ld.", svm.moves);
         gg.gmst_moves = 0L;
 
         gl.lastinvnr = 51;
@@ -1954,6 +1948,10 @@ nhl_push_anything(lua_State *L, int anytype, void *src)
         any.a_schar = *(schar *) src;
         lua_pushinteger(L, any.a_schar);
         break;
+    case ANY_INT16:
+        any.a_int = *(xint16 *) src;
+        lua_pushinteger(L, any.a_int);
+        break;
     }
     return 1;
 }
@@ -1968,13 +1966,13 @@ nhl_meta_u_index(lua_State *L)
         void *ptr;
         int type;
     } ustruct[] = {
-        { "ux", &(u.ux), ANY_UCHAR },
-        { "uy", &(u.uy), ANY_UCHAR },
+        { "ux", &(u.ux), ANY_INT16 },
+        { "uy", &(u.uy), ANY_INT16 },
         { "dx", &(u.dx), ANY_SCHAR },
         { "dy", &(u.dy), ANY_SCHAR },
         { "dz", &(u.dz), ANY_SCHAR },
-        { "tx", &(u.tx), ANY_UCHAR },
-        { "ty", &(u.ty), ANY_UCHAR },
+        { "tx", &(u.tx), ANY_INT16 },
+        { "ty", &(u.ty), ANY_INT16 },
         { "ulevel", &(u.ulevel), ANY_INT },
         { "ulevelmax", &(u.ulevelmax), ANY_INT },
         { "uhunger", &(u.uhunger), ANY_INT },
@@ -1985,8 +1983,8 @@ nhl_meta_u_index(lua_State *L)
         { "mh", &(u.mh), ANY_INT },
         { "mhmax", &(u.mhmax), ANY_INT },
         { "mtimedone", &(u.mtimedone), ANY_INT },
-        { "dlevel", &(u.uz.dlevel), ANY_SCHAR }, /* actually coordxy */
-        { "dnum", &(u.uz.dnum), ANY_SCHAR },     /* actually coordxy */
+        { "dlevel", &(u.uz.dlevel), ANY_INT16 },
+        { "dnum", &(u.uz.dnum), ANY_INT16 },
         { "uluck", &(u.uluck), ANY_SCHAR },
         { "uhp", &(u.uhp), ANY_INT },
         { "uhpmax", &(u.uhpmax), ANY_INT },
@@ -2294,22 +2292,21 @@ DISABLE_WARNING_CONDEXPR_IS_CONSTANT
 lua_State *
 nhl_init(nhl_sandbox_info *sbi)
 {
-    /* It would be nice to import EXPECTED from each build system. XXX */
-    /* And it would be nice to do it only once, but it's cheap. */
-#ifndef NHL_VERSION_EXPECTED
-#if LUA_VERSION_NUM >= 505
-#define NHL_VERSION_EXPECTED 50500
-#else
-#define NHL_VERSION_EXPECTED 50408
-#endif
-#endif
-
 #ifdef NHL_SANDBOX
-    if (NHL_VERSION_EXPECTED != LUA_VERSION_RELEASE_NUM) {
-        panic(
-            "sandbox doesn't know this Lua version: this=%d != expected=%d ",
-            LUA_VERSION_RELEASE_NUM, NHL_VERSION_EXPECTED);
-    }
+    /* Sanity check */
+#define SANDBOX_DOESNT_KNOW "sandbox doesn't know this Lua version: "
+if (LUA_VERSION_NUM < NHL_MIN_VERSION_NUM_EXPECTED
+    || LUA_VERSION_NUM > NHL_MAX_VERSION_NUM_EXPECTED) {
+        if (NHL_MIN_VERSION_NUM_EXPECTED == NHL_MAX_VERSION_NUM_EXPECTED)
+            panic("%sthis=%d != expected=%d", SANDBOX_DOESNT_KNOW,
+                  LUA_VERSION_NUM, NHL_MIN_VERSION_NUM_EXPECTED);
+        else
+            panic("%sthis=%d, but expected %d to %d", SANDBOX_DOESNT_KNOW,
+                  LUA_VERSION_NUM,
+                  NHL_MIN_VERSION_NUM_EXPECTED,
+                  NHL_MAX_VERSION_NUM_EXPECTED);
+}
+#undef SANDBOX_DOESNT_KNOW
 #endif
 
     lua_State *L = nhlL_newstate(sbi, "nhl_init");
@@ -2415,50 +2412,15 @@ DISABLE_WARNING_CONDEXPR_IS_CONSTANT
 const char *
 get_lua_version(void)
 {
-    nhl_sandbox_info sbi = { NHL_SB_VERSION, 1 * 1024 * 1024, 0,
-                             1 * 1024 * 1024 };
-
     if (gl.lua_ver[0] == 0) {
-        lua_State *L = nhl_init(&sbi);
-
-        if (L) {
-            size_t len = 0;
-            const char *vs = (const char *) 0;
-
-            /* LUA_VERSION yields "<major>.<minor>" although we check to see
-               whether it is "Lua-<major>.<minor>" and strip prefix if so;
-               LUA_RELEASE is <LUA_VERSION>.<LUA_VERSION_RELEASE> but doesn't
-               get set up as a lua global */
-            lua_getglobal(L, "_RELEASE");
-            if (lua_isstring(L, -1))
-                vs = lua_tolstring(L, -1, &len);
-#ifdef LUA_RELEASE
-            else
-                vs = LUA_RELEASE, len = strlen(vs);
-#endif
-            if (!vs) {
-                lua_getglobal(L, "_VERSION");
-                if (lua_isstring(L, -1))
-                    vs = lua_tolstring(L, -1, &len);
-#ifdef LUA_VERSION
-                else
-                    vs = LUA_VERSION, len = strlen(vs);
-#endif
-            }
-            if (vs && len < sizeof gl.lua_ver) {
-                if (!strncmpi(vs, "Lua", 3)) {
-                    vs += 3;
-                    if (*vs == '-' || *vs == ' ')
-                        vs += 1;
-                }
-                Strcpy(gl.lua_ver, vs);
-            }
-        }
-        nhl_done(L);
-#ifdef LUA_COPYRIGHT
+	nh_snprintf(__func__, __LINE__, gl.lua_ver, sizeof(gl.lua_ver),
+		"%d.%d.%d",
+		LUA_VERSION_MAJOR_N,
+		LUA_VERSION_MINOR_N,
+		LUA_VERSION_RELEASE_N
+	);
         if (sizeof LUA_COPYRIGHT <= sizeof gl.lua_copyright)
             Strcpy(gl.lua_copyright, LUA_COPYRIGHT);
-#endif
     }
     return (const char *) gl.lua_ver;
 }
@@ -3063,19 +3025,13 @@ nhlL_newstate(nhl_sandbox_info *sbi, const char *name)
         nud->sid = ++gl.lua_sid;
     }
 
-    lua_State *L = lua_newstate(nhl_alloc, nud
-#if LUA_VERSION_NUM >= 505
-                               , 0
-#endif
-                               );
+    lua_State *L = lua_newstate(nhl_alloc, nud , 0);
     if (!L)
         panic("NULL lua_newstate");
 
     if(nud) nud->L = L;
     lua_atpanic(L, nhl_panic);
-#if LUA_VERSION_NUM == 504
     lua_setwarnf(L, nhl_warn, L);
-#endif
 
 #ifdef NHL_SANDBOX
     if (nud && (sbi->steps || sbi->perpcall)) {

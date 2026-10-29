@@ -55,6 +55,10 @@ GENERICUSERS=play player game games nethack nethacker ec2-user
 # letter and "lock" (eg. alock, block, ...)
 MAXPLAYERS=10
 
+# Limit the number of rerolls per second when using the reroll option.
+# 0 means that there is no limit on how quickly the user can reroll.
+MAX_REROLL_RATE=0
+
 # If not null, added to string "To get local support, " in the support
 # information help.
 #SUPPORT=call Izchak at extension 42.
@@ -130,7 +134,7 @@ MAXPLAYERS=10
 # Only available if NetHack was compiled with DUMPLOG
 # Allows following placeholders:
 #   %% literal '%'
-#   %v version (eg. "NetHack 5.0.0-0")
+#   %v version (eg. "NetHack 5.0.1-0")
 #   %u game UID
 #   %t game start time, UNIX timestamp format
 #   %T current time, UNIX timestamp format
@@ -164,7 +168,7 @@ PANICTRACE_GDB=1
 PANICTRACE_LIBC=2
 
 # URL loaded for creating reports to the NetHack DevTeam
-#CRASHREPORTURL=https://nethack.org/links/cr-5.0.0.html
+#CRASHREPORTURL=https://nethack.org/links/cr-5.0.1.html
 
 # 'portable_device_paths' is only supported for Windows.  Starting with
 # 3.6.3, nethack on Windows treats the folder containing nethack.exe and

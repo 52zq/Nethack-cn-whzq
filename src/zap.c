@@ -1,4 +1,4 @@
-/* NetHack 5.0	zap.c	$NHDT-Date: 1770949988 2026/02/12 18:33:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.584 $ */
+/* NetHack 5.0	zap.c	$NHDT-Date: 1781973075 2026/06/20 16:31:15 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.596 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -420,9 +420,9 @@ bhitm(struct monst *mtmp, struct obj *otmp)
             Sprintf(buf, "%s%s", s_suffix(Monnam(mtmp)),
                     distant_name(obj, xname));
             if (cansee(mtmp->mx, mtmp->my)) {
-                if (!canspotmon(mtmp))
-                    Strcpy(buf, An(distant_name(obj, xname)));
-                pline("%s掉落到%s.", buf,
+                //冗余,这是怎么写的:if (!canspotmon(mtmp))
+                //    Strcpy(buf, An(distant_name(obj, xname)));
+                pline("%s掉落到%s.", distant_name(obj, xname),
                       surface(mtmp->mx, mtmp->my));
             } else if (canspotmon(mtmp)) {
                 pline("%s掉了下去.", buf);
@@ -617,7 +617,7 @@ probe_objchain(struct obj *otmp)
             otmp->lknown = 1;
             if (!SchroedingersBox(otmp))
                 otmp->cknown = 1;
-        } else if (otmp->otyp == TIN)
+        } else if (otmp->otyp == TIN || otmp->otyp == EGG)
             otmp->known = 1;
     }
 }
@@ -892,6 +892,10 @@ revive(struct obj *corpse, boolean by_hero)
     mmflags_nht mmflags = NO_MINVENT | MM_NOWAIT | MM_NOMSG;
     int montype, cgend, container_nesting = 0;
     boolean is_zomb;
+    /* normally use the name on the corpse object, but don't if drawing a
+     * player's ghost back into its body, in which case use the ghost's
+     * (player's) name */
+    boolean use_corpse_name = TRUE;
 
     if (corpse->otyp != CORPSE) {
         impossible("Attempting to revive %s?", xname(corpse));
@@ -1034,6 +1038,7 @@ revive(struct obj *corpse, boolean by_hero)
         if (cansee(x, y)) {
             char buf[BUFSZ];
 
+            buf[0] = '\0';
             (void) shk_your(eos(buf), corpse);
             Strcat(buf, one_of ? "其中一具" : "");
             /* shk_your: "the " or "your " or "<mon>'s " or "<Shk>'s ".
@@ -1050,7 +1055,7 @@ revive(struct obj *corpse, boolean by_hero)
         } else if (shkp) {
             /* need some prior description of the corpse since
                stolen_value() will refer to the object as "it" */
-            pline("一个尸体苏醒了.");
+            pline("一具尸体苏醒了.");
         }
         /* don't charge for shopkeeper's own corpse if we just revived him */
         if (shkp && mtmp != shkp){
@@ -1085,6 +1090,16 @@ revive(struct obj *corpse, boolean by_hero)
                     mtmp->mtame = ghost->mtame;
                 }
             }
+            /* copy over ghost's name and struct ebones to newly revived "hero";
+             * has_mgivenname should always be true because there are guards
+             * against renaming a ghost, but check it just to be sure */
+            if (has_mgivenname(ghost)) {
+                mtmp = christen_monst(mtmp, MGIVENNAME(ghost));
+                /* don't let player-provided name of corpse override actual
+                 * name of ex-hero */
+                use_corpse_name = FALSE;
+            }
+            copy_mextra(mtmp, ghost); /* pass on struct ebones */
             /* was ghost, now alive, it's all very confusing */
             mtmp->mconf = 1;
             /* separate ghost monster no longer exists */
@@ -1094,7 +1109,7 @@ revive(struct obj *corpse, boolean by_hero)
     }
 
     /* monster retains its name */
-    if (has_oname(corpse) && !unique_corpstat(mtmp->data))
+    if (use_corpse_name && has_oname(corpse) && !unique_corpstat(mtmp->data))
         mtmp = christen_monst(mtmp, ONAME(corpse));
     /* partially eaten corpse yields wounded monster */
     if (corpse->oeaten)
@@ -1204,10 +1219,10 @@ unturn_dead(struct monst *mon)
                 owner[0] = '\0';
             }
             if (youseeit)
-                pline("%s%s突然%s%s%s!", owner, corpse,
+                pline("%s%s突然%s%s%s%s!", owner, corpse,
                       nonliving(mtmp2->data) ? "复活" : "活过来",
-                      different_type ? "成" : "",
-                      different_type ? an(mon_pmname(mtmp2)) : "");
+                      different_type ? "成一" : "", different_type ? mon_classifier(mtmp2) : "",
+                      different_type ? mon_pmname(mtmp2) : "");
             else if (canseemon(mtmp2))
                 pline("%s突然出现了!", Amonnam(mtmp2));
         } else {
@@ -2242,9 +2257,9 @@ bhito(struct obj *obj, struct obj *otmp)
                        so just make probing be inconclusive for it */
                     You("不确定%s里装着的是%s还是它的尸体.",
                         the(xname(obj)),
-                        /* unfortunately, we can't tell whether rndmonnam()
+                        /* unfortunately, we can't tell whether an_rndmonnam()
                            picks a form which can't leave a corpse */
-                        an(Hallucination ? rndmonnam((char *) 0) : "猫"));
+                        Hallucination ? an_rndmonnam((char *) 0) : "一只猫");
                     obj->cknown = 0;
                 } else {
                     struct obj *o;
@@ -2282,7 +2297,7 @@ bhito(struct obj *obj, struct obj *otmp)
                 if (cansee(obj->ox, obj->oy))
                     pline_The("巨石破碎了.");
                 else
-                    You_hear("你听到一阵碎裂声.");
+                    You_hear("一阵碎裂声.");
                 fracture_rock(obj);
             } else if (obj->otyp == STATUE) {
                 if (break_statue(obj)) {
@@ -2357,7 +2372,7 @@ bhito(struct obj *obj, struct obj *otmp)
                     if (cansee(ox, oy)) {
                         if (canspotmon(mtmp)) {
                             pline("%s复活了!",
-                                  upstart(noname_monnam(mtmp, ARTICLE_THE)));
+                                  mtmp->mtame ? YMonnam(mtmp) : Monnam(mtmp));
                             learn_it = by_u ? TRUE : gz.zap_oseen;
                         } else {
                             /* saw corpse but don't see monster: maybe
@@ -2371,10 +2386,10 @@ bhito(struct obj *obj, struct obj *otmp)
                         /* couldn't see corpse's location */
                         if (Role_if(PM_HEALER) && !Deaf
                             && !nonliving(&mons[corpsenm])) {
-                            if (!type_is_pname(&mons[corpsenm]))
-                                corpsname = an(corpsname);
+                            /*if (!type_is_pname(&mons[corpsenm]))
+                                corpsname = an(corpsname);*/
                             if (!Hallucination)
-                                You_hear("%s在复活.", corpsname);
+                                You_hear("%s%s在复活.", !type_is_pname(&mons[corpsenm]) ? "一具" : "", corpsname);
                             else
                                 You_hear("除颤器的声音.");
                             learn_it = by_u ? TRUE : gz.zap_oseen;
@@ -2609,7 +2624,7 @@ backfire(struct obj *otmp)
     otmp->in_use = TRUE; /* in case losehp() is fatal */
     pline("%s突然爆炸了!", The(xname(otmp)));
     dmg = d(otmp->spe + 2, 6);
-    losehp(Maybe_Half_Phys(dmg), "魔杖爆炸", KILLED_BY_AN);
+    losehp(Maybe_Half_Phys(dmg), "魔杖爆炸", KILLED_BY);
     useupall(otmp);
 }
 
@@ -2714,7 +2729,7 @@ zapyourself(struct obj *obj, boolean ordinary)
         learn_it = TRUE;
         if (Antimagic) {
             shieldeff(u.ux, u.uy);
-            pline("嘭!");
+            pline("咚!");
             monstseesu(M_SEEN_MAGR);
         } else {
             if (ordinary) {
@@ -2830,7 +2845,7 @@ zapyourself(struct obj *obj, boolean ordinary)
 
         if (BInvis && uarmc->otyp == MUMMY_WRAPPING) {
             /* A mummy wrapping absorbs it and protects you */
-            You_feel("%s下面相当痒.", yname(uarmc));
+            You_feel("%s下面有点痒.", yname(uarmc));
             break;
         }
         incr_itimeout(&HInvis, rn1(15, 31));
@@ -2910,7 +2925,7 @@ zapyourself(struct obj *obj, boolean ordinary)
         learn_it = TRUE; /* (no effect for spells...) */
         healup(d(6, obj->otyp == SPE_EXTRA_HEALING ? 8 : 4), 0, FALSE,
                (obj->blessed || obj->otyp == SPE_EXTRA_HEALING));
-        You_feel("你感觉%s.", obj->otyp == SPE_EXTRA_HEALING ? "好多了" : "好些了");
+        You_feel("%s.", obj->otyp == SPE_EXTRA_HEALING ? "好多了" : "好些了");
         break;
     case WAN_LIGHT: /* (broken wand) */
         /* assert( !ordinary ); */
@@ -3312,7 +3327,7 @@ zap_updown(struct obj *obj) /* wand or spell, nonnull */
             pline("一块岩石被从%s上脱落并掉到你的%s上.",
                   ceiling(x, y), body_part(HEAD));
             dmg = rnd(hard_helmet(uarmh) ? 2 : 6);
-            losehp(Maybe_Half_Phys(dmg), "落石", KILLED_BY_AN);
+            losehp(Maybe_Half_Phys(dmg), "一块落石", KILLED_BY);
             if ((otmp = mksobj_at(ROCK, x, y, FALSE, FALSE)) != 0) {
                 (void) xname(otmp); /* set dknown, maybe bknown */
                 stackobj(otmp);
@@ -3572,7 +3587,7 @@ miss(const char *str, struct monst *mtmp)
 {
     pline("%s%s%s.", The(str), vtense(str, "没有击中"),
           ((cansee(gb.bhitpos.x, gb.bhitpos.y) || canspotmon(mtmp))
-           && flags.verbose) ? mon_nam(mtmp) : "");
+           && flags.verbose) ? ((mtmp->mtame) ? noit_mon_nam(mtmp) : mon_nam(mtmp)) : "它");
 }
 
 staticfn void
@@ -3787,7 +3802,7 @@ zap_map(
                 use_the = !hallu ? (ttmp->ttyp == VIBRATING_SQUARE
                                     && Invocation_lev(&u.uz))
                                  : !rn2(4);
-                You("发现%s%c",
+                You("发现了%s%c",
                     use_the ? the(ttmpname) : an(ttmpname),
                     use_the ? '!' : '.');
                 learn_it = !hallu;
@@ -4642,9 +4657,9 @@ burn_floor_objects(
                 cnt += delquan;
                 if (give_feedback) {
                     if (delquan > 1L)
-                        pline("%ld %s在燃烧.", delquan, buf2);
+                        pline("%ld%s%s在燃烧.", delquan, obj_classifier(obj), buf2);
                     else
-                        pline("%s在燃烧.", An(buf1));
+                        pline("一%s%s在燃烧.", obj_classifier(obj), buf1);
                 }
             }
         }
@@ -5063,7 +5078,7 @@ melt_ice(coordxy x, coordxy y, const char *msg)
         Norep("%s", msg);
     if ((otmp = sobj_at(BOULDER, x, y)) != 0) {
         if (cansee(x, y))
-            pline("%s下沉...", An(xname(otmp)));
+            pline("一%s%s下沉...", obj_classifier(otmp), xname(otmp));
         do {
             obj_extract_self(otmp); /* boulder isn't being pushed */
             if (!boulder_hits_pool(otmp, x, y, FALSE))
@@ -5945,7 +5960,7 @@ maybe_destroy_item(
                 if (dmgtyp == AD_FIRE && osym == FOOD_CLASS)
                     how = "黏菌块爆炸";
                 losehp(dmg, one ? how : (const char *) makeplural(how),
-                       one ? KILLED_BY_AN : KILLED_BY);
+                       KILLED_BY);//one ? KILLED_BY_AN : KILLED_BY);
                 exercise(A_STR, FALSE);
             }
         }
@@ -6188,7 +6203,7 @@ wishcmdassist(int triesleft)
     },
         preserve_wishless[] = "这样做不会破坏'禁许愿'挑战.",
         retry_info[] =
-                    "如果你指定一种未鉴定的物品%s%s次%s, 你将获得一件随机物品.",
+                    "如果你指定一种未鉴定的物品%s次%s%s, 你将获得一件随机物品.",
         //冗余:retry_too[] = "你将获得一件随机物品.",
         suppress_cmdassist[] =
             "(在配置文件中添加!cmdassist以禁用此辅助功能. )",
@@ -6372,7 +6387,7 @@ makewish(void)
     } else if (otmp == &nothing) {
         /* explicitly wished for "nothing", presumably attempting
            to retain wishless conduct */
-        livelog_printf(LL_WISH, "declined to make a wish");
+        livelog_printf(LL_WISH, "放弃了一次许愿");
         return;
     } else if (otmp == &hands_obj) {
         wish_history_add(bufcpy);
@@ -6388,7 +6403,7 @@ makewish(void)
 
     /* wisharti conduct handled in readobjnam() */
     maybe_LL_arti = ((oldwisharti < u.uconduct.wisharti) ? LL_ARTIFACT : 0L);
-    Snprintf(wish, sizeof wish, "\"%s\", 实际获得\"%s\"", bufcpy, doname(otmp));
+    Snprintf(wish, sizeof wish, "\"%s\", 得到了\"%s\"", bufcpy, doname(otmp));
     /* KMH, conduct */
     if (!u.uconduct.wishes++)
         livelog_printf((LL_CONDUCT | LL_WISH | maybe_LL_arti),

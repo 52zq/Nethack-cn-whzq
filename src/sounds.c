@@ -1,4 +1,4 @@
-/* NetHack 5.0	sounds.c	$NHDT-Date: 1736530208 2025/01/10 09:30:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.165 $ */
+/* NetHack 5.0	sounds.c	$NHDT-Date: 1781973067 2026/06/20 16:31:07 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.172 $ */
 /*      Copyright (c) 1989 Janet Walz, Mike Threepoint */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -119,7 +119,7 @@ zoo_mon_sound(struct monst *mtmp)
         int hallu = Hallucination ? 1 : 0, selection = rn2(2) + hallu;
         static const char *const zoo_msg[3] = {
             "类似大象踩碎坚果的声音.",
-            "类似海豹叫声的声音", "怪医杜立德!",
+            "类似海豹叫声的声音.", "怪医杜立德!",
         };
         You_hear1(zoo_msg[selection]);
         return TRUE;
@@ -145,7 +145,7 @@ temple_priest_sound(struct monst *mtmp)
            priest is not currently standing on the altar; he's mobile). */
         static const char *const temple_msg[] = {
             "*有人在赞美%s.", "*有人在祈求%s.",
-            "#一个动物尸体被献为祭品.",
+            "#一具动物尸体被献为祭品.",
             "*有人在恳切地呼吁捐款.",
         };
         const char *msg;
@@ -339,12 +339,12 @@ dosounds(void)
 }
 
 static const char *const h_sounds[] = {
-    "哔",   "咻",   "唱",   "打嗝", "嘎吱", "咳",
-    "咔嗒", "哀号", "噗",   "叮当", "抽鼻", "叮咚",
-    "吱",   "哐当", "嗡",   "滋滋", "啁啾", "喘息",
-    "沙沙", "嘟",   "咬舌", "假",   "咕",   "打饱嗝",
-    "哞",   "嘭",   "低语", "嗷嗷", "嘎嘎", "隆隆",
-    "鼻",   "嘟嘟", "咕噜", "呼啸", "咏叹"
+    "发出哔声",   "发出咻声",   "唱歌",   "打嗝", "嘎吱作响", "咳嗽",
+    "发出咔嗒声", "哀号", "发出噗声",   "发出叮当声", "抽鼻", "发出叮咚声",
+    "吱吱叫",   "发出哐当声", "发出嗡嗡声",   "滋滋作响", "啁啾", "喘息",
+    "发出沙沙声", "发出嘟声",   "咬舌", "发出假声",   "咕咕叫",   "打饱嗝",
+    "哞哞叫",   "爆出嘭声",   "低语", "嗷嗷叫", "嘎嘎叫", "隆隆叫",
+    "吭气",   "发出嘟嘟声", "咕噜叫", "呼啸", "咏叹"
 };
 
 const char *
@@ -413,7 +413,7 @@ growl(struct monst *mtmp)
         growl_verb = growl_sound(mtmp);
     if (growl_verb) {
         if (canseemon(mtmp) || !Deaf) {
-            pline("%s发出%s声!", Monnam(mtmp), vtense((char *) 0, growl_verb));
+            pline("%s%s!", Monnam(mtmp), vtense((char *) 0, growl_verb));
             iflags.last_msg = PLNMSG_GROWL;
             if (svc.context.run)
                 nomul(0);
@@ -810,12 +810,14 @@ domonnoise(struct monst *mtmp)
                     verbl_msg = verbuf;
                 } else if (vampindex == 1) {
                     Sprintf(verbuf, vampmsg[vampindex],
-                            Upolyd ? an(pmname(&mons[u.umonnum],
-                                               flags.female ? FEMALE : MALE))
+                            Upolyd ? an_pmname(&mons[u.umonnum],
+                                               flags.female ? FEMALE : MALE)
                                    : an(racenoun));
                     verbl_msg = verbuf;
-                } else
-                    verbl_msg = vampmsg[vampindex];
+                } else if (vampindex > 1) {
+                    if (vampindex >= 0 && vampindex < SIZE(vampmsg))
+                        verbl_msg = vampmsg[vampindex];
+                }
             }
         }
         break;
@@ -1262,7 +1264,7 @@ dochat(void)
 
     if (is_silent(gy.youmonst.data)) {
         pline("身为%s, 你无法说话.",
-              an(pmname(gy.youmonst.data, flags.female ? FEMALE : MALE)));
+              an_pmname(gy.youmonst.data, flags.female ? FEMALE : MALE));
         return ECMD_OK;
     }
     if (Strangled) {
@@ -1318,7 +1320,7 @@ dochat(void)
             return 1;
         }
          */
-        pline("自言自语不是个地牢探险家的的好习惯.");
+        pline("地牢探险家自言自语不是个好习惯.");
         return ECMD_OK;
     }
 
@@ -1536,6 +1538,8 @@ tiphat(void)
     return res;
 }
 
+char *sounddir = 0;
+
 #ifdef USER_SOUNDS
 
 typedef struct audio_mapping_rec {
@@ -1549,7 +1553,6 @@ typedef struct audio_mapping_rec {
 static audio_mapping *soundmap = 0;
 static audio_mapping *sound_matches_message(const char *);
 
-char *sounddir = 0; /* set in files.c */
 
 /* adds a sound file mapping, returns 0 on failure, 1 on success */
 int
@@ -1722,6 +1725,9 @@ extern struct sound_procs macsound_procs;
 #ifdef SND_LIB_QTSOUND
 extern struct sound_procs qtsound_procs;
 #endif
+#ifdef SND_LIB_MAC68KSOUND
+extern struct sound_procs mac68ksound_procs;
+#endif
 
 static struct sound_procs nosound_procs = {
     SOUNDID(nosound),
@@ -1772,6 +1778,9 @@ static struct sound_choices {
 #endif
 #ifdef SND_LIB_QTSOUND
     { &qtsound_procs },
+#endif
+#ifdef SND_LIB_MAC68KSOUND
+    { &mac68ksound_procs },
 #endif
 };
 

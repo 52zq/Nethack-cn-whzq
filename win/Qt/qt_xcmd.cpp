@@ -139,7 +139,7 @@ interesting_command(unsigned indx, int cmds)
 NetHackQtExtCmdRequestor::NetHackQtExtCmdRequestor(QWidget *parent) :
     QDialog(parent),
     prompt(new QLabel("#", this)),
-    cancel_btn(new QPushButton("Cancel", this)),
+    cancel_btn(new QPushButton("取消", this)),
     byRow(qt_settings->xcmd_by_row),
     set(qt_settings->xcmd_set),
     butoffset(0),
@@ -185,12 +185,12 @@ NetHackQtExtCmdRequestor::NetHackQtExtCmdRequestor(QWidget *parent) :
     butw = std::max(butw, filter_btn->width());
     ctrls->addWidget(filter_btn);
     // Layout: switch from by-column grid to by-row grid or vice versa
-    QPushButton *layout_btn = new QPushButton("Layout", this);
+    QPushButton *layout_btn = new QPushButton("布局", this);
     layout_btn->setMinimumSize(layout_btn->sizeHint());
     butw = std::max(butw, layout_btn->width());
     ctrls->addWidget(layout_btn);
     // Reset: switch filter back to all commands and layout back to by-column
-    QPushButton *reset__btn = new QPushButton("Reset", this);
+    QPushButton *reset__btn = new QPushButton("重置", this);
     reset__btn->setMinimumSize(reset__btn->sizeHint());
     butw = std::max(butw, reset__btn->width());
     ctrls->addWidget(reset__btn);
@@ -203,14 +203,14 @@ NetHackQtExtCmdRequestor::NetHackQtExtCmdRequestor(QWidget *parent) :
 
     // grid title rather than overall popup title
     const char *ctitle = ((set == all_cmds) // implies wizard mode
-                          ? "All commands"
+                          ? "所有命令"
                           : (set == normal_cmds)
-                            ? (WizardMode ? "Normal mode commands"
-                                          : "Available commands")
+                            ? (WizardMode ? "普通模式命令"
+                                          : "可用命令")
                             : (set == autocomplete_cmds)
-                              ? "Traditional extended commands"
+                              ? "传统扩展命令"
                               : (set == wizard_cmds)
-                                ? "Debug mode commands"
+                                ? "调试模式命令"
                                 : "(unknown)"); // won't happen
     const QString &qtitle = QString(ctitle);
     // rectangular grid to hold a button for each extended command name
@@ -566,6 +566,11 @@ void NetHackQtExtCmdRequestor::keyPressEvent(QKeyEvent *event)
             // <return> which didn't yield another match; prompt string
             // hasn't been updated so still have a pending exact match
             DefaultActionIsCancel(false, saveexactmatchindx);
+        } else {
+            // nothing matched; display what was typed anyway so that
+            // this character can't later combine with a stale, shorter
+            // prompt string and select a command that wasn't intended
+            prompt->setText(promptstr);
         }
         enableButtons();
     }
@@ -576,12 +581,48 @@ int NetHackQtExtCmdRequestor::get()
 {
     resize(1,1); // pack
     centerOnMain(this);
-    // Add any keys presently buffered to the prompt
+    /*
+     * The main window's menus and toolbar buttons queue a "#cmdname"
+     * sequence into the key buffer instead of invoking a command
+     * directly; the core has already consumed the '#' by the time we're
+     * called, so input pending here is the (possibly abbreviated) name
+     * of the command that was picked.  Resolve it against the full
+     * command list and use that result as-is.
+     *
+     * This used to be handed to keyPressEvent(), which only matches
+     * against the commands currently shown by the [Filter] setting and
+     * drops characters that don't match anything from the text it is
+     * building up.  When the filter omitted the command that the menu
+     * had picked, the leftover characters could combine with a stale
+     * partial string and complete a completely different command (for
+     * example "optionsfull", the Game->Options entry, degenerating into
+     * "offer", the sacrifice command).
+     */
     setResult(xcmdNone);
-    while (NetHackQtBind::qt_kbhit() && result() == xcmdNone) {
-	int ch = NetHackQtBind::qt_nhgetch();
-	QKeyEvent event(QEvent::KeyPress, 0, Qt::NoModifier, QChar(ch));
-	keyPressEvent(&event);
+    if (NetHackQtBind::qt_kbhit()) {
+        char cmdbuf[BUFSZ];
+        int len = 0, i, matchindx = -1, matches = 0;
+
+        while (len < BUFSZ - 1 && NetHackQtBind::qt_kbhit()) {
+            int ch = NetHackQtBind::qt_nhgetch();
+
+            if (ch >= 'A' && ch <= 'Z')
+                ch += 'a' - 'A';
+            else if (ch < 'a' || ch > 'z')
+                break; // not a command name character
+            cmdbuf[len++] = (char) ch;
+        }
+        cmdbuf[len] = '\0';
+        for (i = 0; len > 0 && extcmdlist[i].ef_txt; ++i) {
+            if (!strncmp(cmdbuf, extcmdlist[i].ef_txt, len)) {
+                matchindx = i;
+                if (++matches > 1)
+                    break;
+            }
+        }
+        if (matches == 1)
+            return matchindx;
+        // else unknown or ambiguous; let the popup deal with it
     }
     if (result() == xcmdNone)
 	exec();

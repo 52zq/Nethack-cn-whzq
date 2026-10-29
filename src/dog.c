@@ -1,4 +1,4 @@
-/* NetHack 5.0	dog.c	$NHDT-Date: 1753856387 2025/07/29 22:19:47 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.190 $ */
+/* NetHack 5.0	dog.c	$NHDT-Date: 1781973045 2026/06/20 16:30:45 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.197 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -81,8 +81,8 @@ initedog(struct monst *mtmp, boolean everything)
          * from a figurine or some other method in which it was created tame
          * using an() is safe unless it somehow becomes possible to tame a
          * unique monster */
-        livelog_printf(LL_CONDUCT, "获得了%s的第一只宠物 (%s)",
-                       uhis(), an(mon_pmname(mtmp)));
+        livelog_printf(LL_CONDUCT, "获得了%s的第一只宠物 (一%s%s)",
+                       uhis(), mon_classifier(mtmp), mon_pmname(mtmp));
     }
     u.uconduct.pets++;
 }
@@ -190,7 +190,7 @@ make_familiar(struct obj *otmp, coordxy x, coordxy y, boolean quietly)
             reallytame = FALSE; /* not tame after all */
             if (chance == 2) {  /* hostile (cursed figurine) */
                 if (!quietly)
-                    You("对此有一种不祥的预感.");
+                    You("对此感到不祥.");
                 mtmp->mpeaceful = 0;
                 set_malign(mtmp);
             }
@@ -426,6 +426,7 @@ mon_arrive(struct monst *mtmp, int when)
     stairway *stway;
     d_level fromdlev;
 
+    mtmp->mstate &= ~TERRAIN_FALLOUT_MASK;  /* shouldn't be set anyway */
     mtmp->mstate |= MON_STILL_ARRIVING;
     mtmp->nmon = fmon;
     fmon = mtmp;
@@ -462,8 +463,10 @@ mon_arrive(struct monst *mtmp, int when)
        here for monsters migrating to a newly created level */
     restore_cham(mtmp);
 
-    if (mtmp == u.usteed)
+    if (mtmp == u.usteed) {
+        mtmp->mstate &= ~MON_STILL_ARRIVING;
         return; /* don't place steed on the map */
+    }
     if (when == With_you) {
         /* When a monster accompanies you, sometimes it will arrive
            at your intended destination and you'll end up next to
@@ -902,6 +905,7 @@ migrate_to_level(
     /* prepare to take mtmp off the map */
     num_segs = mon_leave(mtmp);
     /* take off map and move mtmp from fmon list to migrating_mons */
+    mtmp->mstate &= ~TERRAIN_FALLOUT_MASK;
     relmon(mtmp, &gm.migrating_mons); /* mtmp->mx,my retain their value */
     mtmp->mstate |= MON_MIGRATING;
 

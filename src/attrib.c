@@ -1,4 +1,4 @@
-/* NetHack 5.0	attrib.c	$NHDT-Date: 1777000050 2026/04/23 19:07:30 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.137 $ */
+/* NetHack 5.0	attrib.c	$NHDT-Date: 1781973041 2026/06/20 16:30:41 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.142 $ */
 /*      Copyright 1988, 1989, 1990, 1992, M. Stephenson           */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -327,13 +327,13 @@ poisoned(
     /* inform player about being poisoned unless that's already been done;
        "blast" has given a "blast of poison gas" message; "poison arrow",
        "poison dart", etc have implicitly given poison messages too... */
-    if (!blast && (!strstri(reason, "poison") || !strstri(reason, "毒"))) {
-        boolean plural = (reason[strlen(reason) - 1] == 's') ? 1 : 0;
+    if (!blast && !strstri(reason, "poison") && !strstri(reason, "毒")) {
+        //boolean plural = (reason[strlen(reason) - 1] == 's') ? 1 : 0;
 
         /* avoid "The" Orcus's sting was poisoned... */
-        pline("%s%s%s有毒的!",
-              isupper((uchar) *reason) ? "" : "", reason,
-              plural ? "是" : "是");
+        pline("%s是有毒的!",
+              /*冗余:isupper((uchar) *reason) ? "" : "",*/ reason
+              /*冗余:plural ? "是" : "是"*/); 
     }
     if (Poison_resistance) {
         if (blast)
@@ -935,11 +935,11 @@ from_what(
              */
             if ((propidx == BLINDED && u.uroleplay.blind)
                 || (propidx == DEAF && u.uroleplay.deaf))
-                Sprintf(buf, "从出生就有");
+                Sprintf(buf, ", 从出生就有");
             else if (innateness == FROM_ROLE || innateness == FROM_RACE)
-                Strcpy(buf, "天赋");
+                Strcpy(buf, ", 因为你的天赋");
             else if (innateness == FROM_INTR) /* [].intrinsic & FROMOUTSIDE */
-                Strcpy(buf, "内在属性");
+                Strcpy(buf, ", 因为你的内在属性"); //危险,待写:暂时权衡一下吧
             else if (innateness == FROM_EXP)
                 Strcpy(buf, ", 因为你的经验");
             else if (innateness == FROM_LYCN)
@@ -1335,7 +1335,7 @@ uchangealign(
         /* worn helm of opposite alignment might block change */
         if (!uarmh || uarmh->otyp != HELM_OF_OPPOSITE_ALIGNMENT)
             u.ualign.type = u.ualignbase[A_CURRENT];
-        You("%s有一个新的方向感.",
+        You("%s有了新的方向感.",
             (u.ualign.type != oldalign) ? "突然" : "");
     } else {
         /* putting on or taking off a helm of opposite alignment */

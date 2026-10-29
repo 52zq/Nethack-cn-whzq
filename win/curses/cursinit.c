@@ -7,6 +7,7 @@
 #include "hack.h"
 #include "wincurs.h"
 #include "cursinit.h"
+#include "cursmisc.h"
 
 /* Initialization and startup functions for curses interface */
 
@@ -300,30 +301,29 @@ curses_create_main_windows(void)
 static int pairs_used = 0;
 static int colors_used = 0;
 
-/* create a new color */
+/* create a new color; returns -1 if that isn't possible */
 int
 curses_init_rgb(int r, int g, int b)
 {
     if (!can_change_color())
-        return 0;
+        return -1;
 
-    if (colors_used < COLORS - 1) {
-        colors_used++;
-        init_color(colors_used, r*4, g*4, b*4);
-        return colors_used;
-    }
-    return 0;
+    /* init_color() takes components in the range 0..1000 */
+    if (colors_used < COLORS - 1
+        && init_color(colors_used + 1, r * 1000 / 255, g * 1000 / 255,
+                      b * 1000 / 255) == OK)
+        return ++colors_used;
+    return -1;
 }
 
-/* create a new foreground/background combination */
+/* create a new foreground/background combination; returns the default
+   pair 0 if that isn't possible */
 int
 curses_init_pair(int fg, int bg)
 {
-    if (pairs_used < COLOR_PAIRS - 1) {
-        pairs_used++;
-        init_pair(pairs_used, fg, bg);
-        return pairs_used;
-    }
+    if (pairs_used < COLOR_PAIRS - 1
+        && init_pair(pairs_used + 1, fg, bg) == OK)
+        return ++pairs_used;
     return 0;
 }
 
@@ -334,18 +334,18 @@ curses_init_nhcolors(void)
     /* COLOR_foo + 8 means COLOR | A_BOLD when COLORS < 16 */
     /* otherwise assume the terminal has least 16 different colors */
     /* these map to the NetHack CLR_ defines */
-    static const int fg_clr[16] = {
+    static const int basic_fg_clr[16] = {
         COLOR_BLACK, COLOR_RED, COLOR_GREEN, COLOR_YELLOW,
         COLOR_BLUE,  COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE,
         -1, COLOR_RED + 8, COLOR_GREEN + 8, COLOR_YELLOW + 8,
         COLOR_BLUE + 8, COLOR_MAGENTA + 8, COLOR_CYAN + 8, COLOR_WHITE + 8
     };
-    static const int bg_clr[8] = {
+    static const int bg_clr[CURSES_NUM_BACKGROUND_COLORS] = {
         -1, COLOR_RED, COLOR_GREEN, COLOR_YELLOW,
         COLOR_BLUE, COLOR_MAGENTA, COLOR_CYAN, COLOR_WHITE
     };
     int bg, nhclr;
-    int maxc = (COLORS >= 16) ? 16 : 8;
+    int maxc = curses_has_256color() ? 256 : (COLORS >= 16) ? 16 : 8;
 
     if (!has_colors())
         return;
@@ -353,8 +353,9 @@ curses_init_nhcolors(void)
     use_default_colors();
 
     for (nhclr = CLR_BLACK; nhclr < maxc; nhclr++) {
-        for (bg = 0; bg < 8; bg++) {
-            init_pair((maxc * bg) + nhclr + 1, fg_clr[nhclr], bg_clr[bg]);
+        for (bg = 0; bg < CURSES_NUM_BACKGROUND_COLORS; bg++) {
+            int fg_color = (nhclr < 16) ? basic_fg_clr[nhclr] : nhclr;
+            init_pair((maxc * bg) + nhclr + 1, fg_color, bg_clr[bg]);
         }
     }
 
@@ -756,9 +757,9 @@ curses_init_options(void)
     /* Remove a few options that are irrelevant to this windowport */
     set_option_mod_status("eight_bit_tty", set_in_config);
 
-    /* If we don't have a symset defined, load the curses symset by default */
+    /* Use the conservative Unicode map when no symset was explicitly set. */
     if (!gs.symset[PRIMARYSET].explicitly)
-        load_symset("curses", PRIMARYSET);
+        load_symset("Enhanced1", PRIMARYSET);
     if (!gs.symset[ROGUESET].explicitly)
         load_symset("default", ROGUESET);
 

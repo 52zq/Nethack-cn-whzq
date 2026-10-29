@@ -1,4 +1,4 @@
-/* NetHack 5.0	weapon.c	$NHDT-Date: 1725227810 2024/09/01 21:56:50 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.128 $ */
+/* NetHack 5.0	weapon.c	$NHDT-Date: 1781973073 2026/06/20 16:31:13 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.147 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -133,7 +133,7 @@ weapon_descr(struct obj *obj)
     case P_PICK_AXE:
         /* even if "dwarvish mattock" hasn't been discovered yet */
         if (obj->otyp == DWARVISH_MATTOCK)
-            descr = "鹤嘴锄";
+            descr = "镐";
         break;
     default:
         break;
@@ -768,7 +768,7 @@ possibly_unwield(struct monst *mon, boolean polyspot)
         }
         obj_extract_self(obj);
         /* might be dropping object into water or lava */
-        if (!flooreffects(obj, mon->mx, mon->my, "掉")) {
+        if (!flooreffects(obj, mon->mx, mon->my, "被丢")) {
             if (polyspot)
                 bypass_obj(obj);
             place_object(obj, mon->mx, mon->my);
@@ -893,7 +893,7 @@ mon_wield_item(struct monst *mon)
                       Monnam(mon), doname(obj),
                       exclaim ? '!' : '.');
             if ((arw = autoreturn_weapon(obj)) != 0 && arw->tethered != 0)
-                pline_mon(mon, "%s固定好%s的系绳.", Monnam(mon),
+                pline_mon(mon, "%s抓住%s的系绳.", Monnam(mon),
                           the(xname(obj)));
 
             /* 3.6.3: mwelded() predicate expects the object to have its
@@ -1238,7 +1238,7 @@ add_skills_to_menu(winid win, boolean selectable, boolean speedy)
     for (longest = 0, i = 0; i < P_NUM_SKILLS; i++) {
         if (P_RESTRICTED(i))
             continue;
-        if ((len = Strlen(P_NAME(i))) > longest)
+        if ((len = utf8str_width(P_NAME(i))) > longest)
             longest = len;
     }
 
@@ -1261,6 +1261,7 @@ add_skills_to_menu(winid win, boolean selectable, boolean speedy)
              * iflags.menu_tab_sep is set in which case it puts
              * tabs between columns.
              * The 12 is the longest skill level name.
+             * ↑ 此处最大 12 个字符改为中文的 3 个字符（占 6 格）
              * The "    " is room for a selection letter and dash, "a - ".
              */
             if (!selectable)
@@ -1275,22 +1276,36 @@ add_skills_to_menu(winid win, boolean selectable, boolean speedy)
                 prefix = "    ";
             (void) skill_level_name(i, sklnambuf);
             if (wizard) {
-                if (!iflags.menu_tab_sep)
+                if (!iflags.menu_tab_sep) {
+                    /* 修改:
                     Snprintf(buf, sizeof buf,
                              " %s%-*s %-12s %5d(%4d)", prefix,
                              longest, P_NAME(i), sklnambuf, P_ADVANCE(i),
-                             practice_needed_to_advance(P_SKILL(i)));
-                else
+                             practice_needed_to_advance(P_SKILL(i))); */
+                    Snprintf(buf, sizeof buf, " %s", prefix);
+                    Sprintf(eos(buf), "%s%*s", P_NAME(i),
+                            longest - utf8str_width(P_NAME(i)), "");
+                    Sprintf(eos(buf), "  %s%*s", sklnambuf,
+                            6 - utf8str_width(sklnambuf), "");
+                    Sprintf(eos(buf), "  %5d(%4d)", P_ADVANCE(i),
+                            practice_needed_to_advance(P_SKILL(i)));
+                } else
                     Snprintf(buf, sizeof buf,
                              " %s%s\t%s\t%5d(%4d)", prefix, P_NAME(i),
                              sklnambuf, P_ADVANCE(i),
                              practice_needed_to_advance(P_SKILL(i)));
             } else {
-                if (!iflags.menu_tab_sep)
+                if (!iflags.menu_tab_sep) {
+                    /* 修改:
                     Snprintf(buf, sizeof buf,
                              " %s %-*s [%s]", prefix, longest,
-                             P_NAME(i), sklnambuf);
-                else
+                             P_NAME(i), sklnambuf); */
+                    Snprintf(buf, sizeof buf, " %s ", prefix);
+                    Sprintf(eos(buf), "%s%*s", P_NAME(i),
+                            longest - utf8str_width(P_NAME(i)), "");
+                    Sprintf(eos(buf), "  [%s%*s]", sklnambuf,
+                            6 - utf8str_width(sklnambuf), "");
+                } else
                     Snprintf(buf, sizeof buf,
                              " %s%s\t[%s]", prefix, P_NAME(i),
                              sklnambuf);

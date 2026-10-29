@@ -1,4 +1,4 @@
-/* NetHack 5.0	dothrow.c	$NHDT-Date: 1737343372 2025/01/19 19:22:52 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.300 $ */
+/* NetHack 5.0	dothrow.c	$NHDT-Date: 1781973046 2026/06/20 16:30:46 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.318 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -242,9 +242,9 @@ throw_obj(struct obj *obj, int shotlimit)
        attempted to specify a count */
     if (multishot > 1 || shotlimit > 0) {
         /* "You shoot N arrows." or "You throw N daggers." */
-        You("%s%d %s.", gm.m_shot.s ? "发射" : "投掷",
+        You("%s了%d%s%s.", gm.m_shot.s ? "射出" : "投掷",
             multishot, /* (might be 1 if player gave shotlimit) */
-            (multishot == 1) ? singular(obj, xname) : xname(obj));
+            obj_classifier(obj), (multishot == 1) ? singular(obj, xname) : xname(obj));
     }
 
     wep_mask = obj->owornmask;
@@ -814,7 +814,7 @@ hurtle_step(genericptr_t arg, coordxy x, coordxy y)
             You("撞到了铁栅栏上. 嗷!");
         } else if ((obj = sobj_at(BOULDER, x, y)) != 0) {
             why = "撞到巨石上";
-            You("撞到了一个%s上. 嗷!", xname(obj));
+            You("撞到了一%s%s上. 嗷!", obj_classifier(obj), xname(obj));
         }  else if (!may_pass) {
             /* did we hit a no-dig non-wall position? */
             why = "触摸宇宙的边界";
@@ -871,7 +871,7 @@ hurtle_step(genericptr_t arg, coordxy x, coordxy y)
             /* this is a bodily collision, so check for body armor */
             && !uarmu && !uarm && !uarmc) {
             Sprintf(svk.killer.name, "撞到%s",
-                    an(pmname(mon->data, NEUTRAL)));
+                    pmname(mon->data, NEUTRAL));
             instapetrify(svk.killer.name);
         }
         if (touch_petrifies(gy.youmonst.data)
@@ -928,7 +928,7 @@ hurtle_step(genericptr_t arg, coordxy x, coordxy y)
             (void) drown();
             return FALSE;
         } else if (!Is_waterlevel(&u.uz) && !stopping_short) {
-            Norep("你在%s上移动.", an(is_moat(x, y) ? "护城河" : "水池"));
+            Norep("你在%s上移动.", is_moat(x, y) ? "护城河" : "水池");
         }
     } else if (is_lava(x, y) && !stopping_short) {
         Norep("你在熔岩上移动.");
@@ -1088,7 +1088,7 @@ hurtle(int dx, int dy, int range, boolean verbose)
      * for diagonal movement, give the player a message and return.
      */
     if (Punished && !carried(uball)) {
-        You_feel("铁球传来一阵拉扯.");
+        You_feel("到铁球的拉力.");
         nomul(0);
         return;
     } else if (u.utrap) {
@@ -1386,8 +1386,8 @@ toss_up(struct obj *obj, boolean hitsroof)
                     if (!harmless) /* !harmless => less_damage here */
                         pline("幸运的是, 你戴着一顶硬头盔.");
                     else
-                        pline("不幸的是, 你戴着%s.",
-                              an(helm_simple_name(uarmh))); /* helm or hat */
+                        pline("不幸的是, 你戴着一顶%s.",
+                              helm_simple_name(uarmh)); /* helm or hat */
                 }
 
             /* helmet definitely protects you when it blocks petrification */
@@ -1437,7 +1437,8 @@ throwing_weapon(struct obj *obj)
                       || obj->otyp == WAR_HAMMER || obj->otyp == AKLYS);
 }
 
-/* the currently thrown object is returning to you (not for boomerangs) */
+/* the currently thrown object is returning to you (not for boomerangs
+   or tethered weapons) */
 staticfn void
 sho_obj_return_to_u(struct obj *obj)
 {
@@ -1520,7 +1521,8 @@ throwit(
     boolean crossbowing,
             impaired = (Confusion || Stunned || Blind
                         || Hallucination || Fumbling),
-            tethered_weapon = (arw && arw->tethered && (wep_mask & W_WEP) != 0);
+            tethered_weapon = (arw && arw->tethered && (wep_mask & W_WEP) != 0),
+            tether_released_msg = FALSE;
 
     gn.notonhead = FALSE; /* reset potentially stale value */
     if ((obj->cursed || obj->greased) && (u.dx || u.dy) && !rn2(7)) {
@@ -1641,7 +1643,7 @@ throwit(
             } else if (obj->oclass != GEM_CLASS) {
                 range /= 2;
                 pline("你没有装备%s, 因此你只能用%s投掷你的%s.",
-                      an(skill_name(weapon_type(obj))),
+                      skill_name(weapon_type(obj)),
                       weapon_descr(obj),
                       body_part(HAND));
             }
@@ -1685,8 +1687,14 @@ throwit(
             /* bhit display cleanup was left with this caller
                for tethered_weapon, but clean it up now since
                we're about to return */
-            if (tethered_weapon)
+            if (tethered_weapon) {
+                if (!tether_released_msg) {
+                    pline("The tether comes off your %s.",
+                           body_part(ARM));
+                    tether_released_msg = TRUE;
+                }
                 tmp_at(DISP_END, 0);
+            }
             throwit_return(FALSE);
             return;
         }
@@ -1699,8 +1707,14 @@ throwit(
 
     if (!gt.thrownobj) {
         /* missile has already been handled */
-        if (tethered_weapon)
+        if (tethered_weapon) {
+            if (!tether_released_msg) {
+                pline("The tether comes off your %s.",
+                       body_part(ARM));
+                tether_released_msg = TRUE;
+            }
             tmp_at(DISP_END, 0);
+        }
     } else if (u.uswallow && !iflags.returning_missile) {
         swallowit(obj);
         return;
@@ -1729,46 +1743,88 @@ throwit(
                 } else {
                     int dmg = rn2(2);
 
+                    if (tethered_weapon) {
+                        /* It's tethered, so it usually returns to your
+                         * inventory, despite impairment */
+                        obj = addinv_before(obj, oldslot);
+                        encumber_msg();
+                        /* addinv autoquivers an aklys if quiver is empty;
+                          if obj is quivered, remove it before wielding */
+                        if (obj->owornmask & W_QUIVER)
+                           setuqwep((struct obj *) 0);
+                        if (cansee(gb.bhitpos.x, gb.bhitpos.y))
+                           newsym(gb.bhitpos.x, gb.bhitpos.y);
+                    }
                     if (!dmg) {
-                        pline(Blind ? "%s落在%s你的%s."
-                                    : "%s了你附近, 落在你的%s%s.",
-                              Blind ? Something : Tobjnam(obj, "飞回"),
-                              makeplural(body_part(FOOT)),
-                              Levitation ? "下" : "上"); /*修改语序:看原文*/
+                        if (tethered_weapon) {
+                            /* Blind mods unnecessary; you know what you threw,
+                             * and it is tethered to your arm */
+                            pline("你的系上的%s飞了回来，但是链子从你的%s上滑落.",
+                                  simpleonames(obj), body_part(ARM));
+                            tether_released_msg = TRUE;
+                        } else {
+                            pline(Blind
+                                      ? "%s落在你的%s%s."
+                                      : "%s了你附近, 落在你的%s%s.",
+                                  Blind ? Something : Tobjnam(obj, "飞回"),
+                                  makeplural(body_part(FOOT)),
+                                  Levitation ? "下" : "上");
+                        }
                     } else {
                         dmg += rnd(3);
-                        pline(Blind ? "%s了你的%s!"
-                                    : "%s了你附近, 击中了你的%s!",
-                              Tobjnam(obj, Blind ? "击中" : "飞回"),
-                              body_part(ARM));
+                        if (tethered_weapon) {
+                            Your("系上的%s飞回来, 击中了你的%s!",
+                                 simpleonames(obj), body_part(ARM));
+                        } else {
+                            pline(
+                                Blind
+                                    ? "%s your %s!"
+                                    : "%s back toward you, hitting your %s!",
+                                Tobjnam(obj, Blind ? "hit" : "fly"),
+                                body_part(ARM));
+                        }
                         if (obj->oartifact)
                             (void) artifact_hit((struct monst *) 0,
                                                 &gy.youmonst, obj, &dmg, 0);
                         losehp(Maybe_Half_Phys(dmg), killer_xname(obj),
                                KILLED_BY);
                     }
-
-                    if (u.uswallow) {
-                        swallowit(obj);
-                        return;
+                    if (!tethered_weapon) {
+                        if (u.uswallow) {
+                            swallowit(obj);
+                            return;
+                        }
+                        if (!ship_object(obj, u.ux, u.uy, FALSE))
+                            dropy(obj);
+                    } else {
+                        if (!tether_released_msg) {
+                            pline_The("%s tether comes off your %s.",
+                                  s_suffix(simpleonames(obj)), body_part(ARM));
+                            tether_released_msg = TRUE;
+                        }
                     }
-                    if (!ship_object(obj, u.ux, u.uy, FALSE))
-                        dropy(obj);
                 }
                 throwit_return(TRUE);
                 return;
             } else {
-                if (tethered_weapon)
+                if (tethered_weapon) {
+                   if (!tether_released_msg) {
+                       pline("The tether comes off your %s.",
+                              body_part(ARM));
+                       tether_released_msg = TRUE;
+                    }
                     tmp_at(DISP_END, 0);
-                /* when this location is stepped on, the weapon will be
-                   auto-picked up due to 'obj->how_lost' of LOST_THROWN;
-                   addinv() prevents thrown Mjollnir from being placed
-                   into the quiver slot, but an aklys will end up there if
-                   that slot is empty at the time; since hero will need to
-                   explicitly rewield the weapon to get throw-and-return
-                   capability back anyway, quivered or not shouldn't matter */
-                pline("%s返回!", Tobjnam(obj, "未能"));
-
+                    /* when this location is stepped on, the weapon will be
+                       auto-picked up due to 'obj->how_lost' of LOST_THROWN;
+                       addinv() prevents thrown Mjollnir from being placed
+                       into the quiver slot, but an aklys will end up there if
+                       that slot is empty at the time; since hero will need to
+                       explicitly rewield the weapon to get throw-and-return
+                       capability back anyway, quivered or not shouldn't
+                       matter */
+                } else {
+                    pline("%s返回!", Tobjnam(obj, "未能"));
+                }
                 if (u.uswallow) {
                     swallowit(obj);
                     return;
@@ -2151,6 +2207,8 @@ thitmonst(
 
     dieroll = rnd(20);
 
+    check_caitiff(mon);
+
     if (obj->oclass == WEAPON_CLASS || is_weptool(obj)
         || obj->oclass == GEM_CLASS) {
         if (hmode == HMON_KICKED) {
@@ -2462,7 +2520,7 @@ release_camera_demon(struct obj *obj, coordxy x, coordxy y)
                            MM_NOMSG)) != 0) {
         if (canspotmon(mtmp))
             pline("%s被释放了!", Hallucination
-                                         ? An(rndmonnam(NULL))
+                                         ? an_rndmonnam(NULL)
                                          : "画图恶魔");
         mtmp->mpeaceful = !obj->cursed;
         set_malign(mtmp);
@@ -2616,7 +2674,7 @@ breakmsg(struct obj *obj, boolean in_view)
     if (is_crackable(obj)) /* breakobj() will call erode_obj() for message */
         return;
 
-    to_pieces = "";
+    to_pieces = "了";
     switch (obj->oclass == POTION_CLASS ? POT_WATER : obj->otyp) {
     default: /* glass or crystal wand */
         if (obj->oclass != WAND_CLASS)
@@ -2634,8 +2692,8 @@ breakmsg(struct obj *obj, boolean in_view)
         if (!in_view)
             You_hear("%s粉碎了!", something);
         else
-            pline("%s粉碎%s%s!", Doname2(obj),
-                  (obj->quan == 1L) ? "" : "", to_pieces);
+            pline("%s粉碎%s!", Doname2(obj),
+                  /*冗余:(obj->quan == 1L) ? "" : "", */to_pieces);
         break;
     case EGG:
     case MELON:
@@ -2686,8 +2744,8 @@ throw_gold(struct obj *obj)
                       ceiling(u.ux, u.uy), body_part(HEAD));
             /* some self damage? */
             if (uarmh)
-                pline("幸运的是, 你戴着%s!",
-                      an(helm_simple_name(uarmh)));
+                pline("幸运的是, 你戴着一顶%s!",
+                      helm_simple_name(uarmh));
         }
         gb.bhitpos.x = u.ux;
         gb.bhitpos.y = u.uy;

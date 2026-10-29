@@ -50,7 +50,7 @@ Control字符不区分大小写; ^D与^d相同, Ctrl+d 与 Ctrl+Shift+d 相同.
 ^D    kick      踢(门, 或者别的东西)
 ^T    teleport  传送(如果你可以的话)
 ^X    show      显示你的属性
-a     apply     使用工具(鹤嘴锄, 钥匙, 提灯...)
+a     apply     使用工具(镐, 钥匙, 提灯...)
 A     takeoffall  选择多项防具, 饰品和武器并脱下, 卸除或取消装备
                 (在游戏中, 耗费的回合数和逐个单独T,R,w-是一样的)
 c     close     关门
@@ -96,7 +96,7 @@ $     showgold  显示金币
 `     knownclass  显示某类物品的已发现类型
 _     travel    使用最短路径算法移动到地图上的某个位置
 ^_    retravel  旅行到上一个选择的旅行目的地
-.     wait      停下
+.     wait      停下一回合
 ,     pickup    拾取所有可以拾取的物品
 @               开关"pickup"(自动拾取)选项
 :     look      查看这里的物品

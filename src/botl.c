@@ -1,5 +1,4 @@
-﻿/* NetHack 5.0  botl.c  $NHDT-Date: 1769839231 2026/01/30 22:00:31 $
- * $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.277 $ */
+/* NetHack 5.0	botl.c	$NHDT-Date: 1781973042 2026/06/20 16:30:42 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.286 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -85,7 +84,7 @@ do_statusline1(void)
 
     Sprintf(nb = eos(nb), "  ");
     i = gm.mrank_sz + 15;
-    j = (int) utf8str_width(newbot1);
+    j = utf8str_width(newbot1);
     if (i > j)
         Sprintf(nb = eos(nb), "%*s", i - j, " "); /* pad with spaces */
 
@@ -456,8 +455,13 @@ describe_level(
         addbranch = (dflgs & 2) != 0;    /* False: status, True: livelog */
     int ret = 1;
 
+    if (addbranch/* && !(Is_knox(&u.uz)) && !(In_endgame(&u.uz))*/) { //先大单位再小单位
+        Sprintf(buf, "%s", svd.dcname[u.uz.dnum]);
+        /* 冗余: 大小写操作在中文语境下失效，考虑直接删除
+        (void) strsubst(buf, "The ", "the "); */
+    }
     if (Is_knox(&u.uz)) {
-        Sprintf(buf, "%s", svd.dungeons[u.uz.dnum].dcname);
+        Sprintf(buf, "%s", svd.dcname[u.uz.dnum]);
         addbranch = FALSE;
     } else if (In_quest(&u.uz)) {
         Sprintf(buf, "家 %d", dunlev(&u.uz));
@@ -473,13 +477,8 @@ describe_level(
             Sprintf(buf, "%s:%-2d", /* "Dlvl:n" (grep fodder) */
                     In_tutorial(&u.uz) ? "教程" : "地牢", depth(&u.uz));
         else
-            Sprintf(buf, "%d层", depth(&u.uz));
+            Sprintf(eos(buf), "%d层", depth(&u.uz));
         ret = 0;
-    }
-    if (addbranch) {
-        Sprintf(eos(buf), ", %s", svd.dungeons[u.uz.dnum].dcname);
-        /* 冗余: 大小写操作在中文语境下失效，考虑直接删除
-        (void) strsubst(buf, "The ", "the "); */
     }
     if (addspace)
         Strcat(buf, " ");
@@ -667,7 +666,7 @@ staticfn char *anything_to_s(char *, anything *, int);
 staticfn int percentage(struct istat_s *, struct istat_s *);
 staticfn int exp_percentage(void);
 staticfn int QSORTCALLBACK cond_cmp(const genericptr, const genericptr);
-staticfn int QSORTCALLBACK menualpha_cmp(const genericptr, const genericptr);
+/*冗余:staticfn int QSORTCALLBACK menualpha_cmp(const genericptr, const genericptr);*/
 // 修改: 增加一个回调用于实现拼音排序
 staticfn int QSORTCALLBACK pinyin_cmp(const genericptr, const genericptr);
 
@@ -775,7 +774,7 @@ static struct istat_s initblstats[MAXBLSTATS] = {
     INIT_BLSTAT("gold", " %s", ANY_LONG, 40, BL_GOLD),
     INIT_BLSTATP("power", " 能量:%s", ANY_INT, 10, BL_ENEMAX, BL_ENE),
     INIT_BLSTAT("power-max", "(%s)", ANY_INT, 10, BL_ENEMAX),
-    INIT_BLSTATP("experience-level", " 等级:%s", ANY_INT, 10, BL_EXP, BL_XP),
+    INIT_BLSTATP("experience-level", " 等级:%s", ANY_INT, 10, BL_XP, BL_XP),
     INIT_BLSTAT("armor-class", " 护甲:%s", ANY_INT, 10, BL_AC),
     INIT_BLSTAT("HD", " 生命骰:%s", ANY_INT, 10, BL_HD),
     INIT_BLSTAT("time", " 回合:%s", ANY_LONG, 30, BL_TIME),
@@ -1161,11 +1160,11 @@ bot_via_windowport(void)
     Strcpy(nb = buf, svp.plname);
     nb[0] = highc(nb[0]);
     titl = !Upolyd ? rank() : pmname(&mons[u.umonnum], Ugender);
-    i = (int) (utf8str_width(buf) + utf8str_width(titl) + 1);
+    i = utf8str_width(buf) + utf8str_width(titl) + 1;
     // 修改: 原始逻辑为如果名称列过长则截断，但至少保证 BOTL_NSIZ 个字节
     // 现修改为列宽超过该阈值则截断，至少保证 BOTL_NSIZ 的列宽
     if (i > 30) {
-        int free_cols = 30 - (1 + (int) utf8str_width(titl));
+        int free_cols = 30 - (1 + utf8str_width(titl));
         size_t col = 0, pos = 0;
         while (buf[pos]) {
             uint8 clen = 0, cw = 0;
@@ -1179,7 +1178,7 @@ bot_via_windowport(void)
     }
     Strcpy(nb = eos(nb), " ");
     Strcpy(nb = eos(nb), titl);
-    i = (int) utf8str_width(buf);
+    i = utf8str_width(buf);
     if (i < 30)
         Sprintf(eos(buf), "%*s", 30 - i, "");
     Sprintf(gb.blstats[idx][BL_TITLE].val, "%s", buf);
@@ -1529,6 +1528,7 @@ cond_cmp(const genericptr vptr1, const genericptr vptr2)
 }
 
 /* qsort callback routine for alphabetical sorting of index */
+#if 0 /*冗余:未使用*/
 staticfn int QSORTCALLBACK
 menualpha_cmp(const genericptr vptr1, const genericptr vptr2)
 {
@@ -1536,6 +1536,7 @@ menualpha_cmp(const genericptr vptr1, const genericptr vptr2)
 
     return strcmpi(condtests[indx1].useroption, condtests[indx2].useroption);
 }
+#endif /*冗余*/
 
 /* qsort 回调，用于拼音排序 */
 staticfn int QSORTCALLBACK
@@ -1609,8 +1610,8 @@ cond_menu(void)
             // 修改: 无法直接通过 format 限制 UTF-8
             // 字符串的显示列数，所以手动计算
             Sprintf(mbuf, "%s%*s", condtests_ui[idx].text,
-                    14 - (int) utf8str_width(condtests_ui[idx].text) > 0
-                        ? 14 - (int) utf8str_width(condtests_ui[idx].text)
+                    14 - utf8str_width(condtests_ui[idx].text) > 0
+                        ? 14 - utf8str_width(condtests_ui[idx].text)
                         : 0,
                     "");
             any = cg.zeroany;
@@ -3616,7 +3617,7 @@ static int status_hilite_str_id = 0;
 
 staticfn void
 status_hilite_linestr_add(int fld, struct hilite_s *hl, unsigned long mask,
-                          unsigned int color_attr, const char *str)
+                          unsigned int attr, const char *str)
 {
     struct _status_hilite_line_str *tmp, *nxt;
 
@@ -3628,7 +3629,7 @@ status_hilite_linestr_add(int fld, struct hilite_s *hl, unsigned long mask,
     tmp->fld = fld;
     tmp->hl = hl;
     tmp->mask = mask;
-    tmp->color_attr = color_attr;
+    tmp->color_attr = attr;
     if (fld == BL_TITLE)
         Strcpy(tmp->str, str);
     else
@@ -4188,7 +4189,7 @@ choose_behavior:
 
 choose_value:
     if (retry++ > 5) {
-        pline("尝试次数已经够多了. ");
+        pline("你试了够多次了.");
         return FALSE;
     }
     if (behavior == BL_TH_VAL_PERCENTAGE || behavior == BL_TH_VAL_ABSOLUTE) {
@@ -4237,17 +4238,17 @@ choose_value:
         }
         if (*inp == '%') {
             if (!percent) {
-                pline("不应出现百分比. ");
+                pline("不应出现百分比.");
                 goto choose_behavior;
             }
             *inp = '\0'; /* strip '%' [this accepts trailing junk!] */
         } else if (*inp) {
             /* some random characters */
-            pline("\"%s\" 不是一个可识别的数字. ", inp);
+            pline("\"%s\"不是一个可识别的数字.", inp);
             goto choose_value;
         }
         if (!gotnum) {
-            pline("那是个隐形数字吗？");
+            pline("那是个隐形数字吗?");
             goto choose_value;
         }
         op = (lt_gt_eq == LT_VALUE)   ? "<"
@@ -4278,7 +4279,7 @@ choose_value:
                 || (val == 0 && lt_gt_eq == LT_VALUE)
                 || (val == 100 && lt_gt_eq == GT_VALUE)
                 || (val > 100 && (val != 101 || lt_gt_eq != LT_VALUE))) {
-                pline("'%s%d%%' 不是一个有效的百分比值. ", op, val);
+                pline("'%s%d%%'不是一个有效的百分比值.", op, val);
                 goto choose_value;
             }
             /* restore suffix for use in color and attribute prompts */
@@ -4817,7 +4818,7 @@ shlmenu_redo:
         any.a_int = fld + 1;
         /* 修改: 原本的排版方式不适用于 UTF-8 编码的中文
         Sprintf(buf, "%-18s", fldname_ui[i]); */
-        int display_width = (int) utf8str_width(fldname_ui[i]);
+        int display_width = utf8str_width(fldname_ui[i]);
         Sprintf(buf, "%s%*s", fldname_ui[i],
                 18 - display_width > 0 ? 18 - display_width : 0, "");
         if (count)

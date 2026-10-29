@@ -613,7 +613,7 @@ curses_ext_cmd(void)
         char extcmd_char = extcmd_initiator();
 
         if (*cur_choice)
-            pline("%s%s: unknown extended command.",
+            pline("%s%s: 未知扩展命令.",
                   visctrl(extcmd_char), cur_choice);
     }
     return ret;
@@ -1134,7 +1134,7 @@ menu_win_size(nhmenu *menu)
 {
     int maxwidth, maxheight, curentrywidth, lastline;
     int maxentrywidth = 0;
-    int maxheaderwidth = menu->prompt ? (int) strlen(menu->prompt) : 0;
+    int maxheaderwidth = menu->prompt ? utf8str_width(menu->prompt) : 0;
     nhmenu_item *menu_item_ptr, *last_item_ptr = NULL;
     boolean only_if_no_headers = (iflags.menuobjsyms & 4) != 0;
 
@@ -1171,7 +1171,7 @@ menu_win_size(nhmenu *menu)
     assert(menu->entries != NULL); /* at least one iteration will occur */
     for (menu_item_ptr = menu->entries; menu_item_ptr != NULL;
          menu_item_ptr = menu_item_ptr->next_item) {
-        curentrywidth = (int) strlen(menu_item_ptr->str);
+        curentrywidth = utf8str_width(menu_item_ptr->str);
         if (menu_item_ptr->identifier.a_void == NULL) {
             if (curentrywidth > maxheaderwidth) {
                 maxheaderwidth = curentrywidth;
@@ -1438,7 +1438,7 @@ menu_display_page(
     if (menu->num_pages > 1) {
         int footer_x, footwidth, shoesize = menu->num_pages;
 
-        footwidth = (int) (sizeof "<- (Page X of Y) ->" - sizeof "");
+        footwidth = (int) (2 + utf8str_width(" (页数 X/Y) ") + 2);
         while (shoesize >= 10) { /* possible for pickup from big piles... */
              /* room for wider feet; extra digit for both X and Y */
             footwidth += 2;
@@ -1450,7 +1450,7 @@ menu_display_page(
             mvwaddstr(win, menu->height, footer_x, "<=");
             curses_toggle_color_attr(win, HIGHLIGHT_COLOR, NONE, OFF);
         }
-        mvwprintw(win, menu->height, footer_x + 2, " (Page %d of %d) ",
+        mvwprintw(win, menu->height, footer_x + 2, " (页数 %d/%d) ",
                   page_num, menu->num_pages);
         if (page_num != menu->num_pages) {
             curses_toggle_color_attr(win, HIGHLIGHT_COLOR, NONE, ON);
@@ -1562,7 +1562,7 @@ curs_nonselect_menu_action(
             break;
 
         search_key[0] = '\0';
-        curses_line_input_dialog("Search for:", search_key, BUFSZ);
+        curses_line_input_dialog("搜索:", search_key, BUFSZ);
 
         refresh();
         touchwin(win);

@@ -29,7 +29,8 @@ core
 .*.swp
 
 # We generate makefiles by shell script
-Makefile
+**/Makefile
+!nhlua/**/Makefile
 
 # Win32-specific ignores
 Debug/
@@ -49,6 +50,7 @@ Makefile.gcc
 Makefile-orig
 Makefile.bcc-orig
 Makefile.gcc-orig
+make.prefs
 *.suo
 *.pdb
 *.ilk
@@ -97,8 +99,13 @@ util/*.lib
 util/*.exp
 submodules/CHKSUMS.tmp
 sys/amiga/regex/
-
+__pycache__/
 .idea/
 
 #auto-generated files
 kanjifiles.txt
+
+#some local files
+corpus/
+tools/
+playground/

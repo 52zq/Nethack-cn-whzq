@@ -6,6 +6,12 @@
 #ifndef CURSWIN_H
 # define CURSWIN_H
 
+struct glyph_attributes {
+    int basic_color; // basic color
+    int color256;    // extended color (0 if not defined), used when supported
+    int framecolor;
+    int attribute_flags;
+};
 
 /* Global declarations */
 
@@ -17,7 +23,6 @@ void curses_destroy_win(WINDOW * win);
 void curses_refresh_nethack_windows(void);
 WINDOW *curses_get_nhwin(winid wid);
 void curses_parse_wid_colors(int wid, char *fg, char *bg);
-boolean parse_hexstr(char *colorbuf, int *red, int *green, int *blue);
 void curses_add_nhwin(winid wid, int height, int width, int y, int x,
                       orient orientation, boolean border);
 void curses_add_wid(winid wid);
@@ -27,11 +32,11 @@ void curses_del_wid(winid wid);
 void curs_destroy_all_wins(void);
 #ifdef ENHANCED_SYMBOLS
 void curses_putch(winid wid, int x, int y, int ch,
-                  struct unicode_representation *ur, int color,
-                  int framecolor, int attrs);
+                  struct unicode_representation *ur,
+                  const struct glyph_attributes *attr);
 #else
-void curses_putch(winid wid, int x, int y, int ch, int color,
-                  int framecolor, int attrs);
+void curses_putch(winid wid, int x, int y, int ch,
+                  const struct glyph_attributes *attr);
 #endif
 void curses_get_window_xy(winid wid, int *x, int *y);
 boolean curses_window_has_border(winid wid);

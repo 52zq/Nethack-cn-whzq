@@ -1,4 +1,4 @@
-/* NetHack 5.0	detect.c	$NHDT-Date: 1763708572 2025/11/20 23:02:52 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.191 $ */
+/* NetHack 5.0	detect.c	$NHDT-Date: 1781973044 2026/06/20 16:30:44 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.197 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -345,7 +345,7 @@ gold_detect(struct obj *sobj)
 
     /* look for gold carried by monsters (might be in a container) */
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         if (findgold(mtmp->minvent) || monsndx(mtmp->data) == PM_GOLD_GOLEM) {
             if (mtmp == u.usteed) {
@@ -433,7 +433,7 @@ gold_detect(struct obj *sobj)
             ugold = TRUE;
     }
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         temp = 0;
         if (findgold(mtmp->minvent) || monsndx(mtmp->data) == PM_GOLD_GOLEM) {
@@ -497,7 +497,7 @@ food_detect(struct obj *sobj)
                 ct++;
         }
     for (mtmp = fmon; mtmp && (!ct || !ctu); mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         for (obj = mtmp->minvent; obj; obj = obj->nobj)
             if (o_in(obj, oclass)) {
@@ -561,7 +561,7 @@ food_detect(struct obj *sobj)
                 map_object(temp, 1);
             }
         for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-            if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+            if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
                 continue;
             for (obj = mtmp->minvent; obj; obj = obj->nobj)
                 if ((temp = o_in(obj, oclass)) != 0) {
@@ -666,7 +666,7 @@ object_detect(struct obj *detector, /* object doing the detecting */
         u.usteed->mx = u.ux, u.usteed->my = u.uy;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         for (obj = mtmp->minvent; obj; obj = obj->nobj) {
             if ((!class && !boulder) || o_in(obj, class)
@@ -736,7 +736,7 @@ object_detect(struct obj *detector, /* object doing the detecting */
 
     /* Objects in the monster's inventory override floor objects. */
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         for (obj = mtmp->minvent; obj; obj = obj->nobj)
             if ((!class && !boulder) || (otmp = o_in(obj, class)) != 0
@@ -807,7 +807,7 @@ monster_detect(struct obj *otmp, /* detecting object (if any) */
      * with positive hit-points to know for sure.
      */
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         ++mcnt;
         break; /* no need for full count, just 1 or more vs 0 */
@@ -826,7 +826,7 @@ monster_detect(struct obj *otmp, /* detecting object (if any) */
         cls();
         unconstrained = unconstrain_map();
         for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-            if (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx))
+            if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
                 continue;
             if (!mclass || mtmp->data->mlet == mclass
                 || (mtmp->data == &mons[PM_LONG_WORM]
@@ -969,7 +969,7 @@ display_trap_map(int cursed_src)
     (void) detect_obj_traps(svl.level.buriedobjlist, TRUE, cursed_src, NULL);
     (void) detect_obj_traps(fobj, TRUE, cursed_src, NULL);
     for (mon = fmon; mon; mon = mon->nmon) {
-        if (DEADMONSTER(mon) || (mon->isgd && !mon->mx))
+        if (DEADMONSTER(mon) || PARKEDMONSTER(mon))
             continue;
         (void) detect_obj_traps(mon->minvent, TRUE, cursed_src, NULL);
     }
@@ -1046,7 +1046,7 @@ trap_detect(
         found = TRUE;
     }
     for (mon = fmon; mon; mon = mon->nmon) {
-        if (DEADMONSTER(mon) || (mon->isgd && !mon->mx))
+        if (DEADMONSTER(mon) || PARKEDMONSTER(mon))
             continue;
         if ((tr = detect_obj_traps(mon->minvent, FALSE, 0, NULL))
             != OTRAP_NONE) {
@@ -1116,7 +1116,7 @@ furniture_detect(void)
         }
 
     if (!found)
-        There("这层似乎没有任何值得关注的东西.");
+        pline("这层似乎没有任何值得关注的东西."); //There
     else if (!revealed)
         /* [what about clipped map with points of interest outside of the
             currently shown area?] */
@@ -1248,7 +1248,7 @@ use_crystal_ball(struct obj **optr)
             *optr = obj = 0; /* it's gone */
             /* physical damage cause by the shards and force */
             losehp(Maybe_Half_Phys(rnd(30)), "水晶球爆炸",
-                   KILLED_BY_AN);
+                   KILLED_BY);
             break;
         }
         if (obj)
@@ -1643,7 +1643,7 @@ findone(coordxy zx, coordxy zy, genericptr_t whatfound)
     struct monst *mtmp = m_at(zx, zy);
     struct found_things *found_p = (struct found_things *) whatfound;
 
-    if (mtmp && (DEADMONSTER(mtmp) || (mtmp->isgd && !mtmp->mx)))
+    if (mtmp && (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp)))
         mtmp = (struct monst *) NULL;
     found_p->ft_cc.x = zx; /* needed by detect_obj_traps() */
     found_p->ft_cc.y = zy;
@@ -1953,7 +1953,7 @@ find_trap(struct trap *trap)
     }
 
     set_msg_xy(trap->tx, trap->ty);
-    You("找到了%s.", an(trapname(trap->ttyp, FALSE)));
+    You("发现了%s.", an(trapname(trap->ttyp, FALSE)));
 
     if (cleared) {
         display_nhwindow(WIN_MAP, TRUE); /* wait */
@@ -2002,10 +2002,10 @@ mfind0(struct monst *mtmp, boolean via_warning)
         if (!canspotmon(mtmp)) {
             map_invisible(x, y);
             set_msg_xy(x, y);
-            You_feel("一个看不见的怪物!");
+            You_feel("到一个看不见的怪物!");
         } else if (!sensemon(mtmp)) {
             set_msg_xy(x, y);
-            You("找到了一个%s.", mtmp->mtame ? y_monnam(mtmp) : a_monnam(mtmp));
+            You("发现了%s.", mtmp->mtame ? y_monnam(mtmp) : a_monnam(mtmp));
         }
         return 1;
     }
@@ -2048,7 +2048,7 @@ dosearch0(int aflag) /* intrinsic autosearch vs explicit searching */
                     nomul(0);
                     feel_location(x, y); /* make sure it shows up */
                     set_msg_xy(x, y);
-                    You("找到了一扇暗门.");
+                    You("发现了一扇暗门.");
                 } else if (levl[x][y].typ == SCORR) {
                     if (rnl(7 - fund))
                         continue;
@@ -2058,7 +2058,7 @@ dosearch0(int aflag) /* intrinsic autosearch vs explicit searching */
                     nomul(0);
                     feel_newsym(x, y); /* make sure it shows up */
                     set_msg_xy(x, y);
-                    You("找到了一条暗道.");
+                    You("发现了一条暗道.");
                 } else {
                     /* Be careful not to find anything in an SCORR or SDOOR */
                     if ((mtmp = m_at(x, y)) != 0 && !aflag) {

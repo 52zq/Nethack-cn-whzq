@@ -132,7 +132,6 @@ main(int argc, char *argv[])
     program_state.early_options = 1;
     /* handle -dalthackdir, -s <score stuff>, --version, --showpaths */
     early_options(&argc, &argv, &dir);
-    program_state.early_options = 0;
 #ifdef CHDIR
     /*
      * Change directories before we initialize the window system so
@@ -146,6 +145,7 @@ main(int argc, char *argv[])
 #ifdef __linux__
     check_linux_console();
 #endif
+    program_state.early_options = 0;
 
     initoptions();
 #ifdef PANICTRACE
@@ -256,16 +256,16 @@ main(int argc, char *argv[])
         /* if there are early trouble-messages issued, let's
          * not go overtop of them with a pline just yet */
         if (ge.early_raw_messages)
-            raw_print("Restoring save file...");
+            raw_print("读取存档中...");
         else
-            pline("Restoring save file...");
+            pline("读取存档中...");
         mark_synch(); /* flush output */
         if (dorecover(nhfp)) {
             resuming = TRUE; /* not starting new game */
             wd_message();
             if (discover || wizard) {
                 /* this seems like a candidate for paranoid_confirmation... */
-                if (y_n("Do you want to keep the save file?") == 'n') {
+                if (y_n("你想保留存档文件吗?") == 'n') {
                     (void) delete_savefile();
                 } else {
                     (void) chmod(fq_save, FCMASK); /* back to readable */
@@ -328,7 +328,7 @@ main(int argc, char *argv[])
 static void
 process_options(int argc, char *argv[])
 {
-    char *arg, *origarg;
+    char *arg, *origarg = 0;
     int i, l;
 
     config_error_init(FALSE, "command line", FALSE);
@@ -392,7 +392,7 @@ process_options(int argc, char *argv[])
                 (void) strncpy(svp.plname, argv[0], sizeof svp.plname - 1);
                 gp.plnamelen = 0;
             } else {
-                config_error_add("Character name expected after -u");
+                config_error_add("-u后应该加上角色姓名");
             }
             break;
         case 'I':
@@ -402,7 +402,7 @@ process_options(int argc, char *argv[])
                 load_symset("RogueIBM", ROGUESET);
                 switch_symbols(TRUE);
             } else {
-                config_error_add("Unknown option: %.60s", origarg);
+                config_error_add("未知参数: %.60s", origarg);
             }
             break;
         case 'l':
@@ -411,7 +411,7 @@ process_options(int argc, char *argv[])
                 gl.loglua = 1;
             } else
 #endif
-                config_error_add("Unknown option: %.60s", origarg);
+                config_error_add("未知参数: %.60s", origarg);
             break;
         case 'p': /* profession (role) */
             if (arg[2]) {
@@ -442,7 +442,7 @@ process_options(int argc, char *argv[])
             /* "--" or "--x" or "--x=y"; need at least 2 chars after the
                dashes in order to accept "--x" as an alternative to "-x";
                don't just silently ignore it */
-            config_error_add("Unknown option: %.60s", origarg);
+            config_error_add("未知参数: %.60s", origarg);
             break;
         default:
             /* default for "-x" is to play as the role that starts with "x" */
@@ -454,22 +454,8 @@ process_options(int argc, char *argv[])
         }
     }
 
-    if (argc > 1) {
-        int mxplyrs = atoi(argv[1]);
-        boolean mx_ok = (mxplyrs > 0);
-#ifdef SYSCF
-        config_error_add("%s%s%s",
-                         mx_ok ? "MAXPLAYERS are set in sysconf file"
-                               : "Expected MAXPLAYERS, found \"",
-                         mx_ok ? "" : argv[1], mx_ok ? "" : "\"");
-#else
-        /* XXX This is deprecated in favor of SYSCF with MAXPLAYERS */
-        if (mx_ok)
-            gl.locknum = mxplyrs;
-        else
-            config_error_add("Invalid MAXPLAYERS \"%s\"", argv[1]);
-#endif
-    }
+    if (argc > 1 && origarg)
+        config_error_add("未知参数: %.60s", origarg);
 #ifdef MAX_NR_OF_PLAYERS
     /* limit to compile-time limit */
     if (!gl.locknum || gl.locknum > MAX_NR_OF_PLAYERS)
@@ -524,7 +510,7 @@ chdirx(const char *dir, boolean wr)
 
     if (dir && chdir(dir) < 0) {
         perror(dir);
-        error("Cannot chdir to %s.", dir);
+        error("无法chdir到%s.", dir);
         /*NOTREACHED*/
     }
 
@@ -657,20 +643,20 @@ wd_message(void)
     if (iflags.wiz_error_flag) {
         if (sysopt.wizards && sysopt.wizards[0]) {
             char *tmp = build_english_list(sysopt.wizards);
-            pline("Only user%s %s may access debug (wizard) mode.",
-                  strchr(sysopt.wizards, ' ') ? "s" : "", tmp);
+            pline("只有%s用户可以进入调试(巫师)模式.",
+                  /*strchr(sysopt.wizards, ' ') ? "s" : "", */tmp);
             free(tmp);
         } else {
-            You("cannot access debug (wizard) mode.");
+            You("无法进入调试(巫师)模式.");
         }
         wizard = FALSE; /* (paranoia) */
         if (!iflags.explore_error_flag)
-            pline("Entering explore/discovery mode instead.");
+            pline("进入探索模式.");
     } else if (iflags.explore_error_flag) {
-        You("cannot access explore mode."); /* same as enter_explore_mode */
+        You("无法进入探索模式."); /* same as enter_explore_mode */
         discover = iflags.deferred_X = FALSE; /* (more paranoia) */
     } else if (discover)
-        You("are in non-scoring explore/discovery mode.");
+        You("正在游玩不计分的探索模式.");
 }
 
 /*
@@ -784,7 +770,7 @@ port_insert_pastebuf(char *buf)
     FILE *PB = popen("/usr/bin/pbcopy", "w");
 
     if (!PB) {
-        errarg = "Unable to start pbcopy";
+        errarg = "无法开始pbcopy";
         goto error;
     }
 
@@ -795,14 +781,14 @@ port_insert_pastebuf(char *buf)
 
     /* XXX Sorry, I'm too lazy to write a loop for output this short. */
     if (len != fwrite(buf, 1, len, PB)) {
-        errarg = "Error sending data to pbcopy";
+        errarg = "发送数据给pbcopy时发生错误";
         goto error;
     }
 
     if (pclose(PB) != -1) {
         return;
     }
-    errarg = "Error finishing pbcopy";
+    errarg = "完成pbcopy时发生错误";
 
  error:
     raw_printf("%s: %s (%d)\n", errarg, strerror(errno), errno);

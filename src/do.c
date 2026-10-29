@@ -1,4 +1,4 @@
-/* NetHack 5.0	do.c	$NHDT-Date: 1774269965 2026/03/23 04:46:05 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.404 $ */
+/* NetHack 5.0	do.c	$NHDT-Date: 1781973045 2026/06/20 16:30:45 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.411 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -248,7 +248,7 @@ flooreffects(
                             : "填上了坑");
             } else {
                 Soundeffect(se_boulder_drop, 100);
-                You_hear("一块巨石%s了.", verb);
+                You_hear("一块巨石%s了下去.", verb);
             }
         }
         /*
@@ -332,8 +332,8 @@ flooreffects(
         if (cansee(x,y)) {
             /* unconditional "ground" is safe as this only runs for
                room and corridor tiles */
-            pline("%s%s滚烫的地板加热.", Tobjnam(obj, "被"),
-                  is_plural(obj) ? "" : "");
+            pline("%s滚烫的地板, 便开始升温.", Tobjnam(obj, "一碰到")
+                  /*冗余:is_plural(obj) ? "" : ""*/);
         }
 
         int survival_chance = obj->blessed ? 70 : 50;
@@ -448,7 +448,7 @@ polymorph_sink(void)
     /* give message even if blind; we know we're not levitating,
        so can feel the outcome even if we can't directly see it */
     if (levl[u.ux][u.uy].typ != ROOM)
-        pline_The("水槽变形成了一个%s!", an(defsyms[sym].explanation));
+        pline_The("水槽变形成了一个%s!", defsyms[sym].explanation);
     else
         pline_The("水槽消失了.");
     newsym(u.ux, u.uy);
@@ -521,7 +521,7 @@ dosinkring(struct obj *obj)
         You("闻到腐烂的%s味道.", makeplural(fruitname(FALSE)));
         break;
     case RIN_AGGRAVATE_MONSTER:
-        pline("几个围绕在水槽的%s生气地嗡嗡叫.",
+        pline("几个%s围绕在水槽边的生气地嗡嗡叫.",
               Hallucination ? makeplural(rndmonnam(NULL)) : "苍蝇");
         break;
     case RIN_SHOCK_RESISTANCE:
@@ -542,7 +542,7 @@ dosinkring(struct obj *obj)
     case RIN_GAIN_CONSTITUTION:
         pline_The("%s流似乎变得更%s了.",
                   hliquid("水"),
-                  (obj->spe < 0) ? "弱" : "强");
+                  (obj->spe < 0) ? "细" : "粗");
         break;
     case RIN_INCREASE_ACCURACY: /* KMH */
         pline_The("%s流%s下水口.",
@@ -688,10 +688,10 @@ canletgo(struct obj *obj, const char *word)
         if (*word) {
             /* getobj() ignores a count for throwing since that is
                implicitly forced to be 1; replicate its kludge... */
-            if (!strcmp(word, "throw") && obj->quan > 1L)
+            if ((!strcmp(word, "throw") || !strcmp(word, "投掷")) && obj->quan > 1L)
                 obj->corpsenm = 1;
             pline("出于某种原因, 你无法%s%s石头%s!", word,
-                  obj->corpsenm ? "任何" : "", plur(obj->quan));
+                  obj->corpsenm ? "这种" : "这块", plur(obj->quan));
         }
         obj->corpsenm = 0; /* reset */
         set_bknown(obj, 1);
@@ -824,7 +824,7 @@ dropz(struct obj *obj, boolean with_impact)
                 (void) mpickobj(u.ustuck, obj);
         }
     } else {
-        if (flooreffects(obj, u.ux, u.uy, "丢"))
+        if (flooreffects(obj, u.ux, u.uy, "被丢"))
             return;
         place_object(obj, u.ux, u.uy);
         if (with_impact)
@@ -1330,7 +1330,7 @@ doup(void)
     if (ledger_no(&u.uz) == 1) {
         if (iflags.debug_fuzzer)
             return ECMD_OK;
-        if (y_n("Beware, there will be no return!  Still climb?") != 'y')
+        if (y_n("请注意, 此路不归!  还要继续爬上去吗?") != 'y')
             return ECMD_OK;
     }
     if (!next_to_u()) {
@@ -1370,18 +1370,36 @@ currentlevel_rewrite(void)
     return nhfp;
 }
 
+void
+do_idlecheckpoint(void)
+{
+    program_state.in_idlecheckpoint = 1;
 #ifdef INSURANCE
+    save_currentstate();
+#endif /* INSURANCE */
+    program_state.in_idlecheckpoint = 0;
+}
+
+#ifdef INSURANCE
+
 void
 save_currentstate(void)
 {
     NHFILE *nhfp;
 
+    if (!program_state.something_worth_saving
+        || program_state.in_self_recover
+        || program_state.in_checkpoint)
+        return;
+
     program_state.in_checkpoint++;
     if (flags.ins_chkpt) {
         /* write out just-attained level, with pets and everything */
         nhfp = currentlevel_rewrite();
-        if (!nhfp)
+        if (!nhfp) {
+            program_state.in_checkpoint--;
             return;
+        }
         if (nhfp->structlevel)
             bufon(nhfp->fd);
         nhfp->mode = WRITING;
@@ -1448,7 +1466,7 @@ staticfn void
 familiar_level_msg(void)
 {
     static const char *const fam_msgs[4] = {
-        "你有一种似曾相识感.",
+        "你感觉似曾相识.",
         "你感觉你好像来过这里.",
         "这个地方%s熟悉...", 0 /* no message */
     };
@@ -1757,10 +1775,10 @@ goto_level(
                fly up the stairs; fly up along the ladder */
             great_effort = (Punished && !Levitation);
             if (flags.verbose || great_effort)
-                pline("%s%s上%s%s.",
+                pline("%s%s上了%s.",
                       great_effort ? "你费了很大力气" : "你",
                       u_locomotion("爬"),
-                      (Flying && ga.at_ladder) ? "" : "",
+                      /*(Flying && ga.at_ladder) ? "" : "",*/
                       ga.at_ladder ? "梯子" : "楼梯");
         } else { /* down */
             stairway *stway = stairway_find_from(&u.uz0, ga.at_ladder);
@@ -2178,6 +2196,7 @@ revive_corpse(struct obj *corpse)
                     pline("%s%s消失了!", The(cname), effect);
                 }
             }
+            (void) maybe_set_terrain_effects(mtmp, 0);
             break;
 
         case OBJ_MINVENT: /* probably a nymph's */
@@ -2185,7 +2204,7 @@ revive_corpse(struct obj *corpse)
                 if (mcarry && canseemon(mcarry))
                     pline("惊愕之下, %s丢下了%s的%s!",
                           mon_nam(mcarry), canspotmon(mtmp) ? "复活" : "消失", /*修改语序:mon_nam(mcarry), an(cname),*/
-                          an(cname)); /*修改语序:canspotmon(mtmp) ? "复活" : "消失");*/
+                          cname); /*修改语序:canspotmon(mtmp) ? "复活" : "消失");*/
                 else if (canspotmon(mtmp))
                     pline("%s突然出现了!",
                           chewed ? Adjmonnam(mtmp, "布满咬痕的")
@@ -2416,9 +2435,9 @@ legs_in_no_shape(const char *for_what, /* jumping, kicking, riding */
 
         if (wl == BOTH_SIDES)
             bp = makeplural(bp);
-        Your("%s%s%s不适合%s.",
+        Your("%s%s不适合%s.",
              (wl == LEFT_SIDE) ? "左" : (wl == RIGHT_SIDE) ? "右" : "",
-             bp, (wl == BOTH_SIDES) ? "" : "", for_what);
+             bp, /*冗余:(wl == BOTH_SIDES) ? "" : "",*/ for_what);
     }
 }
 

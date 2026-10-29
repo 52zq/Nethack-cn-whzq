@@ -1,4 +1,4 @@
-/* NetHack 5.0	pray.c	$NHDT-Date: 1762680996 2025/11/09 01:36:36 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.244 $ */
+/* NetHack 5.0	pray.c	$NHDT-Date: 1781973062 2026/06/20 16:31:02 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.253 $ */
 /* Copyright (c) Benson I. Margulies, Mike Stephenson, Steve Linhart, 1989. */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -411,7 +411,7 @@ fix_worst_trouble(int trouble)
         disp.botl = TRUE;
         break;
     case TROUBLE_SICK:
-        You_feel("好多了.");
+        You_feel("好些了.");
         make_sick(0L, (char *) 0, FALSE, SICK_ALL);
         break;
     case TROUBLE_REGION:
@@ -695,8 +695,8 @@ fry_by_god(aligntyp resp_god, boolean via_disintegration)
 {
     You("%s!", !via_disintegration ? "烤得焦脆"
                                    : "分解成一堆灰尘");
-    svk.killer.format = KILLED_BY;
-    Sprintf(svk.killer.name, "%s的愤怒", align_gname(resp_god));
+    svk.killer.format = NO_KILLER_PREFIX; //危险:KILLED_BY;
+    Sprintf(svk.killer.name, "死于%s的愤怒", align_gname(resp_god));
     done(DIED);
 }
 
@@ -753,7 +753,7 @@ angrygods(aligntyp resp_god)
     case 5:
         gods_angry(resp_god);
         if (!Blind && !Antimagic)
-            pline("%s光芒围绕着你.", An(hcolor(NH_BLACK)));
+            pline("一圈%s光芒围绕着你.", hcolor(NH_BLACK)); //一圈吗？
         if (rn2(2) || !attrcurse())
             rndcurse();
         break;
@@ -944,7 +944,7 @@ gcrownu(void)
     case A_CHAOTIC: {
         char swordbuf[BUFSZ];
 
-        Sprintf(swordbuf, "%s剑", hcolor(NH_BLACK));
+        Sprintf(swordbuf, "一把%s剑", hcolor(NH_BLACK));
         if (class_gift != STRANGE_OBJECT) {
             ; /* already got bonus above */
         } else if (obj && in_hand) {
@@ -955,7 +955,7 @@ gcrownu(void)
             obj = oname(obj, artiname(ART_STORMBRINGER),
                         ONAME_GIFT | ONAME_KNOW_ARTI);
             obj->spe = 1;
-            at_your_feet(An(swordbuf));
+            at_your_feet(swordbuf);
             dropy(obj);
             u.ugifts++;
             livelog_printf(LL_DIVINEGIFT | LL_ARTIFACT,
@@ -1192,7 +1192,7 @@ pleased(aligntyp g_align)
                     if (!Blind) {
                         pline("%s%s光晕%s.",
                               Yobjnam2(uwep, "发出柔和的"),
-                              an(hcolor(NH_LIGHT_BLUE)), repair_buf);
+                              hcolor(NH_LIGHT_BLUE), repair_buf);
                         iflags.last_msg = PLNMSG_OBJ_GLOWS;
                     } else
                         You_feel("%s对%s的祝福.", u_gname(),
@@ -1245,7 +1245,7 @@ pleased(aligntyp g_align)
             /*FALLTHRU*/
         case 2:
             if (!Blind)
-                You("被一圈%s光芒环绕.", an(hcolor(NH_GOLDEN)));
+                You("被一圈%s光芒环绕.", hcolor(NH_GOLDEN));
             /* if any levels have been lost (and not yet regained),
                treat this effect like blessed full healing */
             if (u.ulevel < u.ulevelmax) {
@@ -1287,7 +1287,7 @@ pleased(aligntyp g_align)
             if (Blind)
                 You_feel("到%s的力量.", u_gname());
             else
-                You("被一圈%s光环环绕.", an(hcolor(NH_LIGHT_BLUE)));
+                You("被一圈%s光环环绕.", hcolor(NH_LIGHT_BLUE));
             for (otmp = gi.invent; otmp; otmp = nextobj) {
                 nextobj = otmp->nobj;
                 if (otmp->cursed
@@ -1402,10 +1402,10 @@ water_prayer(boolean bless_water)
             other = TRUE;
     }
     if (!Blind && changed) {
-        pline("%s药水%s落在祭坛上的片刻, 发出了%s%s光.",
+        pline("祭坛上的%s药水发出了片刻的%s光.",
               ((other && changed > 1L) ? "其中一些"
                                        : (other ? "其中一瓶" : "")),
-              ((other || changed > 1L) ? "" : ""), (changed > 1L ? "" : ""),
+              /*冗余:((other || changed > 1L) ? "" : ""), (changed > 1L ? "" : ""),*/
               (bless_water ? hcolor(NH_LIGHT_BLUE) : hcolor(NH_BLACK)));
     }
     return (boolean) (changed > 0L);
@@ -1414,15 +1414,15 @@ water_prayer(boolean bless_water)
 staticfn void
 godvoice(aligntyp g_align, const char *words)
 {
-    const char *quot = "";
+    const char *quot = "", *space = "";
 
-    if (words)
-        quot = "\"";
-    else
+    if (words) {
+        quot = "\""; space = " ";
+    } else {
         words = "";
-
-    pline_The("%s的声音%s: %s%s%s", align_gname(g_align),
-              ROLL_FROM(godvoices), quot, words, quot);
+    }
+    pline_The("%s的声音%s: %s%s%s%s", align_gname(g_align),
+              ROLL_FROM(godvoices), quot, words, space, quot);
 }
 
 staticfn void
@@ -1549,8 +1549,8 @@ offer_real_amulet(struct obj *otmp, aligntyp altaralign)
         /*[apparently shrug/snarl can be sensed without being seen]*/
         pline("%s耸了耸肩, 仍旧保持着对%s的统治,", Moloch, u_gname());
         pline("然后残忍地扼杀了你的生命.");
-        Sprintf(svk.killer.name, "%s的冷漠", s_suffix(Moloch));
-        svk.killer.format = KILLED_BY;
+        Sprintf(svk.killer.name, "死于%s的冷漠", s_suffix(Moloch));
+        svk.killer.format = NO_KILLER_PREFIX;
         done(DIED);
         /* life-saved (or declined to die in wizard/explore mode) */
         pline("%s怒吼一声并再来了一次...", Moloch);
@@ -1580,8 +1580,8 @@ offer_real_amulet(struct obj *otmp, aligntyp altaralign)
         SetVoice((struct monst *) 0, 0, 80, voice_deity);
         verbalize(
           "君子万年, 介尔景福!");
-        You("升为%s半神...",
-            flags.female ? "" : "");
+        You("升为半神..."
+            /*冗余:flags.female ? "" : ""*/);
         done(ASCENDED);
         /*NOTREACHED*/
     }
@@ -1637,7 +1637,7 @@ offer_different_alignment_altar(
     if (ugod_is_angry() || (altaralign == A_NONE && Inhell)) {
         if (u.ualignbase[A_CURRENT] == u.ualignbase[A_ORIGINAL]
             && altaralign != A_NONE) {
-            You("有一种强烈的感觉%s生气了...", u_gname());
+            You("强烈感觉到%s生气了...", u_gname());
             consume_offering(otmp);
             pline("%s接受了你的忠诚.", a_gname());
 
@@ -1729,7 +1729,7 @@ sacrifice_your_race(
         if (altaralign == A_CHAOTIC && u.ualign.type != A_CHAOTIC) {
             pline(
             "血液淹没了祭坛, 祭坛消失在%s云里!",
-                    an(hcolor(NH_BLACK)));
+                    hcolor(NH_BLACK));
             levl[u.ux][u.uy].typ = ROOM;
             levl[u.ux][u.uy].altarmask = 0;
             newsym(u.ux, u.uy);
@@ -1806,12 +1806,20 @@ bestow_artifact(uchar max_giftvalue)
             if (otmp->cursed)
                 uncurse(otmp);
             otmp->oerodeproof = TRUE;
-            Strcpy(buf, (Hallucination ? "一件小玩意儿"
-                            : Blind ? "一个物体"
-                            : ansimpleoname(otmp)));
-            if (!Blind)
+            if (Blind) {
+                Strcpy(buf, "一个物体");
+            } else if (Hallucination) {
+                Strcpy(buf, "一件小玩意儿");
                 Sprintf(eos(buf), " (名为%s)",
                         bare_artifactname(otmp));
+            } else {
+                char namebuf[BUFSZ];
+
+                Strcpy(namebuf, simpleonames(otmp));
+                Snprintf(buf, sizeof buf, "一%s名为%s的%s",
+                         obj_classifier(otmp), bare_artifactname(otmp),
+                         namebuf);
+            }
             at_your_feet(upstart(buf));
             dropy(otmp);
             godvoice(u.ualign.type, "善用吾赏!");
@@ -2053,7 +2061,7 @@ offer_corpse(struct obj *otmp, boolean highaltar, aligntyp altaralign)
             if (Hallucination)
                 pline_The("神似乎很苛刻.");
             else
-                You("有一种不称职的感觉.");
+                You("感觉很不称职.");
         }
     } else if (ugod_is_angry()) {
         if (value > MAXVALUE)
@@ -2073,14 +2081,14 @@ offer_corpse(struct obj *otmp, boolean highaltar, aligntyp altaralign)
                 if (Hallucination)
                     You("认识到众神和你我不一样.");
                 else
-                    You("有一种希望的感觉.");
+                    You("感觉有希望了.");
                 if ((int) u.uluck < 0)
                     change_luck(1);
             } else {
                 if (Hallucination)
                     pline("总的来说, 有一种炸洋葱的味道.");
                 else
-                    You("有一种和解的感觉.");
+                    You("感觉和解了.");
                 if ((int) u.uluck < 0)
                     u.uluck = 0;
             }
@@ -2300,7 +2308,7 @@ prayer_done(void) /* M. Stephenson (1.0.3b) */
         /* KMH -- Gods have mastery over unchanging */
         rehumanize();
         /* no Half_physical_damage adjustment here */
-        losehp(rnd(20), "驱赶亡灵效果的余波", KILLED_BY_AN);
+        losehp(rnd(20), "驱赶亡灵效果的余波", KILLED_BY);
         exercise(A_CON, FALSE);
         return 1;
     }
@@ -2654,7 +2662,7 @@ altar_wrath(coordxy x, coordxy y)
     aligntyp altaralign = a_align(x, y);
 
     if (u.ualign.type == altaralign && u.ualign.record > -rn2(4)) {
-        godvoice(altaralign, "汝焉敢污吾%s!");
+        godvoice(altaralign, "汝焉敢污吾圣坛!");
         (void) adjattrib(A_WIS, -1, FALSE);
         u.ualign.record--;
     } else {

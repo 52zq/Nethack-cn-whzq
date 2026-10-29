@@ -1,4 +1,4 @@
-/* NetHack 5.0	hack.c	$NHDT-Date: 1763708572 2025/11/20 23:02:52 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.494 $ */
+/* NetHack 5.0	hack.c	$NHDT-Date: 1781973050 2026/06/20 16:30:50 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.508 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Derek S. Ray, 2015. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -403,7 +403,7 @@ moverock_core(coordxy sx, coordxy sy)
                 sokoban_guilt();
                 res = 0; /* move to <sx,sy> */
             } else {
-                There("有巨石挡在你前面.");
+                pline("有巨石挡在你前面."); //There
                 /* use a move if hero learns something; see test_move() for
                    how/why 'context.door_opened' is being dragged into this */
                 if (glyph_at(sx, sy) != oldglyph)
@@ -426,7 +426,7 @@ moverock_core(coordxy sx, coordxy sy)
         if (verysmall(gy.youmonst.data) && !u.usteed) {
             if (Blind)
                 feel_location(sx, sy);
-            pline("你太小了, 推不动那个%s.", xname(otmp));
+            pline("你太小了, 推不动那%s%s.", obj_classifier(otmp), xname(otmp));
             return cannot_push(otmp, sx, sy);
         }
         if (isok(rx, ry) && !IS_OBSTRUCTED(levl[rx][ry].typ)
@@ -474,7 +474,7 @@ moverock_core(coordxy sx, coordxy sy)
                     Strcpy(you_or_steed,
                            u.usteed ? y_monnam(u.usteed) : "你");
                     pline("%s%s推不动%s.",
-                          deliver_part1 ? "也许那就是为什么" : "",
+                          deliver_part1 ? "也许正因如此, 所以" : "",
                           deliver_part1 ? you_or_steed
                                         : upstart(you_or_steed),
                           deliver_part1 ? "它" : the(xname(otmp)));
@@ -1062,7 +1062,7 @@ test_move(
                     if (sym == S_stone)
                         Strcpy(buf, "坚硬的石头");
                     else if (sym >= 0)
-                        Strcpy(buf, an(defsyms[sym].explanation));
+                        Sprintf(buf, "一%s%s", terrain_classifier(sym), defsyms[sym].explanation); //我懒得写量词了,,,
                     else
                         Sprintf(buf, "不可能的 [背景字形=%d]",
                                 glyph);
@@ -1113,7 +1113,7 @@ test_move(
                         if (Blind || Stunned || ACURR(A_DEX) < 10
                             || Fumbling) {
                             if (u.usteed) {
-                                You_cant("领着%s穿过那个关闭的门.",
+                                You_cant("领着%s穿过那扇关闭的门.",
                                          y_monnam(u.usteed));
                             } else {
                                 pline("哎哟! 你撞到一扇门.");
@@ -1164,7 +1164,7 @@ test_move(
             return FALSE;
         case 1:
             if (mode == DO_MOVE)
-                Your("的身体太大了, 不能顺利通过.");
+                Your("身体太大了, 不能顺利通过.");
             return FALSE;
         default:
             break; /* can squeeze through */
@@ -1719,7 +1719,7 @@ notice_mon(struct monst *mtmp)
             set_msg_xy(mtmp->mx, mtmp->my);
             You("%s%s.", canseemon(mtmp) ? "看到" : "注意到",
                 x_monnam(mtmp,
-                     mtmp->mtame ? ARTICLE_YOUR
+                     (mtmp->mtame && !Hallucination) ? ARTICLE_YOUR
                      : (!has_mgivenname(mtmp)
                         && !type_is_pname(mtmp->data)) ? ARTICLE_A
                      : ARTICLE_NONE,
@@ -2057,14 +2057,14 @@ domove_fight_web(coordxy x, coordxy y)
             } else if (uwep->quan == 1L /* singular */
                        /* unless secondary is suppressed due to same type */
                        && !(u.twoweap && onewep)) {
-                uwepstr = an(uwepbuf);
+                uwepstr = uwepbuf; //冗余:an
             } else { /* plural */
                 uwepstr = makeplural(uwepbuf);
             }
             if (!onewep) {
                 assert(uswapwep != NULL);
-                scndstr = (uswapwep->quan == 1L) ? an(scndbuf)
-                                                 : makeplural(scndbuf);
+                scndstr = scndbuf; //冗余:(uswapwep->quan == 1L) ? scndbuf //冗余:an
+                                                // : makeplural(scndbuf);
             }
             You_cant("用%s%s%s切断蜘蛛网!", uwepstr,
                      !onewep ? "或" : "", !onewep ? scndstr : "");
@@ -2563,7 +2563,7 @@ avoid_trap_andor_region(coordxy x, coordxy y)
                hero can't tell what they are, so treat as dangerous */
             || Hallucination)) {
         int traptype = (Hallucination ? rnd(TRAPNUM - 1) : (int) trap->ttyp);
-        boolean into = into_vs_onto(traptype);
+        //boolean into = into_vs_onto(traptype);
 
         Snprintf(qbuf, sizeof qbuf, "真的要%s到那个%s%s?", /*修改语序:Snprintf(qbuf, sizeof qbuf, "真的要%s%s那个%s?",*/
                  u_locomotion("走"), /*修改语序:u_locomotion("走"), into ? "进" : "上",*/
@@ -3688,7 +3688,7 @@ check_special_room(boolean newlev)
 
                 pline("快%s! 快%s!", run, run);
             } else
-                You("有一种莫名其妙的感觉...");
+                You("感到莫名其妙...");
             break;
         case BEEHIVE:
             You("进入了一个巨型蜂巢!");
@@ -3838,11 +3838,11 @@ pickup_checks(void)
         else if (IS_DOOR(lev->typ) && (lev->doormask & D_ISOPEN))
             pline("它在门框上怎么取不下来.");
         else if (IS_ALTAR(lev->typ))
-            pline("移动祭坛将是一个非常糟糕的主意.");
+            pline("移动祭坛是个非常糟糕的主意.");
         else if (lev->typ == STAIRS)
             pline_The("楼梯被牢牢固定住了.");
         else
-            There("没有什么可捡起的.");
+            There("没有可以捡起的东西.");
         return 0;
     }
     traphere = t_at(u.ux, u.uy);
@@ -4191,7 +4191,7 @@ unmul(const char *msg_override)
            declining to die since can't be both Unchanging and Lifesaved) */
         if (Upolyd && !strncmpi(gn.nomovemsg, "你从死亡边缘活了回来", strlen("你从死亡边缘活了回来"))) /*危险:if (Upolyd && !strncmpi(gn.nomovemsg, "You survived that ", 18))*/
             You("是%s.",
-                an(pmname(&mons[u.umonnum], Ugender))); /* (ignore Hallu) */
+                an_pmname(&mons[u.umonnum], Ugender)); /* (ignore Hallu) */
     }
     gn.nomovemsg = 0;
     u.usleep = 0;
@@ -4441,7 +4441,7 @@ dump_weights(void)
             Snprintf(&nmbuf[7], sizeof nmbuf - 7, "%s%s", "the body of ",
                      (cm)                     ? the(mons[i].pmnames[NEUTRAL])
                      : weightlist[cnt].unique ? mons[i].pmnames[NEUTRAL]
-                                              : an(mons[i].pmnames[NEUTRAL]));
+                                              : an(mons[i].pmnames[NEUTRAL])); //待写: 这是什么???!!!
             weightlist[cnt].nm = dupstr(nmbuf);
             cnt++;
         }

@@ -3,25 +3,15 @@
  */
 /* NetHack may be freely redistributed.  See license for details. */
 
-#ifndef CROSS_TO_AMIGA
-#include "NH:sys/amiga/windefs.h"
-#include "NH:sys/amiga/winext.h"
-#include "NH:sys/amiga/winproto.h"
-#else
 #include "windefs.h"
 #include "winext.h"
 #include "winproto.h"
-#endif
 
 #include "dlb.h"
 
-#ifdef CROSS_TO_AMIGA
-#define strnicmp strncmpi
-#endif
-
 #ifdef AMIGA_INTUITION
 
-static int put_ext_cmd(char *, int, struct amii_WinDesc *, int);
+static int draw_ext_cmd(struct Window *, char *, int, int);
 
 struct amii_DisplayDesc *amiIDisplay; /* the Amiga Intuition descriptor */
 struct Rectangle lastinvent, lastmsg;
@@ -38,78 +28,37 @@ long amii_scrnmode;
 /* Interface definition, for use by windows.c and winprocs.h to provide
  * the intuition interface for the amiga...
  */
-struct window_procs amii_procs = {
-    WPID(amii),
-    WC_COLOR | WC_HILITE_PET | WC_INVERSE,
-    0L,
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},   /* color availability */
-    amii_init_nhwindows,
-    amii_player_selection, amii_askname, amii_get_nh_event,
-    amii_exit_nhwindows, amii_suspend_nhwindows, amii_resume_nhwindows,
-    amii_create_nhwindow, amii_clear_nhwindow, amii_display_nhwindow,
-    amii_destroy_nhwindow, amii_curs, amii_putstr, genl_putmixed,
-    amii_display_file, amii_start_menu, amii_add_menu, amii_end_menu,
-    amii_select_menu, genl_message_menu,
-    amii_mark_synch, amii_wait_synch,
-#ifdef CLIPPING
-    amii_cliparound,
-#endif
-#ifdef POSITIONBAR
-    donull,
-#endif
-    amii_print_glyph, amii_raw_print, amii_raw_print_bold, amii_nhgetch,
-    amii_nh_poskey, amii_bell, amii_doprev_message, amii_yn_function,
-    amii_getlin, amii_get_ext_cmd, amii_number_pad, amii_delay_output,
-#ifdef CHANGE_COLOR /* only a Mac option currently */
-    amii_change_color, amii_get_color_string,
-#endif
-    amii_outrip, genl_preference_update,
-    genl_getmsghistory, genl_putmsghistory,
-    genl_status_init, genl_status_finish, genl_status_enablefield,
-    genl_status_update,
-    genl_can_suspend_yes,
-    amii_update_inventory,
-    amii_ctrl_nhwindow,
-};
+/* Both windowports share the same function table -- the AMII (text) /
+ * AMIV (tile) split happens at runtime based on WINVERS_AMIV checks. */
+#define AMI_WIN_PROCS_BODY                                              \
+    WC_COLOR | WC_HILITE_PET | WC_INVERSE,                              \
+    WC2_HILITE_STATUS | WC2_FLUSH_STATUS | WC2_HITPOINTBAR,             \
+    { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }, /* has_color */ \
+    amii_init_nhwindows,                                                \
+    amii_player_selection, amii_askname, amii_get_nh_event,             \
+    amii_exit_nhwindows, amii_suspend_nhwindows, amii_resume_nhwindows, \
+    amii_create_nhwindow, amii_clear_nhwindow, amii_display_nhwindow,   \
+    amii_destroy_nhwindow, amii_curs, amii_putstr, genl_putmixed,       \
+    amii_display_file, amii_start_menu, amii_add_menu, amii_end_menu,   \
+    amii_select_menu, genl_message_menu,                                \
+    amii_mark_synch, amii_wait_synch,                                   \
+    amii_cliparound,                                                    \
+    amii_print_glyph, amii_raw_print, amii_raw_print_bold, amii_nhgetch,\
+    amii_nh_poskey, amii_bell, amii_doprev_message, amii_yn_function,   \
+    amii_getlin, amii_get_ext_cmd, amii_number_pad, amii_delay_output,  \
+    amii_change_color, amii_get_color_string,                           \
+    amii_outrip, genl_preference_update,                                \
+    genl_getmsghistory, genl_putmsghistory,                             \
+    amii_status_init, amii_status_finish, amii_status_enablefield,      \
+    amii_status_update,                                                 \
+    genl_can_suspend_yes,                                               \
+    amii_update_inventory,                                              \
+    amii_ctrl_nhwindow
 
-/* The view window layout uses the same function names so we can use
- * a shared library to allow the executable to be smaller.
- */
-struct window_procs amiv_procs = {
-    WPID(amiv),
-    WC_COLOR | WC_HILITE_PET | WC_INVERSE,
-    0L,
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},   /* color availability */
-    amii_init_nhwindows,
-    amii_player_selection, amii_askname, amii_get_nh_event,
-    amii_exit_nhwindows, amii_suspend_nhwindows, amii_resume_nhwindows,
-    amii_create_nhwindow, amii_clear_nhwindow, amii_display_nhwindow,
-    amii_destroy_nhwindow, amii_curs, amii_putstr, genl_putmixed,
-    amii_display_file, amii_start_menu, amii_add_menu, amii_end_menu,
-    amii_select_menu, genl_message_menu,
-    amii_mark_synch, amii_wait_synch,
-#ifdef CLIPPING
-    amii_cliparound,
-#endif
-#ifdef POSITIONBAR
-    donull,
-#endif
-    amii_print_glyph, amii_raw_print, amii_raw_print_bold, amii_nhgetch,
-    amii_nh_poskey, amii_bell, amii_doprev_message, amii_yn_function,
-    amii_getlin, amii_get_ext_cmd, amii_number_pad, amii_delay_output,
-#ifdef CHANGE_COLOR /* only a Mac option currently */
-    amii_change_color, amii_get_color_string,
-#endif
-    amii_outrip, genl_preference_update,
-    genl_getmsghistory, genl_putmsghistory,
-    genl_status_init, genl_status_finish, genl_status_enablefield,
-    genl_status_update,
-    genl_can_suspend_yes,
-    amii_update_inventory,
-    amii_ctrl_nhwindow,
-};
+struct window_procs amii_procs = { WPID(amii), AMI_WIN_PROCS_BODY };
+struct window_procs amiv_procs = { WPID(amiv), AMI_WIN_PROCS_BODY };
 
-unsigned short amii_initmap[AMII_MAXCOLORS];
+unsigned short amii_workmap[AMII_MAXCOLORS];
 /* Default pens used unless user overides in nethack.cnf. */
 unsigned short amii_init_map[AMII_MAXCOLORS] = {
     0x0000, /* color #0  C_BLACK    */
@@ -159,8 +108,7 @@ unsigned short amiv_init_map[AMII_MAXCOLORS] = {
     0x0fff, /* color #31 */
 };
 
-#if !defined(TTY_GRAPHICS) \
-    || defined(SHAREDLIB) /* this should be shared better */
+#ifndef TTY_GRAPHICS
 char morc; /* the character typed in response to a --more-- prompt */
 #endif
 char spaces[76] = "                                                          "
@@ -187,7 +135,7 @@ struct Image Image1 = { 0, 0, 7, 102, 0, NULL, 0x0000, 0x0000, NULL };
 struct Gadget MenuScroll = { NULL, -15, 10, 15, -19, GRELRIGHT | GRELHEIGHT,
                              RELVERIFY | FOLLOWMOUSE | RIGHTBORDER
                                  | GADGIMMEDIATE | RELVERIFY,
-                             PROPGADGET, (APTR) &Image1, NULL, NULL, NULL,
+                             PROPGADGET, (APTR) &Image1, NULL, NULL, 0,
                              (APTR) &PropScroll, 1, NULL };
 
 /* This gadget is for the message window... */
@@ -198,7 +146,7 @@ struct Image MsgImage1 = { 0, 0, 7, 102, 0, NULL, 0x0000, 0x0000, NULL };
 struct Gadget MsgScroll = { NULL, -15, 10, 14, -19, GRELRIGHT | GRELHEIGHT,
                             RELVERIFY | FOLLOWMOUSE | RIGHTBORDER
                                 | GADGIMMEDIATE | RELVERIFY,
-                            PROPGADGET, (APTR) &MsgImage1, NULL, NULL, NULL,
+                            PROPGADGET, (APTR) &MsgImage1, NULL, NULL, 0,
                             (APTR) &MsgPropScroll, 1, NULL };
 
 int wincnt = 0; /* # of nh windows opened */
@@ -207,14 +155,12 @@ int wincnt = 0; /* # of nh windows opened */
  * while they are playing...  like compiling...
  */
 
-#ifdef INTUI_NEW_LOOK
 extern struct Hook fillhook;
 struct TagItem tags[] = {
     { WA_BackFill, (ULONG) &fillhook },
     { WA_PubScreenName, (ULONG) "NetHack" },
     { TAG_DONE, 0 },
 };
-#endif
 
 /*
  * The default dimensions and status values for each window type.  The
@@ -230,16 +176,10 @@ struct win_setup new_wins[] = {
     { { 0, 1, 640, 11, 0xff, 0xff,
         NEWSIZE | GADGETUP | GADGETDOWN | MOUSEMOVE | MOUSEBUTTONS | RAWKEY,
         BORDERLESS | ACTIVATE | SMART_REFRESH
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         NULL, NULL, (UBYTE *) "Messages", NULL, NULL, 320, 40, 0xffff, 0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -251,16 +191,10 @@ struct win_setup new_wins[] = {
     /* NHW_STATUS */
     { { 0, 181, 640, 24, 0xff, 0xff, RAWKEY | MENUPICK | DISKINSERTED,
         BORDERLESS | ACTIVATE | SMART_REFRESH | BACKDROP
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         NULL, NULL, (UBYTE *) "Game Status", NULL, NULL, 0, 0, 0xffff, 0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -273,17 +207,11 @@ struct win_setup new_wins[] = {
     { { 0, 0, WIDTH, WINDOWHEIGHT, 0xff, 0xff,
         RAWKEY | MENUPICK | MOUSEBUTTONS | ACTIVEWINDOW | MOUSEMOVE,
         BORDERLESS | ACTIVATE | SMART_REFRESH | BACKDROP
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         NULL, NULL, (UBYTE *) "Dungeon Map", NULL, NULL, 64, 64, 0xffff,
         0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -298,16 +226,10 @@ struct win_setup new_wins[] = {
             | GADGETDOWN | CLOSEWINDOW | VANILLAKEY | NEWSIZE
             | INACTIVEWINDOW,
         WINDOWSIZING | WINDOWCLOSE | WINDOWDRAG | ACTIVATE | SMART_REFRESH
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         &MenuScroll, NULL, NULL, NULL, NULL, 64, 32, 0xffff, 0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -321,17 +243,11 @@ struct win_setup new_wins[] = {
         RAWKEY | MENUPICK | DISKINSERTED | MOUSEMOVE | GADGETUP | CLOSEWINDOW
             | VANILLAKEY | NEWSIZE,
         WINDOWSIZING | WINDOWCLOSE | WINDOWDRAG | ACTIVATE | SMART_REFRESH
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         &MenuScroll, NULL, (UBYTE *) NULL, NULL, NULL, 100, 32, 0xffff,
         0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -340,20 +256,19 @@ struct win_setup new_wins[] = {
       22,
       78 },
 
+    /* NHW_PERMINVENT — placeholder; port does not implement persistent
+       inventory yet, but the slot must exist because new_wins[] is
+       indexed by NHW_* type. */
+    { { 0 } },
+
     /* NHW_BASE */
     { { 0, 0, WIDTH, WINDOWHEIGHT, 0xff, 0xff,
         RAWKEY | MENUPICK | MOUSEBUTTONS,
         BORDERLESS | ACTIVATE | SMART_REFRESH | BACKDROP
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         NULL, NULL, (UBYTE *) NULL, NULL, NULL, -1, -1, 0xffff, 0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -365,16 +280,10 @@ struct win_setup new_wins[] = {
     /* NHW_OVER */
     { { 320, 20, 319, 179, 0xff, 0xff, RAWKEY | MENUPICK | MOUSEBUTTONS,
         BORDERLESS | ACTIVATE | SMART_REFRESH | BACKDROP
-#ifdef INTUI_NEW_LOOK
             | WFLG_NW_EXTENDED
-#endif
         ,
         NULL, NULL, (UBYTE *) NULL, NULL, NULL, 64, 32, 0xffff, 0xffff,
-#ifdef INTUI_NEW_LOOK
         PUBLICSCREEN, tags
-#else
-        CUSTOMSCREEN
-#endif
       },
       0,
       0,
@@ -389,7 +298,6 @@ const char winpanicstr[] = "Bad winid %d in %s()";
 /* The opened windows information */
 struct amii_WinDesc *amii_wins[MAXWIN + 1];
 
-#ifdef INTUI_NEW_LOOK
 /*
  * NUMDRIPENS varies based on headers, so don't use it
  * here, its value is used elsewhere.
@@ -408,23 +316,14 @@ struct TagItem scrntags[] = {
     { TAG_DONE, 0 },
 };
 
-#endif
-
 struct NewScreen NewHackScreen = { 0, 0, WIDTH, SCREENHEIGHT, 3, 0,
                                    1, /* DetailPen, BlockPen */
-                                   HIRES, CUSTOMSCREEN
-#ifdef INTUI_NEW_LOOK
-                                              | NS_EXTENDED
-#endif
-                                   ,
+                                   HIRES, CUSTOMSCREEN | NS_EXTENDED,
                                    &Hack80, /* Font */
                                    NULL,    /*(UBYTE *)" NetHack X.Y.Z" */
                                    NULL,    /* Gadgets */
                                    NULL,    /* CustomBitmap */
-#ifdef INTUI_NEW_LOOK
-                                   scrntags
-#endif
-};
+                                   scrntags };
 
 /*
  * plname is filled either by an option (-u Player  or  -uPlayer) or
@@ -436,7 +335,7 @@ struct NewScreen NewHackScreen = { 0, 0, WIDTH, SCREENHEIGHT, 3, 0,
 void
 amii_askname(void)
 {
-    char plnametmp[300]; /* From winreq.c: sizeof(StrStringSIBuff) */
+    char plnametmp[BUFSZ]; /* matches StrStringSIBuff in winreq.c */
     *plnametmp = 0;
     do {
         amii_getlin("Who are you?", plnametmp);
@@ -452,300 +351,8 @@ amii_askname(void)
     }
 }
 
-/* Discarded ... -jhsa
-#include "NH:sys/amiga/char.c"
-*/
-
 /* Get the player selection character */
 
-#if 0 /* New function at the bottom */
-void
-amii_player_selection(void)
-{
-    struct Window *cwin;
-    struct IntuiMessage *imsg;
-    int aredone = 0;
-    struct Gadget *gd;
-    static int once = 0;
-    long class, code;
-
-    amii_clear_nhwindow( WIN_BASE );
-    if (validrole(flags.initrole))
-	return;
-    else {
-	flags.initrole = randrole(FALSE);
-	return;
-    }
-#if 0 /* Don't query the user ... instead give random character -jhsa */
-
-#if 0 /* OBSOLETE */
-    if( *svp.pl_character ){
-	svp.pl_character[ 0 ] = toupper( svp.pl_character[ 0 ] );
-	if( strchr( pl_classes, svp.pl_character[ 0 ] ) )
-	    return;
-    }
-#endif
-
-    if( !once ){
-	if( bigscreen ){
-	    Type_NewWindowStructure1.TopEdge =
-	      (HackScreen->Height/2) - (Type_NewWindowStructure1.Height/2);
-	}
-	for( gd = Type_NewWindowStructure1.FirstGadget; gd;
-	  gd = gd->NextGadget )
-	{
-	    if( gd->GadgetID != 0 )
-		SetBorder( gd );
-	}
-	once = 1;
-    }
-
-    if( WINVERS_AMIV )
-    {
-#ifdef INTUI_NEW_LOOK
-	Type_NewWindowStructure1.Extension = wintags;
-	Type_NewWindowStructure1.Flags |= WFLG_NW_EXTENDED;
-	fillhook.h_Entry = (void *) &LayerFillHook;
-	fillhook.h_Data = (void *)-2;
-	fillhook.h_SubEntry = 0;
-#endif
-    }
-
-    Type_NewWindowStructure1.Screen = HackScreen;
-    if( ( cwin = OpenShWindow( (void *)&Type_NewWindowStructure1 ) ) == NULL )
-    {
-	return;
-    }
-#if 0
-    WindowToFront( cwin );
-#endif
-
-    while( !aredone )
-    {
-	WaitPort( cwin->UserPort );
-	while( ( imsg = (void *) GetMsg( cwin->UserPort ) ) != NULL )
-	{
-	    class = imsg->Class;
-	    code = imsg->Code;
-	    gd = (struct Gadget *)imsg->IAddress;
-	    ReplyMsg( (struct Message *)imsg );
-
-	    switch( class )
-	    {
-	    case VANILLAKEY:
-		if( strchr( pl_classes, toupper( code ) ) )
-		{
-		    svp.pl_character[0] = toupper( code );
-		    aredone = 1;
-		}
-		else if( code == ' ' || code == '\n' || code == '\r' )
-		{
-		    flags.initrole = randrole(FALSE);
-#if 0 /* OBSOLETE */
-		    strcpy( svp.pl_character, roles[ rnd( 11 ) ] );
-#endif
-		    aredone = 1;
-		    amii_clear_nhwindow( WIN_BASE );
-		    CloseShWindow( cwin );
-		    RandomWindow( svp.pl_character );
-		    return;
-		}
-		else if( code == 'q' || code == 'Q' )
-		{
-		CloseShWindow( cwin );
-		clearlocks();
-		exit_nhwindows(NULL);
-		nh_terminate(0);
-		}
-		else
-		    DisplayBeep( NULL );
-		break;
-
-	    case GADGETUP:
-		switch( gd->GadgetID )
-		{
-		case 1: /* Random Character */
-		    flags.initrole = randrole(FALSE);
-#if 0 /* OBSOLETE */
-		    strcpy( svp.pl_character, roles[ rnd( 11 ) ] );
-#endif
-		    amii_clear_nhwindow( WIN_BASE );
-		    CloseShWindow( cwin );
-		    RandomWindow( svp.pl_character );
-		    return;
-
-		default:
-		    svp.pl_character[0] = gd->GadgetID;
-		    break;
-		}
-		aredone = 1;
-		break;
-
-	    case CLOSEWINDOW:
-		CloseShWindow( cwin );
-		clearlocks();
-		exit_nhwindows(NULL);
-		nh_terminate(0);
-		break;
-	    }
-	}
-    }
-    amii_clear_nhwindow( WIN_BASE );
-    CloseShWindow( cwin );
-#endif /* Do not query user ... -jhsa */
-}
-#endif /* Function elsewhere */
-
-#if 0 /* Unused ... -jhsa */
-
-#include "NH:sys/amiga/randwin.c"
-
-void
-RandomWindow(char *name)
-{
-    struct MsgPort *tport;
-    struct timerequest *trq;
-    static int once = 0;
-    struct Gadget *gd;
-    struct Window *w;
-    struct IntuiMessage *imsg;
-    int ticks = 0, aredone = 0, timerdone = 0;
-    long mask, got;
-
-    tport = CreateMsgPort();
-    trq = (struct timerequest *)CreateIORequest( tport, sizeof( *trq ) );
-    if( tport == NULL || trq == NULL )
-    {
-allocerr:
-	if( tport ) DeleteMsgPort( tport );
-	if( trq ) DeleteIORequest( (struct IORequest *)trq );
-	Delay( 8 * 50 );
-	return;
-    }
-
-    if( OpenDevice( TIMERNAME, UNIT_VBLANK, (struct IORequest *)trq, 0L ) != 0 )
-	goto allocerr;
-
-    trq->tr_node.io_Command = TR_ADDREQUEST;
-    trq->tr_time.tv_secs = 8;
-    trq->tr_time.tv_micro = 0;
-
-    SendIO( (struct IORequest *)trq );
-
-    /* Place the name in the center of the screen */
-    Rnd_IText5.IText = name;
-    Rnd_IText6.LeftEdge = Rnd_IText4.LeftEdge +
-		(strlen(Rnd_IText4.IText)+1)*8;
-    Rnd_NewWindowStructure1.Width = (
-	    (strlen( Rnd_IText2.IText )+1) * 8 ) +
-	    HackScreen->WBorLeft + HackScreen->WBorRight;
-    Rnd_IText5.LeftEdge = (Rnd_NewWindowStructure1.Width -
-	    (strlen(name)*8))/2;
-
-    gd = Rnd_NewWindowStructure1.FirstGadget;
-    gd->LeftEdge = (Rnd_NewWindowStructure1.Width - gd->Width)/2;
-	/* Chose correct modifier */
-    Rnd_IText6.IText = "a";
-    switch( *name )
-    {
-    case 'a': case 'e': case 'i': case 'o':
-    case 'u': case 'A': case 'E': case 'I':
-    case 'O': case 'U':
-	Rnd_IText6.IText = "an";
-	break;
-    }
-
-    if( !once )
-    {
-	if( bigscreen )
-	{
-	    Rnd_NewWindowStructure1.TopEdge =
-		(HackScreen->Height/2) - (Rnd_NewWindowStructure1.Height/2);
-	}
-	for( gd = Rnd_NewWindowStructure1.FirstGadget; gd; gd = gd->NextGadget )
-	{
-	    if( gd->GadgetID != 0 )
-		SetBorder( gd );
-	}
-	Rnd_NewWindowStructure1.IDCMPFlags |= VANILLAKEY;
-
-	once = 1;
-    }
-
-    if( WINVERS_AMIV )
-    {
-#ifdef INTUI_NEW_LOOK
-	Rnd_NewWindowStructure1.Extension = wintags;
-	Rnd_NewWindowStructure1.Flags |= WFLG_NW_EXTENDED;
-	fillhook.h_Entry = (void *) &LayerFillHook;
-	fillhook.h_Data = (void *)-2;
-	fillhook.h_SubEntry = 0;
-#endif
-    }
-
-    Rnd_NewWindowStructure1.Screen = HackScreen;
-    if( ( w = OpenShWindow( (void *)&Rnd_NewWindowStructure1 ) ) == NULL )
-    {
-	AbortIO( (struct IORequest *)trq );
-	WaitIO( (struct IORequest *)trq );
-	CloseDevice( (struct IORequest *)trq );
-	DeleteIORequest( (struct IORequest *) trq );
-	DeleteMsgPort( tport );
-	Delay( 50 * 8 );
-	return;
-    }
-
-    PrintIText( w->RPort, &Rnd_IntuiTextList1, 0, 0 );
-
-    mask = (1L << tport->mp_SigBit)|(1L << w->UserPort->mp_SigBit);
-    while( !aredone )
-    {
-	got = Wait( mask );
-	if( got & (1L << tport->mp_SigBit ) )
-	{
-	    aredone = 1;
-	    timerdone = 1;
-	    GetMsg( tport );
-        }
-        while( w && ( imsg = (struct IntuiMessage *) GetMsg( w->UserPort ) ) )
-        {
-	    switch( (long)imsg->Class )
-	    {
-		/* Must be up for a little while... */
-	    case INACTIVEWINDOW:
-		if( ticks >= 40 )
-		    aredone = 1;
-		break;
-
-	    case INTUITICKS:
-		++ticks;
-		break;
-
-	    case GADGETUP:
-		aredone = 1;
-		break;
-
-	    case VANILLAKEY:
-		if(imsg->Code=='\n' || imsg->Code==' ' || imsg->Code=='\r')
-		    aredone = 1;
-		break;
-	    }
-	    ReplyMsg( (struct Message *)imsg );
-        }
-    }
-
-    if( !timerdone )
-    {
-	AbortIO( (struct IORequest *)trq );
-	WaitIO( (struct IORequest *)trq );
-    }
-
-    CloseDevice( (struct IORequest *)trq );
-    DeleteIORequest( (struct IORequest *) trq );
-    DeleteMsgPort( tport );
-    if(w) CloseShWindow( w );
-}
-#endif /* Discarded randwin ... -jhsa */
 
 /* this should probably not be needed (or be renamed)
 void
@@ -754,242 +361,143 @@ flush_output(){} */
 /* Read in an extended command - doing command line completion for
  * when enough characters have been entered to make a unique command.
  */
+static struct NewWindow ExtWindow = {
+    0, 0, 100, 30, 0, 1, RAWKEY,
+    WINDOWDRAG + ACTIVATE + NOCAREREFRESH,
+    NULL, NULL, (UBYTE *) "Extended Command",
+    NULL, NULL, 5, 5, 0xffff, 0xffff, CUSTOMSCREEN
+};
+
 int
 amii_get_ext_cmd(void)
 {
-    menu_item *mip;
-    anything id;
-    struct amii_WinDesc *cw;
-#ifdef EXTMENU
-    winid win;
-    int i;
-    char buf[256];
-#endif
-    int colx;
-    int bottom = 0;
-
     struct Window *w;
-    char obufp[100];
+    char obufp[BUFSZ], prefix[BUFSZ];
     char *bufp = obufp;
     int c;
-    int com_index, oindex;
-    int did_comp = 0; /* did successful completion? */
-    int sel = -1;
+    int lastlen = 0;
+    int tabi = 0;
+    int maxcols;
+    int n_all, i, j, k, eidx;
+    int *ecmatches;
 
-    if (WIN_MESSAGE == WIN_ERR || (cw = amii_wins[WIN_MESSAGE]) == NULL)
-        panic(winpanicstr, WIN_MESSAGE, "get_ext_cmd");
-    w = cw->win;
-    bottom = amii_msgborder(w);
-    colx = 3;
+    ExtWindow.Screen = HackScreen;
+    ExtWindow.Width = 40 * HackScreen->RastPort.TxWidth + 16;
+    if (ExtWindow.Width > HackScreen->Width)
+        ExtWindow.Width = HackScreen->Width;
+    ExtWindow.Height = HackScreen->BarHeight
+                       + HackScreen->RastPort.TxHeight + 8;
+    ExtWindow.LeftEdge = (HackScreen->Width - ExtWindow.Width) / 2;
+    ExtWindow.TopEdge = (HackScreen->Height - ExtWindow.Height) / 2;
+    if ((w = OpenShWindow(&ExtWindow)) == NULL)
+        return -1;
+    maxcols = (w->Width - w->BorderLeft - w->BorderRight - 8)
+                  / w->RPort->TxWidth - 3;
 
-#ifdef EXTMENU
-    if (iflags.extmenu) {
-        win = amii_create_nhwindow(NHW_MENU);
-        amii_start_menu(win, MENU_BEHAVE_STANDARD);
-        pline("#");
-        amii_putstr(WIN_MESSAGE, -1, " ");
+    obufp[0] = '\0';
+    lastlen = draw_ext_cmd(w, obufp, 0, lastlen);
 
-        for (i = 0; extcmdlist[i].ef_txt != NULL; ++i) {
-            id.a_char = *extcmdlist[i].ef_txt;
-            sprintf(buf, "%-10s - %s ", extcmdlist[i].ef_txt,
-                    extcmdlist[i].ef_desc);
-            amii_add_menu(win, (const glyph_info *) 0, &id,
-                          extcmdlist[i].ef_txt[0], 0, 0, NO_COLOR,
-                          buf, MENU_ITEMFLAGS_NONE);
-        }
-
-        amii_end_menu(win, (char *) 0);
-        sel = amii_select_menu(win, PICK_ONE, &mip);
-        amii_destroy_nhwindow(win);
-
-        if (sel == 1) {
-            sel = mip->item.a_char;
-            for (i = 0; extcmdlist[i].ef_txt != NULL; ++i) {
-                if (sel == extcmdlist[i].ef_txt[0])
-                    break;
-            }
-
-            /* copy in the text */
-            if (extcmdlist[i].ef_txt != NULL) {
-                amii_clear_nhwindow(WIN_MESSAGE);
-                (void) put_ext_cmd((char *) extcmdlist[i].ef_txt, 0, cw,
-                                   bottom);
-                return (i);
-            } else
-                DisplayBeep(NULL);
-        }
-
-        return (-1);
-    }
-#endif
-
-    amii_clear_nhwindow(WIN_MESSAGE); /* Was NHW_MESSAGE */
-    if (scrollmsg) {
-        pline("#");
-        amii_addtopl(" ");
-    } else {
-        pline("# ");
-    }
-
-    sel = -1;
     while ((c = WindowGetchar()) != EOF) {
-        amii_curs(WIN_MESSAGE, colx, bottom);
         if (c == '?') {
-            int win, i;
-            char buf[100];
-
-            if (did_comp) {
-                while (bufp != obufp) {
-                    bufp--;
-                    amii_curs(WIN_MESSAGE, --colx, bottom);
-                    Text(w->RPort, spaces, 1);
-                    amii_curs(WIN_MESSAGE, colx, bottom);
-                    did_comp = 0;
-                }
-            }
-
-            win = amii_create_nhwindow(NHW_MENU);
-            amii_start_menu(win, MENU_BEHAVE_STANDARD);
-
-            for (i = 0; extcmdlist[i].ef_txt != NULL; ++i) {
-                id.a_char = extcmdlist[i].ef_txt[0];
-                sprintf(buf, "%-10s - %s ", extcmdlist[i].ef_txt,
-                        extcmdlist[i].ef_desc);
-                amii_add_menu(win, (const glyph_info *) 0, &id,
-                              extcmdlist[i].ef_txt[0], 0, 0, NO_COLOR,
-                              buf, MENU_ITEMFLAGS_NONE);
-            }
-
-            amii_end_menu(win, (char *) 0);
-            sel = amii_select_menu(win, PICK_ONE, &mip);
-            amii_destroy_nhwindow(win);
-
-            if (sel == 0) {
-                return (-1);
-            } else {
-                sel = mip->item.a_char;
-                for (i = 0; extcmdlist[i].ef_txt != NULL; ++i) {
-                    if (sel == extcmdlist[i].ef_txt[0])
-                        break;
-                }
-
-                /* copy in the text */
-                if (extcmdlist[i].ef_txt != NULL) {
-                    amii_clear_nhwindow(WIN_MESSAGE);
-                    strcpy(bufp = obufp, extcmdlist[i].ef_txt);
-                    (void) put_ext_cmd(obufp, colx, cw, bottom);
-                    return (i);
-                } else
-                    DisplayBeep(NULL);
-            }
+            CloseShWindowKeepKbd(w);
+            return extcmd_via_menu();
         } else if (c == '\033') {
-            return (-1);
+            CloseShWindowKeepKbd(w);
+            return -1;
         } else if (c == '\b') {
-            if (did_comp) {
-                while (bufp != obufp) {
-                    bufp--;
-                    amii_curs(WIN_MESSAGE, --colx, bottom);
-                    Text(w->RPort, spaces, 1);
-                    amii_curs(WIN_MESSAGE, colx, bottom);
-                    did_comp = 0;
-                    sel = -1;
-                }
-            } else if (bufp != obufp) {
-                sel = -1;
+            if (bufp != obufp) {
                 bufp--;
-                amii_curs(WIN_MESSAGE, --colx, bottom);
-                Text(w->RPort, spaces, 1);
-                amii_curs(WIN_MESSAGE, colx, bottom);
+                *bufp = '\0';
+                tabi = 0;
+                lastlen = draw_ext_cmd(w, obufp, (int) (bufp - obufp),
+                                       lastlen);
             } else
                 DisplayBeep(NULL);
         } else if (c == '\n' || c == '\r') {
-            return (sel);
-        } else if (c >= ' ' && c < '\177') {
+            break;
+        } else if (c == '\t') {
+            k = (int) (bufp - obufp);
+            memcpy(prefix, obufp, k);
+            prefix[k] = '\0';
+            n_all = extcmds_match(prefix, ECM_IGNOREAC, &ecmatches);
+            if (n_all == 0) {
+                DisplayBeep(NULL);
+            } else {
+                int pass, ac;
+
+                eidx = -1;
+                j = tabi++ % n_all;
+                for (pass = 0; pass < 2 && eidx < 0; pass++) {
+                    for (i = 0; i < n_all; i++) {
+                        ac = (extcmds_getentry(ecmatches[i])->flags
+                              & AUTOCOMPLETE) != 0;
+                        if (ac != (pass == 0))
+                            continue;
+                        if (j-- == 0) {
+                            eidx = ecmatches[i];
+                            break;
+                        }
+                    }
+                }
+                if (eidx >= 0) {
+                    Strcpy(obufp, extcmds_getentry(eidx)->ef_txt);
+                    lastlen = draw_ext_cmd(w, obufp, (int) (bufp - obufp),
+                                           lastlen);
+                }
+            }
+        } else if (c >= ' ' && c < '\177'
+                   && bufp - obufp < (int) sizeof obufp - 1
+                   && bufp - obufp < maxcols) {
             /* avoid isprint() - some people don't have it
                ' ' is not always a printing char */
             *bufp = c;
-            bufp[1] = 0;
-            oindex = 0;
-            com_index = -1;
-
-            while (extcmdlist[oindex].ef_txt != NULL) {
-                if (!strnicmp(obufp, (char *) extcmdlist[oindex].ef_txt,
-                              strlen(obufp))) {
-                    if (com_index == -1) /* No matches yet*/
-                        com_index = oindex;
-                    else /* More than 1 match */
-                        com_index = -2;
-                }
-                oindex++;
-            }
-
-            if (com_index >= 0 && *obufp) {
-                Strcpy(obufp, extcmdlist[com_index].ef_txt);
-                /* finish printing our string */
-                colx = put_ext_cmd(obufp, colx, cw, bottom);
-                bufp = obufp; /* reset it */
-                if (strlen(obufp) < BUFSZ - 1 && strlen(obufp) < COLNO)
-                    bufp += strlen(obufp);
-                did_comp = 1;
-                sel = com_index;
-            } else {
-                colx = put_ext_cmd(obufp, colx, cw, bottom);
-                if (bufp - obufp < BUFSZ - 1 && bufp - obufp < COLNO)
-                    bufp++;
-            }
+            bufp[1] = '\0';
+            bufp++;
+            tabi = 0;
+            lastlen = draw_ext_cmd(w, obufp, (int) (bufp - obufp), lastlen);
         } else if (c == ('X' - 64) || c == '\177') {
-            colx = 0;
-            amii_clear_nhwindow(WIN_MESSAGE);
-            pline("# ");
             bufp = obufp;
+            *bufp = '\0';
+            tabi = 0;
+            lastlen = draw_ext_cmd(w, obufp, 0, lastlen);
         } else
             DisplayBeep(NULL);
     }
-    return (-1);
+    CloseShWindowKeepKbd(w);
+
+    (void) mungspaces(obufp);
+    if (c == EOF || obufp[0] == '\0')
+        return -1;
+    if (extcmds_match(obufp, ECM_IGNOREAC | ECM_EXACTMATCH, &ecmatches) == 1)
+        return ecmatches[0];
+    if (extcmds_match(obufp, ECM_NOFLAGS, &ecmatches) == 1)
+        return ecmatches[0];
+    pline("#%.60s: unknown extended command.", obufp);
+    return -1;
 }
 
 static int
-put_ext_cmd(char *obufp, int colx, struct amii_WinDesc *cw, int bottom)
+draw_ext_cmd(struct Window *w, char *obufp, int typed, int lastlen)
 {
-    struct Window *w = cw->win;
-    char *t;
+    struct RastPort *rp = w->RPort;
+    int len = strlen(obufp);
+    int x0 = w->BorderLeft + 4;
+    int y = w->BorderTop + 2 + rp->TxBaseline;
+    char curschar;
 
-    t = (char *) alloc(strlen(obufp) + 7);
-    if (t != NULL) {
-        if (scrollmsg) {
-            sprintf(t, "xxx%s", obufp);
-            t[0] = 1;
-            t[1] = 1;
-            t[2] = '#';
-            amii_curs(WIN_MESSAGE, 0, bottom);
-            SetAPen(w->RPort, C_WHITE);
-            Text(w->RPort, "># ", 3);
-            /* SetAPen( w->RPort, C_BLACK ); */ /* Black text on black
-                                                 * screen doesn't look
-                                                 * too well ... -jhsa */
-            Text(w->RPort, t + 3, strlen(t) - 3);
-        } else {
-            sprintf(t, "# %s", obufp);
-            amii_curs(WIN_MESSAGE, 0, bottom);
-            SetAPen(w->RPort, C_WHITE);
-            Text(w->RPort, t, strlen(t));
-        }
-        if (scrollmsg)
-            SetAPen(w->RPort, C_WHITE);
-        if (cw->data[cw->maxrow - 1])
-            free(cw->data[cw->maxrow - 1]);
-        cw->data[cw->maxrow - 1] = t;
-    } else {
-        amii_curs(WIN_MESSAGE, 0, bottom);
-        SetAPen(w->RPort, C_WHITE);
-        Text(w->RPort, "# ", 2);
-        /* SetAPen( w->RPort, C_BLACK ); */ /* Black on black ... -jhsa */
-        Text(w->RPort, obufp, strlen(obufp));
-        SetAPen(w->RPort, C_WHITE);
-    }
-    amii_curs(WIN_MESSAGE, colx = strlen(obufp) + 3 + (scrollmsg != 0),
-              bottom);
-    return colx;
+    SetAPen(rp, C_WHITE);
+    SetDrMd(rp, JAM2);
+    Move(rp, x0, y);
+    Text(rp, "# ", 2);
+    if (len)
+        Text(rp, obufp, len);
+    TextSpaces(rp, lastlen - len + 1);
+    Move(rp, x0 + (typed + 2) * rp->TxWidth, y);
+    curschar = obufp[typed] ? obufp[typed] : ' ';
+    SetDrMd(rp, JAM2 | INVERSVID);
+    Text(rp, &curschar, 1);
+    SetDrMd(rp, JAM2);
+    return len;
 }
 
 /* Ask a question and get a response */
@@ -1011,10 +519,10 @@ amii_yn_function(const char *query, const char *resp, char def)
     char q;
     char rtmp[40];
     boolean digit_ok, allow_num;
-    char prompt[BUFSZ];
+    char prompt[BUFSZ + QBUFSZ + 16];
     struct amii_WinDesc *cw;
 
-    if (cw = amii_wins[WIN_MESSAGE])
+    if ((cw = amii_wins[WIN_MESSAGE]) != NULL)
         cw->disprows = 0;
     if (resp) {
         char *rb, respbuf[QBUFSZ];
@@ -1026,10 +534,12 @@ amii_yn_function(const char *query, const char *resp, char def)
             *rb = '\0';
         (void) strncpy(prompt, query, QBUFSZ - 1);
         prompt[QBUFSZ - 1] = '\0';
-        Sprintf(eos(prompt), " [%s]", respbuf);
+        Snprintf(eos(prompt), sizeof prompt - strlen(prompt),
+                 " [%s]", respbuf);
         if (def)
-            Sprintf(eos(prompt), " (%c)", def);
-        Strcat(prompt, " ");
+            Snprintf(eos(prompt), sizeof prompt - strlen(prompt),
+                     " (%c)", def);
+        Snprintf(eos(prompt), sizeof prompt - strlen(prompt), " ");
         pline("%s", prompt);
     } else {
         amii_putstr(WIN_MESSAGE, 0, query);
@@ -1046,23 +556,6 @@ amii_yn_function(const char *query, const char *resp, char def)
         cursor_on(WIN_MESSAGE);
         q = lowc(WindowGetchar());
         cursor_off(WIN_MESSAGE);
-#if 0
-/* fix for PL2 */
-        if (q == '\020') { /* ctrl-P */
-            if(!doprev)
-                (void) tty_doprev_message(); /* need two initially */
-            (void) tty_doprev_message();
-            q = (char)0;
-            doprev = 1;
-            continue;
-        } else if (doprev) {
-            tty_clear_nhwindow(WIN_MESSAGE);
-            cw->maxcol = cw->maxrow;
-            doprev = 0;
-            amii_addtopl(prompt);
-            continue;
-        }
-#endif /*0*/
         digit_ok = allow_num && isdigit(q);
         if (q == '\033') {
             if (strchr(resp, 'q'))
@@ -1156,17 +649,8 @@ amii_display_file(const char *fn, boolean complain)
 
     if ((fp = dlb_fopen(fn, RDTMODE)) == (dlb *) NULL) {
         if (complain) {
-            sprintf(buf, "Can't display %s: %s", fn,
-#if defined(_DCC) || defined(__GNUC__)
-                    strerror(errno)
-#else
-#ifdef __SASC_60
-                    __sys_errlist[errno]
-#else
-                    sys_errlist[errno]
-#endif
-#endif
-                    );
+            Snprintf(buf, sizeof buf,
+                     "Can't display %s: %s", fn, strerror(errno));
             amii_addtopl(buf);
         }
         return;
@@ -1174,11 +658,11 @@ amii_display_file(const char *fn, boolean complain)
     win = amii_create_nhwindow(NHW_TEXT);
 
     /* Set window title to file name */
-    if (cw = amii_wins[win])
+    if ((cw = amii_wins[win]) != NULL)
         cw->morestr = (char *) fn;
 
     while (dlb_fgets(buf, sizeof(buf), fp) != NULL) {
-        if (t = strchr(buf, '\n'))
+        if ((t = strchr(buf, '\n')) != NULL)
             *t = 0;
         amii_putstr(win, 0, buf);
     }
@@ -1205,11 +689,8 @@ SetBorder(struct Gadget *gd)
     int borders = 6;
     int hipen = sysflags.amii_dripens[SHINEPEN],
         shadowpen = sysflags.amii_dripens[SHADOWPEN];
-#ifdef INTUI_NEW_LOOK
     struct DrawInfo *dip;
-#endif
 
-#ifdef INTUI_NEW_LOOK
     if (IntuitionBase->LibNode.lib_Version >= 37) {
         if ((dip = GetScreenDrawInfo(HackScreen)) != 0) {
             hipen = dip->dri_Pens[SHINEPEN];
@@ -1217,7 +698,6 @@ SetBorder(struct Gadget *gd)
             FreeScreenDrawInfo(HackScreen, dip);
         }
     }
-#endif
     /* Allocate two border structures one for up image and one for down
      * image, plus vector arrays for the border lines.
      */

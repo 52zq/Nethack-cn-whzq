@@ -1,4 +1,4 @@
-/* NetHack 5.0	do_name.c	$NHDT-Date: 1737013431 2025/01/15 23:43:51 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.326 $ */
+/* NetHack 5.0	do_name.c	$NHDT-Date: 1781973046 2026/06/20 16:30:46 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.339 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Pasi Kallinen, 2018. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -299,8 +299,8 @@ do_oname(struct obj *obj)
         return;
     }
 
-    Sprintf(qbuf, "你想要把%s",
-            is_plural(obj) ? "这些" : "这个");
+    Sprintf(qbuf, "你想要把%s%s",
+            is_plural(obj) ? "这些" : "这", is_plural(obj) ? "" : obj_classifier(obj));
     (void) safe_qbuf(qbuf, qbuf, "命名为什么?", obj, xname, simpleonames, "物品");
     /* use getlin() to get a name string from the player */
     if (!name_from_player(buf, qbuf, safe_oname(obj)))
@@ -416,7 +416,7 @@ oname(
                                bare_artifactname(obj));
             else
                 livelog_printf(LL_ARTIFACT,
-                               "将一个%s命名成了\"%s\"",
+                               "将%s命名成了\"%s\"",
                                ansimpleoname(obj), bare_artifactname(obj));
         }
     }
@@ -577,7 +577,7 @@ docallcmd(void)
             (void) xname(obj);
 
             if (!obj->dknown) {
-                You("把这两个再也分不清了.");
+                You("认不清这是什么.");
 #if 0
             } else if (call_ok(obj) == GETOBJ_EXCLUDE) {
                 You("know those as well as you ever will.");
@@ -731,7 +731,7 @@ namefloorobj(void)
         unames[1] = rank_of(rn2_on_display_rng(30) + 1,
                             Role_switch, flags.female);
         /* random fake monster */
-        unames[2] = bogusmon(tmpbuf, (char *) 0);
+        unames[2] = bogusmon(tmpbuf, (char *) 0, (char *) 0);
         /* increased chance for fake monster */
         unames[3] = unames[2];
         /* traditional */
@@ -742,11 +742,11 @@ namefloorobj(void)
               The(buf), use_plural ? "决定" : "决定",
               unames[rn2_on_display_rng(SIZE(unames))]);
     } else if (call_ok(obj) == GETOBJ_EXCLUDE) {
-        pline("%s%s不能被指定类型名字.",
-              use_plural ? "那些" : "那个", buf);
+        pline("%s%s%s不能被指定类型名字.",
+              use_plural ? "那些" : "那", use_plural ? "" : obj_classifier(obj), buf);
     } else if (!obj->dknown) {
-        You("对%s%s了解不多, 所以不能命名%s.",
-            use_plural ? "那些" : "那个", buf, use_plural ? "它们" : "它");
+        You("对%s%s%s了解不多, 所以不能命名%s.",
+            use_plural ? "那些" : "那", use_plural ? "" : obj_classifier(obj), buf, use_plural ? "它们" : "它");
     } else {
         docall(obj);
     }
@@ -838,7 +838,7 @@ x_monnam(
             do_exact, do_name, augment_it;
     boolean name_at_start, has_adjectives, insertbuf2,
             mappear_as_mon = (M_AP_TYPE(mtmp) == M_AP_MONSTER);
-    char *bp, buf2[BUFSZ];
+    char *bp, buf2[BUFSZ], hallu_quant[BUFSZ];
 
     if (mtmp == &gy.youmonst)
         return strcpy(buf, "你"); /* ignore article, "invisible", &c */
@@ -870,6 +870,7 @@ x_monnam(
     augment_it = (suppress & AUGMENT_IT) != 0;
 
     buf[0] = '\0';
+    hallu_quant[0] = '\0';
 
     /* unseen monsters, etc.; usually "it" but sometimes more specific;
        when hallucinating, the more specific values might be inverted */
@@ -949,7 +950,7 @@ x_monnam(
        Remember whether the buffer starts with a personal name. */
     if (do_hallu) {
         char rnamecode;
-        char *rname = rndmonnam(&rnamecode);
+        char *rname = rndmonnam_cls(&rnamecode, hallu_quant);
 
         Strcat(buf, rname);
         name_at_start = bogon_is_pname(rnamecode);
@@ -1015,10 +1016,15 @@ x_monnam(
     case ARTICLE_THE:
         Strcpy(buf2, "");
         break;
-    case ARTICLE_A:
-        /* avoid an() here */
-        (void) just_an(buf2, buf); /* copy "a " or "an " into buf2[] */
+    case ARTICLE_A: {
+        struct permonst *qdat = do_mappear ? &mons[mtmp->mappearance] : mdat;
+
+        if (*hallu_quant)
+            Sprintf(buf2, "一%s", hallu_quant);
+        else
+            Sprintf(buf2, "一%s", pm_to_classifier(qdat));
         break;
+    }
     case ARTICLE_NONE:
     default:
         insertbuf2 = FALSE;
@@ -1059,6 +1065,15 @@ noit_mon_nam(struct monst *mtmp)
                     FALSE);
 }
 
+char *
+noit_or_your_mon_nam(struct monst *mtmp)
+{
+    return x_monnam(mtmp, ARTICLE_THE, (char *) 0,
+                    (has_mgivenname(mtmp) ? (SUPPRESS_SADDLE | SUPPRESS_IT)
+                                          : SUPPRESS_IT),
+                    FALSE);
+}
+
 /* in between noit_mon_nam() and mon_nam(); if the latter would pick "it",
    use "someone" (for humanoids) or "something" (for others) instead */
 char *
@@ -1083,6 +1098,15 @@ char *
 noit_Monnam(struct monst *mtmp)
 {
     char *bp = noit_mon_nam(mtmp);
+
+    *bp = highc(*bp);
+    return bp;
+}
+
+char *
+noit_or_your_Monnam(struct monst *mtmp)
+{
+    char *bp = noit_or_your_mon_nam(mtmp);
 
     *bp = highc(*bp);
     return bp;
@@ -1299,6 +1323,20 @@ Mgender(struct monst *mtmp)
     return mgender;
 }
 
+
+const char * /* 一+量词+怪物名 */
+an_pmname(struct permonst *pm, int mgender)
+{
+    char *outbuf = nextmbuf();
+    const char *quant = pm_to_classifier(pm);
+
+    if (mgender < MALE || mgender >= NUM_MGENDERS || !pm->pmnames[mgender])
+        mgender = NEUTRAL;
+    Sprintf(outbuf, "%s%s%s", *quant ? "一" : "", quant,
+            pm->pmnames[mgender]);
+    return outbuf;
+}
+
 const char *
 pmname(struct permonst *pm, int mgender)
 {
@@ -1314,6 +1352,154 @@ mon_pmname(struct monst *mon)
 {
     /* for neuter, mon->data->pmnames[MALE] will be Null and use [NEUTRAL] */
     return pmname(mon->data, Mgender(mon));
+}
+
+/* permonst 的量词: 独特怪没有量词, 其余按类符号 */
+const char *
+pm_to_classifier(struct permonst *pm)
+{
+    switch (pm->pmidx)
+    {
+        case PM_VLAD_THE_IMPALER:
+        case PM_WIZARD_OF_YENDOR:
+        case PM_CROESUS:
+        case PM_JUIBLEX:
+        case PM_YEENOGHU:
+        case PM_ORCUS:
+        case PM_GERYON:
+        case PM_DISPATER:
+        case PM_BAALZEBUB:
+        case PM_ASMODEUS:
+        case PM_DEMOGORGON:
+        case PM_DEATH:
+        case PM_PESTILENCE:
+        case PM_FAMINE:
+        case PM_LORD_CARNARVON:
+        case PM_PELIAS:
+        case PM_SHAMAN_KARNOV:
+        case PM_HIPPOCRATES:
+        case PM_KING_ARTHUR:
+        case PM_GRAND_MASTER:
+        case PM_ARCH_PRIEST:
+        case PM_ORION:
+        case PM_MASTER_OF_THIEVES:
+        case PM_LORD_SATO:
+        case PM_TWOFLOWER:
+        case PM_NORN:
+        case PM_NEFERET_THE_GREEN:
+        case PM_MINION_OF_HUHETOTL:
+        case PM_THOTH_AMON:
+        case PM_CHROMATIC_DRAGON:
+        case PM_CYCLOPS:
+        case PM_IXOTH:
+        case PM_MASTER_KAEN:
+        case PM_NALZOK:
+        case PM_SCORPIUS:
+        case PM_MASTER_ASSASSIN:
+        case PM_ASHIKAGA_TAKAUJI:
+        case PM_LORD_SURTUR:
+        case PM_DARK_ONE:
+            return "";
+        default:
+            break;
+    }
+    return sym_to_classifier(pm->mlet);
+}
+
+const char *
+terrain_classifier(int sym)
+{
+    switch (sym)
+    {
+    case S_stone:
+        return "块";
+    case S_vwall:
+    case S_hwall:
+    case S_trcorn:
+    case S_blcorn:
+    case S_brcorn:
+    case S_crwall:
+    case S_tuwall:
+    case S_tdwall:
+    case S_tlwall:
+    case S_trwall:
+        return "堵";
+    case S_vodoor:
+    case S_hodoor:
+    case S_vcdoor:
+    case S_hcdoor:
+        return "扇";
+    case S_tree:
+        return "棵";
+    case S_grave:
+    case S_vodbridge:
+    case S_hodbridge:
+    case S_vcdbridge:
+    case S_hcdbridge:
+        return "座";
+    case S_pool:
+    case S_lava:
+        return "池";
+    case S_ice:
+        return "面";
+    case S_air:
+    case S_cloud:
+    case S_water:
+    case S_poisoncloud:
+        return "片";
+    }
+    return "个";
+}
+
+const char *
+sym_to_classifier(int sym)
+{
+    switch (sym)
+    {
+    case S_ANT:
+    case S_COCKATRICE:
+    case S_DOG: //狼要不要换成匹? -- Francium-223
+    case S_FELINE:
+    case S_RODENT:
+    case S_XAN:
+    case S_BAT:
+    case S_JABBERWOCK:
+    case S_YETI:
+    case S_ZOMBIE:
+    case S_SPIDER:
+    case S_LIZARD:
+        return "只";
+    case S_QUADRUPED:
+    case S_DRAGON: //西方的龙应该不是条吧,?
+    case S_EEL: //同样需细化
+        return "头";
+    case S_UNICORN:
+        return "匹";
+    case S_VORTEX: //漩涡应该用什么?
+    case S_FUNGUS: //同上
+        return "片";
+    case S_WORM:
+    case S_NAGA:
+    case S_SNAKE:
+        return "条";
+    case S_LIGHT:
+        return "道";
+    case S_MUMMY:
+        return "具";
+    case S_GOLEM:
+        return "尊";
+    case S_JELLY: //我现在懒得改名字, 要改还要修mon_chinese.inc
+    case S_PUDDING:
+        return "团";
+    }
+    return "个";
+}
+
+/* 怪物的量词: 直接按物种查 */
+const char *
+mon_classifier(struct monst *mon)
+{
+    return pm_to_classifier(mon->data);
 }
 
 /* mons[]->pmname for a corpse or statue or figurine */
@@ -1366,14 +1552,20 @@ const char bogon_codes[] = "-_+|="; /* see dat/bonusmon.txt */
 
 /* fake monsters used to be in a hard-coded array, now in a data file */
 char *
-bogusmon(char *buf, char *code)
+bogusmon(char *buf, char *code, char *classifier)
 {
-    char *mnam = buf;
+    char *mnam = buf, *cp;
 
     if (code)
         *code = '\0';
+    if (classifier)
+        *classifier = '\0';
     /* might fail (return empty buf[]) if the file isn't available */
     get_rnd_text(BOGUSMONFILE, buf, rn2_on_display_rng, MD_PAD_BOGONS);
+    /* 数据文件在 Windows 下编辑会是 CRLF 行尾, 去掉可能残留的 '\r'
+       (unpadline() 只剥行尾的 '\n' 和填充用的 '_') */
+    if ((cp = eos(mnam)) > mnam && cp[-1] == '\r')
+        *--cp = '\0';
     if (!*mnam) {
         Strcpy(buf, "bogon");
     } else if (strchr(bogon_codes, *mnam)) { /* strip prefix if present */
@@ -1381,12 +1573,16 @@ bogusmon(char *buf, char *code)
             *code = *mnam;
         ++mnam;
     }
+    if ((cp = strrchr(mnam, '/')) != 0) {
+        *cp++ = '\0';
+        if (classifier)
+            Strcpy(classifier, cp);
+    }
     return mnam;
 }
 
-/* return a random monster name, for hallucination */
 char *
-rndmonnam(char *code)
+rndmonnam_cls(char *code, char *classifier)
 {
     static char buf[BUFSZ];
     char *mnam;
@@ -1395,6 +1591,8 @@ rndmonnam(char *code)
 
     if (code)
         *code = '\0';
+    if (classifier)
+        *classifier = '\0';
 
     do {
         name = rn2_on_display_rng(SPECIAL_PM + BOGUSMONSIZE - LOW_PM) + LOW_PM;
@@ -1402,12 +1600,41 @@ rndmonnam(char *code)
              && (type_is_pname(&mons[name]) || (mons[name].geno & G_NOGEN)));
 
     if (name >= SPECIAL_PM) {
-        mnam = bogusmon(buf, code);
+        mnam = bogusmon(buf, code, classifier);
     } else {
-        mnam = strcpy(buf, pmname(&mons[name], rn2_on_display_rng(2)));
+        mnam = strcpy(buf, pmname(&mons[name], rn2_on_display_rng(2))); //危险:pmname
+        if (classifier)
+            Strcpy(classifier, pm_to_classifier(&mons[name]));
+    }
+    if (classifier) {
+        if (bogon_is_pname(code ? *code : '\0'))
+            *classifier = '\0';
+        else if (!*classifier)
+            Strcpy(classifier, "个");
     }
     return mnam;
 #undef BOGUSMONSIZE
+}
+
+/* return a random monster name, for hallucination */
+char *
+rndmonnam(char *code)
+{
+    return rndmonnam_cls(code, (char *) 0);
+}
+
+char *
+an_rndmonnam(char *code)
+{
+    static char abuf[BUFSZ];
+    char classifier[BUFSZ], nam[BUFSZ];
+
+    Strcpy(nam, rndmonnam_cls(code, classifier));
+    if (*classifier)
+        Sprintf(abuf, "一%s%s", classifier, nam);
+    else
+        Strcpy(abuf, nam);
+    return abuf;
 }
 
 /* check bogusmon prefix to decide whether it's a personal name */

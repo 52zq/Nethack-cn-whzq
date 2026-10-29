@@ -26,7 +26,7 @@ typedef struct nhw {
     int x;                      /* start of window on terminal (left) */
     int y;                      /* start of window on terminal (top) */
     int orientation;            /* Placement of window relative to map */
-    boolean clr_inited;         /* fg/bg/colorpair inited? */
+    int clr_inited;             /* fg/bg/colorpair: 1 inited, -1 unusable */
     int fg, bg;                 /* foreground, background color index */
     int colorpair;              /* color pair of fg, bg */
     boolean border;             /* Whether window has a visible border */
@@ -40,7 +40,8 @@ typedef struct nhwd {
 
 typedef struct nhchar {
     int ch;                     /* character */
-    int color;                  /* color info for character */
+    int color;                  /* basic color info for character */
+    int color256;               /* extended color for the character, 0 if none */
     int framecolor;                /* background color info for character */
     int attr;                   /* attributes of character */
     struct unicode_representation *unicode_representation;
@@ -190,8 +191,19 @@ curses_set_wid_colors(int wid, WINDOW *win)
     }
     /* FIXME: colors and nhwins[] entry for perm invent window */
     if (nhwins[wid].clr_inited > 0) {
-        wbkgd(win ? win : nhwins[wid].curwin,
-              COLOR_PAIR(nhwins[wid].colorpair));
+        WINDOW *w = win ? win : nhwins[wid].curwin;
+#ifdef CURSES_WIDE_PAIRS
+        /* windowcolors pairs sit above 2048 in 256-color mode,
+           beyond what COLOR_PAIR() can express */
+        cchar_t bkgd;
+
+        if (setcchar(&bkgd, L" ", A_NORMAL, (short) nhwins[wid].colorpair,
+                     NULL) == OK) {
+            wbkgrnd(w, &bkgd);
+        }
+#else
+        wbkgd(w, COLOR_PAIR(nhwins[wid].colorpair));
+#endif
     }
 }
 
@@ -291,23 +303,36 @@ curses_get_nhwin(winid wid)
     return nhwins[wid].curwin;
 }
 
-boolean
-parse_hexstr(char *colorbuf, int *red, int *green, int *blue)
+/* curses_wid_color() result for a color that can't be used */
+#define NO_CURSES_COLOR (-2)
+
+/* convert a windowcolors color (name or #rrggbb) to a curses color;
+   -1 is the terminal's default color */
+static int
+curses_wid_color(char *clrstr)
 {
-    int len = colorbuf ? strlen(colorbuf) : 0;
+    int32 clr = clrstr ? check_enhanced_colors(clrstr) : -1;
+    uint32 closecolor;
+    uint16 clridx;
+    int rgbclr;
 
-    if (len == 7 && colorbuf[0] == '#') {
-        char tmpbuf[16];
-
-        Sprintf(tmpbuf, "0x%c%c", colorbuf[1], colorbuf[2]);
-        *red = strtol(tmpbuf, NULL, 0);
-        Sprintf(tmpbuf, "0x%c%c", colorbuf[3], colorbuf[4]);
-        *green = strtol(tmpbuf, NULL, 0);
-        Sprintf(tmpbuf, "0x%c%c", colorbuf[5], colorbuf[6]);
-        *blue = strtol(tmpbuf, NULL, 0);
-        return TRUE;
+    if (clr < 0)
+        return NO_CURSES_COLOR;
+    if (clr & NH_BASIC_COLOR) {
+        clr &= ~NH_BASIC_COLOR;
+        if (clr == NO_COLOR)
+            return -1;
+        /* without bright colors, use the dim variant */
+        return (clr < COLORS) ? clr : clr % 8;
     }
-    return FALSE;
+    /* use the terminal's 256-color palette rather than redefining
+       palette slots, which most terminals don't support and which
+       the 256-color pairs already use */
+    if (COLORS >= 256 && closest_color((uint32) clr, &closecolor, &clridx))
+        return clridx;
+    rgbclr = curses_init_rgb((clr >> 16) & 0xFF, (clr >> 8) & 0xFF,
+                             clr & 0xFF);
+    return (rgbclr >= 0) ? rgbclr : NO_CURSES_COLOR;
 }
 
 void
@@ -323,28 +348,12 @@ curses_parse_wid_colors(int wid, char *fg, char *bg)
     if (nhwins[wid].clr_inited)
         return;
 
-    int nh_fg = fg ? match_str2clr(fg, TRUE) : CLR_MAX;
-    int nh_bg = bg ? match_str2clr(bg, TRUE) : CLR_MAX;
-    int r, g, b;
-
-    if (nh_fg == CLR_MAX) {
-        if (fg && parse_hexstr(fg, &r, &g, &b)) {
-            nh_fg = curses_init_rgb(r, g, b);
-        } else {
-            nh_fg = -1;
-        }
-    }
-    if (nh_bg == CLR_MAX) {
-        if (bg && parse_hexstr(bg, &r, &g, &b)) {
-            nh_bg = curses_init_rgb(r, g, b);
-        } else {
-            nh_bg = -1;
-        }
-    }
+    int nh_fg = curses_wid_color(fg);
+    int nh_bg = curses_wid_color(bg);
 
     nhwins[wid].fg = nh_fg;
     nhwins[wid].bg = nh_bg;
-    if (nh_fg == -1 || nh_bg == -1) {
+    if (nh_fg == NO_CURSES_COLOR || nh_bg == NO_CURSES_COLOR) {
         nhwins[wid].clr_inited = -1;
     } else {
         nhwins[wid].colorpair = curses_init_pair(nh_fg, nh_bg);
@@ -532,7 +541,7 @@ curses_putch(winid wid, int x, int y, int ch,
 #ifdef ENHANCED_SYMBOLS
              struct unicode_representation *unicode_representation,
 #endif
-             int color, int framecolor, int attr)
+             const struct glyph_attributes *attr)
 {
     static boolean map_initted = FALSE;
     int sx, sy, ex, ey;
@@ -554,9 +563,10 @@ curses_putch(winid wid, int x, int y, int ch,
 
     --x; /* map column [0] is not used; draw column [1] in first screen col */
     map[y][x].ch = ch;
-    map[y][x].color = color;
-    map[y][x].framecolor = framecolor;
-    map[y][x].attr = attr;
+    map[y][x].color = attr->basic_color;
+    map[y][x].color256 = attr->color256;
+    map[y][x].framecolor = attr->framecolor;
+    map[y][x].attr = attr->attribute_flags;
 #ifdef ENHANCED_SYMBOLS
     map[y][x].unicode_representation = unicode_representation;
 #endif
@@ -763,22 +773,27 @@ is_main_window(winid wid)
 coordinates without a refresh.  Currently only used for the map. */
 
 /* convert nhcolor (fg) and framecolor (bg) to curses colorpair */
-int
-get_framecolor(int nhcolor, int framecolor)
+static int
+get_framecolor(const nethack_char *nch)
 {
+    int bgcolor = (nch->framecolor != NO_COLOR) ? nch->framecolor : 0;
     /* curses_toggle_color_attr() adds the +1 and takes care of COLORS < 16 */
-    return (16 * (framecolor % 8)) + (nhcolor % 16);
+    if (curses_has_256color()) {
+        int color = nch->color256 ? nch->color256 : nch->color;
+        return (256 * (bgcolor % CURSES_NUM_BACKGROUND_COLORS)) + (color % 256);
+    } else
+        return (16 * (bgcolor % CURSES_NUM_BACKGROUND_COLORS)) + (nch->color % 16);
 }
 
 static void
 write_char(WINDOW * win, int x, int y, nethack_char nch)
 {
-    int curscolor = nch.color, cursattr = nch.attr;
+    int curscolor;
+    int cursattr = nch.attr;
 
-    if (nch.framecolor != NO_COLOR) {
-        curscolor = get_framecolor(nch.color, nch.framecolor);
-        if (nch.attr == A_REVERSE)
-            cursattr = A_NORMAL; /* hilited pet looks odd otherwise */
+    curscolor = get_framecolor(&nch);
+    if ((nch.framecolor != NO_COLOR) && (nch.attr == A_REVERSE)) {
+        cursattr = A_NORMAL; /* hilited pet looks odd otherwise */
     }
     curses_toggle_color_attr(win, curscolor, cursattr, ON);
 #if defined(CURSES_UNICODE) && defined(ENHANCED_SYMBOLS)
@@ -876,21 +891,25 @@ curses_draw_map(int sx, int sy, int ex, int ey)
 #ifdef MAP_SCROLLBARS
     hsb_back.ch = '-';
     hsb_back.color = SCROLLBAR_BACK_COLOR;
+    hsb_back.color256 = 0;
     hsb_back.framecolor = NO_COLOR;
     hsb_back.attr = A_NORMAL;
     hsb_back.unicode_representation = NULL;
     hsb_bar.ch = '*';
     hsb_bar.color = SCROLLBAR_COLOR;
+    hsb_bar.color256 = 0;
     hsb_bar.framecolor = NO_COLOR;
     hsb_bar.attr = A_NORMAL;
     hsb_bar.unicode_representation = NULL;
     vsb_back.ch = '|';
     vsb_back.color = SCROLLBAR_BACK_COLOR;
+    vsb_back.color256 = 0;
     vsb_back.framecolor = NO_COLOR;
     vsb_back.attr = A_NORMAL;
     vsb_back.unicode_representation = NULL;
     vsb_bar.ch = '*';
     vsb_bar.color = SCROLLBAR_COLOR;
+    vsb_bar.color256 = 0;
     vsb_bar.framecolor = NO_COLOR;
     vsb_bar.attr = A_NORMAL;
     vsb_bar.unicode_representation = NULL;
@@ -958,6 +977,8 @@ clear_map(void)
         for (y = 0; y < ROWNO; y++) {
             map[y][x].ch = ' ';
             map[y][x].color = NO_COLOR;
+            map[y][x].color256 = 0;
+            map[y][x].framecolor = NO_COLOR;
             map[y][x].attr = A_NORMAL;
             map[y][x].unicode_representation = NULL;
         }

@@ -1,4 +1,4 @@
-/* NetHack 5.0	minion.c	$NHDT-Date: 1762727599 2025/11/09 14:33:19 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.81 $ */
+/* NetHack 5.0	minion.c	$NHDT-Date: 1781973054 2026/06/20 16:30:54 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.88 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2008. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -43,9 +43,7 @@ monster_census(boolean spotted) /* seen|sensed vs all */
     int count = 0;
 
     for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
-        if (DEADMONSTER(mtmp))
-            continue;
-        if (mtmp->isgd && mtmp->mx == 0)
+        if (DEADMONSTER(mtmp) || PARKEDMONSTER(mtmp))
             continue;
         if (spotted && !canspotmon(mtmp))
             continue;
@@ -301,7 +299,8 @@ demon_talk(struct monst *mtmp)
             pline("%s说: \"狩猎好运, %s. \"", Amonnam(mtmp),
                   flags.female ? "姐妹" : "兄弟");
         else if (canseemon(mtmp))
-            pline("%s说了什么.", Amonnam(mtmp));
+            pline("%s%s了什么.", Amonnam(mtmp),
+                  says());
         if (!tele_restrict(mtmp))
             (void) rloc(mtmp, RLOC_MSG);
         return 1;
@@ -380,7 +379,7 @@ bribe(struct monst *mtmp, const char *prompt)
         You("把你所有的金币都给了%s.", mon_nam(mtmp));
         offer = umoney;
     } else {
-        You("给了%s%ld %s.", mon_nam(mtmp), offer, currency(offer));
+        You("给了%s %ld %s.", mon_nam(mtmp), offer, currency(offer));
     }
     (void) money2mon(mtmp, offer);
     disp.botl = TRUE;
@@ -505,7 +504,7 @@ gain_guardian_angel(void)
                      message will be heard even if that fails) */
     if (Conflict) {
        if (!Deaf)
-            pline("一个轰鸣的声音:");
+            pline("一个声音轰鸣:");
         else
             You_feel("到轰鸣的声音:");
         SetVoice((struct monst *) 0, 0, 80, voice_deity);

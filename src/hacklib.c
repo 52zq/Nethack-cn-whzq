@@ -1,4 +1,4 @@
-/* NetHack 5.0	hacklib.c	$NHDT-Date: 1706213796 2024/01/25 20:16:36 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.116 $ */
+/* NetHack 5.0	hacklib.c	$NHDT-Date: 1781973051 2026/06/20 16:30:51 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.133 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2007. */
 /* Copyright (c) Robert Patrick Rankin, 1991                      */
@@ -351,7 +351,7 @@ strcasecpy(char *dst, const char *src)
 char *
 s_suffix(const char *s)
 {
-    return s;
+    return (char *) s;
 }
 
 /* construct a gerund (a verb formed by appending "ing" to a noun) */
@@ -620,7 +620,8 @@ findword(
 const char *
 ordin(int n)               /* note: should be non-negative */
 {
-    int dd = n % 10;
+    //int dd = n % 10;
+    nhUse(n);
     return ""; /*危险*/
 }
 
@@ -912,8 +913,7 @@ unicodeval_to_utf8str(int uval, uint8 *buffer, size_t bufsz)
     return 1;
 }
 
-/* Get the byte len and estimate display width of a well-formed UTF-8 char.
- * (Simple implementation) */
+/* 获取一个格式良好的 UTF-8 字符的字节长度，并估算其显示宽度。*/
 void
 utf8char_info(const char *p_char, uint8 *char_len, uint8 *char_width)
 {
@@ -935,12 +935,11 @@ utf8char_info(const char *p_char, uint8 *char_len, uint8 *char_width)
     }
 }
 
-/* Estimate the display column width of a UTF-8 string. (Simple
- * implementation) */
-size_t
+/* 估算一个 UTF-8 字符串的显示列宽。 */
+int
 utf8str_width(const char *str)
 {
-    size_t width = 0;
+    int width = 0;
     uint8 clen = 0, cw = 0;
     while (*str) {
         utf8char_info(str, &clen, &cw);
@@ -950,22 +949,61 @@ utf8str_width(const char *str)
     return width;
 }
 
-/* Get the pointer at or before the `n`-th display column of a well-formed
- * UTF-8 string. Stops when the next char would exceed `n`, ensuring the
- * result never splits a multi-byte char. */
+/* 返回指向字符串中第 col 个显示列之前或该列处的指针。
+ * 当下一个字符会超过 col 列时停止，确保不会切断多字节字符。 */
 const char *
-utf8str_at_col(const char *str, size_t n)
+utf8str_at_col(const char *str, int col)
 {
-    size_t cnt = 0;
+    unsigned cnt = 0;
     uint8 clen = 0, cw = 0;
     while (*str) {
         utf8char_info(str, &clen, &cw);
-        if (cnt + cw > n)
+        if ((int) cnt + cw > col)
             break;
         str += clen;
         cnt += cw;
     }
     return str;
+}
+
+/* 将字符串追加到 buf 末尾，并在其后补空格到指定显示列宽。类似 %-Ns 的行为。
+ * 若 buf 容量不够则不写入数据，并返回需要的容量（含结尾 '\0'）。
+ * 若成功则返回追加后的字符串长度。 */
+unsigned
+utf8str_append(char *buf, unsigned bufsz, const char *text, int width)
+{
+    unsigned curr_len = (unsigned) strlen(buf);
+    unsigned text_len = (unsigned) strlen(text);
+    int text_width = utf8str_width(text);
+    unsigned pad = (width > text_width) ? (width - text_width) : 0;
+    unsigned dest_len = curr_len + text_len + pad + 1;
+
+    if (dest_len > bufsz)
+        return dest_len;
+    Sprintf(eos(buf), "%s", text);
+    if (pad > 0)
+        Sprintf(eos(buf), "%*s", pad, "");
+    return curr_len + text_len + pad;
+}
+
+/* 同 `utf8str_append`，类似 %Ns 的行为。
+ * 若 buf 容量不够则不写入数据，并返回需要的容量（含结尾 '\0'）。
+ * 若成功则返回追加后的字符串长度。 */
+unsigned
+utf8str_append_r(char *buf, unsigned bufsz, const char *text, int width)
+{
+    unsigned curr_len = (unsigned) strlen(buf);
+    unsigned text_len = (unsigned) strlen(text);
+    int text_width = utf8str_width(text);
+    unsigned pad = (width > text_width) ? (width - text_width) : 0;
+    unsigned dest_len = curr_len + text_len + pad + 1;
+
+    if (dest_len > bufsz)
+        return dest_len;
+    if (pad > 0)
+        Sprintf(eos(buf), "%*s", pad, "");
+    Sprintf(eos(buf), "%s", text);
+    return curr_len + text_len + pad;
 }
 
 int
@@ -1024,7 +1062,7 @@ static struct datamodel_information dm[] = {
       "", "" },
     { { 2, 4, 4, 8, 4 }, "ILP32LL64", "x86 32-bit" }, /* Windows or Unix */
     { { 2, 4, 4, 8, 8 }, "IL32LLP64", "Windows x64 64-bit" },
-    { { 2, 4, 8, 8, 8 }, "I32LP64", "Unix 64-bit"}, 
+    { { 2, 4, 8, 8, 8 }, "I32LP64", "Unix 64-bit"},
     { { 2, 8, 8, 8, 8 }, "ILP64", "Unix ILP64"},      /* HAL, SPARC64 */
 };
 

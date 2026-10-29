@@ -1,4 +1,4 @@
-/* NetHack 5.0	apply.c	$NHDT-Date: 1769342601 2026/01/25 04:03:21 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.475 $ */
+/* NetHack 5.0	apply.c	$NHDT-Date: 1781973040 2026/06/20 16:30:40 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.482 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -273,9 +273,9 @@ its_dead(coordxy rx, coordxy ry, int *resp)
                     corpse = nxtobj(corpse, CORPSE, TRUE);
             } while (corpse && !reviver);
         }
-        You("断定%s不幸的人%s%s%s死了.",
+        You("断定%s不幸的人%s%s死了.",
             one ? (here ? "这个" : "那个") : (here ? "这些" : "那些"),
-            one ? "" : "", reviver ? "大部分都" : "", "已经"); /*修改语序:one ? "" : "", one ? "" : "", reviver ? "大部分都" : "");*/
+            reviver ? "大部分都" : "", "已经"); /*修改语序:one ? "" : "", one ? "" : "", reviver ? "大部分都" : "");*/
         return TRUE;
 
     } else { /* statue */
@@ -390,7 +390,10 @@ use_stethoscope(struct obj *obj)
     }
     if ((mtmp = m_at(rx, ry)) != 0) {
         const char *mnm = x_monnam(mtmp, ARTICLE_A, (const char *) 0,
-                                   SUPPRESS_IT | SUPPRESS_INVISIBLE, FALSE);
+                                   (SUPPRESS_IT | SUPPRESS_INVISIBLE
+                                    /* stethoscope reveals true form; seemimic
+                                       below will clear mtmp->mappearance */
+                                    | SUPPRESS_MAPPEARANCE), FALSE);
 
         /* gb.bhitpos needed by mstatusline() iff mtmp is a long worm */
         gb.bhitpos.x = rx, gb.bhitpos.y = ry;
@@ -469,8 +472,8 @@ use_stethoscope(struct obj *obj)
     return res;
 }
 
-static const char whistle_str[] = "发出%s的哨声.",
-                  alt_whistle_str[] = "产生出%s的剧烈振动.";
+static const char whistle_str[] = "发出%s哨声.",
+                  alt_whistle_str[] = "产生出%s剧烈振动.";
 
 staticfn void
 use_whistle(struct obj *obj)
@@ -483,7 +486,7 @@ use_whistle(struct obj *obj)
         if (Deaf)
             You_feel("急促的空气使你的%s发痒.", body_part(NOSE));
         else
-            You(whistle_str, obj->cursed ? "尖锐" : "响亮");
+            You(whistle_str, obj->cursed ? "尖锐的" : "响亮的");
         Soundeffect(se_shrill_whistle, 50);
         wake_nearby(TRUE);
         if (obj->cursed)
@@ -833,7 +836,7 @@ use_leash_core(struct obj *obj, struct monst *mtmp, coord *cc, int spotmon)
     } else if (!obj->leashmon) {
         /* applying a leash which isn't currently in use */
         if (mtmp->mleashed) {
-            pline("这个%s已经被拴着了.",
+            pline("这%s%s已经被拴着了.", mon_classifier(mtmp),
                   spotmon ? l_monnam(mtmp) : "怪物");
         } else if (unsolid(mtmp->data)) {
             pline("狗链会掉下来.");
@@ -861,7 +864,7 @@ use_leash_core(struct obj *obj, struct monst *mtmp, coord *cc, int spotmon)
     } else {
         /* applying a leash which is currently in use */
         if (obj->leashmon != (int) mtmp->m_id) {
-            pline("这个狗链没有连接到那个生物.");
+            pline("这条狗链没有连接到那个生物.");
         } else if (obj->cursed) {
             pline_The("狗链被锁上了!");
             set_bknown(obj, 1);
@@ -907,7 +910,7 @@ mleashed_next2u(struct monst *mtmp)
             otmp->leashmon = 0;
             update_inventory();
             You_feel("%s狗链变松了.",
-                     (number_leashed() > 1) ? "" : "这个");
+                     (number_leashed() > 1) ? "" : "这根");
         }
     }
     return FALSE;
@@ -1067,7 +1070,7 @@ use_mirror(struct obj *obj)
             } else if (u.uhs >= WEAK) {
                 You(look_str, "营养不良");
             } else if (Upolyd) {
-                You("看起来像%s.", an(pmname(&mons[u.umonnum], Ugender)));
+                You("看起来像%s.", an_pmname(&mons[u.umonnum], Ugender)); //an()能摧眉折腰事str, 使我不得开心颜
             } else {
                 You("看起来像往常一样%s.", uvisage);
             }
@@ -1318,7 +1321,7 @@ use_bell(struct obj **optr)
 staticfn void
 use_candelabrum(struct obj *obj)
 {
-    const char *s = (obj->spe != 1) ? "蜡烛" : "蜡烛";
+    const char *s = "蜡烛";//(obj->spe != 1) ? "蜡烛" : "蜡烛";
 
     if (obj->lamplit) {
         You("掐灭了%s.", s);
@@ -1328,7 +1331,7 @@ use_candelabrum(struct obj *obj)
     if (obj->spe <= 0) {
         struct obj *otmp;
 
-        pline("这个%s没有%s.", xname(obj), s);
+        pline("这%s%s没有%s.", obj_classifier(obj), xname(obj), s);
         /* only output tip if candles are in inventory */
         for (otmp = gi.invent; otmp; otmp = otmp->nobj)
             if (Is_candle(otmp))
@@ -1349,7 +1352,7 @@ use_candelabrum(struct obj *obj)
         return;
     }
     if (obj->spe < 7) {
-        pline("%s上%s%d %s.", the(xname(obj)), vtense(s, "只有"), obj->spe, /*修改语序,换pline:There("%s%d根%s在%s中.", vtense(s, "只有"), obj->spe, s,*/
+        pline("%s上%s%d根%s.", the(xname(obj)), vtense(s, "只有"), obj->spe, /*修改语序,换pline:There("%s%d根%s在%s中.", vtense(s, "只有"), obj->spe, s,*/
               s); /*修改语序:the(xname(obj)));*/
         if (!Blind)
             pline("%s点着了. %s出朦胧的光.", obj->spe == 1 ? "它" : "它们",
@@ -1388,7 +1391,7 @@ use_candle(struct obj **optr)
 {
     struct obj *obj = *optr;
     struct obj *otmp;
-    const char *s = (obj->quan != 1) ? "蜡烛" : "蜡烛";
+    const char *s = "蜡烛";//(obj->quan != 1) ? "蜡烛" : "蜡烛";
     char qbuf[QBUFSZ], qsfx[QBUFSZ], *q;
     boolean was_lamplit;
 
@@ -1433,13 +1436,13 @@ use_candle(struct obj **optr)
         if (was_lamplit)
             end_burn(obj, TRUE);
 
-        You("把%ld %s%s粘到%s上.", obj->quan, !otmp->spe ? "" : "根多的", s,
+        You("把%ld根%s%s粘到%s上.", obj->quan, !otmp->spe ? "" : "多的", s,
             the(xname(otmp)));
         if (!otmp->spe || otmp->age > obj->age)
             otmp->age = obj->age;
         otmp->spe += (int) obj->quan;
         if (otmp->lamplit && !was_lamplit)
-            pline_The("新粘上%s魔法般地%s了!", s, vtense(s, "点燃"));
+            pline_The("新粘上的%s魔法般地%s了!", s, vtense(s, "点燃"));
         else if (!otmp->lamplit && was_lamplit)
             pline("%s了.", (obj->quan > 1L) ? "它们熄灭" : "它熄灭");
         if (obj->unpaid) {
@@ -1641,7 +1644,7 @@ use_lamp(struct obj *obj)
 
     if (obj->lamplit) {
         if (lamp) /* lamp or lantern */
-            pline("%s%s现在熄灭了.", Shk_Your(buf, obj), lamp);
+            pline("%s%s熄灭了.", Shk_Your(buf, obj), lamp);
         else
             You("掐灭了%s.", yname(obj));
         end_burn(obj, TRUE);
@@ -1662,7 +1665,7 @@ use_lamp(struct obj *obj)
             else
                 pline("%s", nothing_seems_to_happen);
         } else {
-            pline("这个%s燃尽了.", xname(obj));
+            pline("这%s%s燃尽了.", obj_classifier(obj), xname(obj));
         }
         return;
     }
@@ -1680,7 +1683,7 @@ use_lamp(struct obj *obj)
     } else {
         if (lamp) { /* lamp or lantern */
             check_unpaid(obj);
-            pline("%s%s现在已经点亮.", Shk_Your(buf, obj), lamp);
+            pline("%s%s点亮了.", Shk_Your(buf, obj), lamp);
         } else { /* candle(s) */
             pline("%s火焰%s%s%s", s_suffix(Yname2(obj)), Blind ? "在" : "", /*修改语序:pline("%s火焰%s%s%s", s_suffix(Yname2(obj)), plur(obj->quan),*/
                   otense(obj, "燃烧"), Blind ? "." : "得很明亮!");
@@ -2195,7 +2198,7 @@ use_tinning_kit(struct obj *obj)
     mptr = &mons[corpse->corpsenm];
     if (touch_petrifies(mptr) && !Stone_resistance && !uarmg) {
         char kbuf[BUFSZ];
-        const char *corpse_name = an(cxname(corpse));
+        const char *corpse_name = cxname(corpse); //Francium-223: 这里有"一具"的必要吗?
 
         if (poly_when_stoned(gy.youmonst.data)) {
             You("罐装%s时没有戴手套.", corpse_name);
@@ -2427,7 +2430,7 @@ fig_transform(anything *arg, long timeout)
         struct obj *mshelter = svl.level.objects[mtmp->mx][mtmp->my];
 
         /* [m_monnam() yields accurate mon type, overriding hallucination] */
-        Sprintf(monnambuf, "%s", an(m_monnam(mtmp)));
+        Sprintf(monnambuf, "一%s%s", mon_classifier(mtmp), m_monnam(mtmp));
         and_vanish[0] = '\0';
         if ((mtmp->minvis && !See_invisible)
             || (mtmp->data->mlet == S_MIMIC
@@ -2459,7 +2462,7 @@ fig_transform(anything *arg, long timeout)
             if (cansee_spot && !silent) {
                 set_msg_xy(cc.x, cc.y);
                 if (suppress_see)
-                    pline("%s突然消失了!", an(xname(figurine)));
+                    pline("一个%s突然消失了!", xname(figurine));
                 else
                     You_see("一个小雕像变成了%s%s!", monnambuf,
                             and_vanish);
@@ -2713,7 +2716,7 @@ use_stone(struct obj *tstone)
             pline("哇, 看看这些漂亮的碎片.");
         else
             pline("一声脆响粉碎了%s%s.",
-                  (obj->quan > 1L) ? "其中一个" : "", the(xname(obj)));
+                  (obj->quan > 1L) ? "其中一块" : "", the(xname(obj)));
         useup(obj);
         return ECMD_TIME;
     }
@@ -2799,9 +2802,9 @@ use_stone(struct obj *tstone)
 
     Sprintf(stonebuf, "石头%s", plur(tstone->quan));
     if (do_scratch)
-        You("在%s上磨出了%s%s划痕.", stonebuf, /*修改语序:You("磨出了%s%s划痕在%s上.",*/
-            streak_color ? streak_color : (const char *) "",
-            streak_color ? "" : ""); /*修改语序:streak_color ? " " : "", stonebuf);*/
+        You("在%s上磨出了%s划痕.", stonebuf, /*修改语序:You("磨出了%s%s划痕在%s上.",*/
+            streak_color ? streak_color : (const char *) ""
+            ); /*修改语序:streak_color ? " " : "", stonebuf);*/
     else if (streak_color)
         You_see("%s条划痕留在%s上.", streak_color, stonebuf);
     else
@@ -3047,8 +3050,8 @@ use_whip(struct obj *obj)
                 return ECMD_TIME;
             }
             if (otmp && proficient) {
-                You("把你的牛鞭缠住%s上的%s.", /*修改语序:You("把你的牛鞭缠住%s周围到%s上的.",*/
-                    surface(u.ux, u.uy), an(singular(otmp, xname))); /*修改语序:an(singular(otmp, xname)), surface(u.ux, u.uy));*/
+                You("把你的牛鞭缠绕到%s的一个%s上.", /*修改语序:You("把你的牛鞭缠住%s周围到%s上的.",*/
+                    surface(u.ux, u.uy), singular(otmp, xname)); /*修改语序:an(singular(otmp, xname)), surface(u.ux, u.uy));*/
                 if (rnl(6) || pickup_object(otmp, 1L, TRUE) < 1)
                     pline1(msg_slipsfree);
                 return ECMD_TIME;
@@ -3155,7 +3158,7 @@ use_whip(struct obj *obj)
             const char *mon_hand;
             boolean gotit = proficient && (!Fumbling || !rn2(10));
 
-            Strcpy(onambuf, cxname(otmp));
+            Sprintf(onambuf, "%s%s%s", (otmp->quan == 1L) ? "一" : "", (otmp->quan == 1L) ? obj_classifier(otmp) : "", cxname(otmp)); //Strcpy(onambuf, cxname(otmp));
             if (gotit) {
                 mon_hand = mbodypart(mtmp, HAND);
                 if (bimanual(otmp))
@@ -3214,8 +3217,8 @@ use_whip(struct obj *obj)
                              && polymon(PM_STONE_GOLEM))) {
                         char kbuf[BUFSZ];
 
-                        Strcpy(kbuf, (otmp->quan == 1L) ? an(onambuf)
-                                                        : onambuf);
+                        Strcpy(kbuf, onambuf); //冗余: (otmp->quan == 1L) ? an(onambuf)
+                                                        //: onambuf);
                         pline("抢夺%s是个致命的错误.", kbuf);
                         /* corpse probably has a rot timer but is now
                            OBJ_FREE; end of game cleanup will panic if
@@ -3505,7 +3508,6 @@ use_pole(struct obj *obj, boolean autohit)
             return ECMD_FAIL;
         }
 
-        check_caitiff(mtmp);
         gn.notonhead = (gb.bhitpos.x != mtmp->mx || gb.bhitpos.y != mtmp->my);
 
         /* Snickersnee allows one free hit from a distance per turn */
@@ -3578,8 +3580,8 @@ use_cream_pie(struct obj *obj)
     if (Hallucination)
         You("给自己做面膜.");
     else
-        You("把你的%s浸入到%s%s里.", body_part(FACE),
-              several ? "一个" : "",
+        You("把你的%s浸入到%s%s%s里.", body_part(FACE),
+              several ? "一" : "", obj_classifier(obj),
               several ? makeplural(the(xname(obj))) : the(xname(obj)));
     if (can_blnd((struct monst *) 0, &gy.youmonst, AT_WEAP, obj)) {
         int blindinc = rnd(25);
@@ -3651,7 +3653,7 @@ use_royal_jelly(struct obj **optr)
 
     if (obj->cursed) {
         if (eobj->timed || eobj->corpsenm != oldcorpsenm)
-            pline("这个%s在微弱地%s.", xname(eobj), otense(eobj, "颤抖"));
+            pline("这%s%s在微弱地%s.", obj_classifier(obj), xname(eobj), otense(eobj, "颤抖"));
         else
             pline("%s", nothing_seems_to_happen);
         kill_egg(eobj);
@@ -3844,7 +3846,6 @@ use_grapple(struct obj *obj)
             flags.confirm = FALSE;
             (void) attack_checks(mtmp, uwep);
             flags.confirm = save_confirm;
-            check_caitiff(mtmp);
             (void) thitmonst(mtmp, uwep);
             return ECMD_TIME;
         }
@@ -4529,7 +4530,7 @@ flip_coin(struct obj *obj)
     struct obj *otmp = obj;
     boolean lose_coin = FALSE;
 
-    You("投%s.", an(singular(obj, xname)));
+    You("投一枚%s.", singular(obj, xname));
     if (Underwater) {
         pline("它翻滚着漂走了.");
         lose_coin = TRUE;

@@ -1,4 +1,4 @@
-/* NetHack 5.0	dbridge.c	$NHDT-Date: 1772771734 2026/03/05 20:35:34 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.70 $ */
+/* NetHack 5.0	dbridge.c	$NHDT-Date: 1781973044 2026/06/20 16:30:44 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.74 $ */
 /*      Copyright (c) 1989 by Jean-Christophe Collet              */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -415,8 +415,8 @@ e_died(
 
             /* use more specific killer if specified */
             if (!svk.killer.name[0]) {
-                svk.killer.format = KILLED_BY_AN;
-                Strcpy(svk.killer.name, "掉下的吊桥");
+                svk.killer.format = NO_KILLER_PREFIX;
+                Strcpy(svk.killer.name, "吊桥掉落");
             }
             done(how);
             /* So, you didn't die */
@@ -714,7 +714,7 @@ do_entity(struct entity *etmp)
                       E_phrase(etmp, "消失"));
         }
         if (!e_survives_at(etmp, etmp->ex, etmp->ey)) {
-            svk.killer.format = KILLED_BY_AN;
+            svk.killer.format = NO_KILLER_PREFIX;
             Strcpy(svk.killer.name, "吊桥关闭");
             e_died(etmp, XKILL_NOMSG, CRUSHING);
             return;
@@ -913,7 +913,7 @@ destroy_drawbridge(coordxy x, coordxy y)
                 pline_The("吊桥的吊闸掉进了%s!",
                           lava ? hliquid("熔岩") : "护城河");
             else
-                You_hear("响亮的*扑通*声!");  /* Deaf-aware */
+                You_hear("响亮的*哗啦*声!");  /* Deaf-aware */
         } else {
             if (cansee(x, y) || u_at(x, y))
                 pline_The("吊桥倒塌进了%s!",
@@ -971,7 +971,7 @@ destroy_drawbridge(coordxy x, coordxy y)
             if (e_inview)
                 pline("%s飞溅的残骸炸成碎片.",
                       E_phrase(etmp2, "被"));
-            svk.killer.format = KILLED_BY_AN;
+            svk.killer.format = KILLED_BY;
             Strcpy(svk.killer.name, "吊桥爆炸");
             e_died(etmp2,
                    XKILL_NOCORPSE | (e_inview ? XKILL_GIVEMSG : XKILL_NOMSG),
@@ -1004,7 +1004,7 @@ destroy_drawbridge(coordxy x, coordxy y)
                     debugpline1("%s from shrapnel", E_phrase(etmp1, "die"));
                 }
             }
-            svk.killer.format = KILLED_BY_AN;
+            svk.killer.format = NO_KILLER_PREFIX;
             Strcpy(svk.killer.name, "吊桥倒塌");
             e_died(etmp1,
                    XKILL_NOCORPSE | (e_inview ? XKILL_GIVEMSG : XKILL_NOMSG),

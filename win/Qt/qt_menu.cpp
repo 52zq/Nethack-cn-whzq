@@ -165,7 +165,7 @@ NetHackQtMenuWindow::NetHackQtMenuWindow(QWidget *parent) :
 {
     // setFont() was in SelectMenu(), in time to be rendered but too late
     // when measuring the width and height that will be needed
-    QFont tablefont(qt_settings->normalFixedFont());
+    QFont tablefont(qt_settings->normalFont());
     table->setFont(tablefont);
 
     QGridLayout *grid = new QGridLayout();
@@ -181,22 +181,22 @@ NetHackQtMenuWindow::NetHackQtMenuWindow(QWidget *parent) :
     table->horizontalHeader()->hide();
     table->verticalHeader()->hide();
 
-    ok=new QPushButton("Ok");
+    ok=new QPushButton("确认");
     connect(ok,SIGNAL(clicked()),this,SLOT(accept()));
 
-    cancel=new QPushButton("Cancel");
+    cancel=new QPushButton("取消");
     connect(cancel,SIGNAL(clicked()),this,SLOT(reject()));
 
-    all=new QPushButton("All");
+    all=new QPushButton("全选");
     connect(all,SIGNAL(clicked()),this,SLOT(All()));
 
-    none=new QPushButton("None");
+    none=new QPushButton("全不选");
     connect(none,SIGNAL(clicked()),this,SLOT(ChooseNone()));
 
-    invert=new QPushButton("Invert");
+    invert=new QPushButton("反选");
     connect(invert,SIGNAL(clicked()),this,SLOT(Invert()));
 
-    search=new QPushButton("Search");
+    search=new QPushButton("搜索");
     connect(search,SIGNAL(clicked()),this,SLOT(Search()));
 
     QPoint pos(0,ok->height());
@@ -400,9 +400,8 @@ void NetHackQtMenuWindow::PadMenuColumns(bool split_descr)
                 continue;
             // determine column widths of sub-fields within description
             QStringList columns = itemlist[row].str.split("\t");
-            for (int fld = 0; fld < (int) columns.size(); ++fld) {
-                bool lastcol = (fld == (int) columns.size() - 1);
-                int w = fm.QFM_WIDTH(columns[fld] + (lastcol ? "" : "  "));
+            for (int fld = 0; fld < (int) columns.size() - 1; ++fld) {
+                int w = fm.QFM_WIDTH(columns[fld] + "  ");
                 if (fld >= (int) col_widths.size()) {
                     col_widths.push_back(w); // add another element
                 } else if (col_widths[fld] < w) {
@@ -432,12 +431,21 @@ void NetHackQtMenuWindow::PadMenuColumns(bool split_descr)
             continue;
         QString text = twi->text();
         if (split_descr) {
+            static const QChar u_200A(0x200A); // U+200A HAIR SPACE
             QStringList columns = text.split("\t");
+            int spc0020_width = fm.QFM_WIDTH(" ");
+            int spc200A_width = fm.QFM_WIDTH(u_200A);
+            // Track errors in column widths and adjust subsequent columns so
+            // that these errors do not accumulate across a row
+            int error = 0;
             for (int fld = 0; fld < (int) columns.size() - 1; ++fld) {
                 //columns[fld] += "\t"; /* (used to pad with tabs) */
                 int width = col_widths[fld];
-                while (fm.QFM_WIDTH(columns[fld]) < width)
+                while (fm.QFM_WIDTH(columns[fld]) + error + spc0020_width <= width)
                     columns[fld] += " "; //"\t";
+                while (fm.QFM_WIDTH(columns[fld]) + error + spc200A_width/2 < width)
+                    columns[fld] += u_200A;
+                error += fm.QFM_WIDTH(columns[fld]) - width;
             }
             text = columns.join("");
             twi->setText(text);
@@ -640,7 +648,7 @@ void NetHackQtMenuWindow::InputCount(char key)
 	countstr += QChar(key);
     }
     if (counting)
-	prompt.setText("Count: " + countstr);
+	prompt.setText("计数: " + countstr);
 }
 
 void NetHackQtMenuWindow::ClearCount(void)
@@ -797,7 +805,7 @@ void NetHackQtMenuWindow::Search()
         return;
 
     searching = true;
-    NetHackQtStringRequestor requestor(this, "Search for:");
+    NetHackQtStringRequestor requestor(this, "搜索:");
     char line[BUFSZ];
     line[0] = '\0'; /* for EDIT_GETLIN */
     if (requestor.Get(line)) {
@@ -923,8 +931,8 @@ NetHackQtTextWindow::NetHackQtTextWindow(QWidget *parent) :
     use_rip(false),
     str_fixed(false),
     textsearching(false),
-    ok("&Dismiss", this),
-    search("&Search", this),
+    ok("&关闭", this),
+    search("&搜索", this),
     lines(new NetHackQtTextListBox(this)),
     target(""),
     rip(this)
@@ -1156,7 +1164,7 @@ void NetHackQtTextWindow::PutStr(int attr UNUSED, const QString& text)
 void NetHackQtTextWindow::Search()
 {
     textsearching = true;
-    NetHackQtStringRequestor requestor(this, "Search for:", "Done", "Find");
+    NetHackQtStringRequestor requestor(this, "搜索:", "完成", "寻找");
     requestor.SetDefault(target);
     boolean get_a_line = requestor.Get(target, (int) sizeof target);
 

@@ -3,15 +3,9 @@
 /*    Copyright (c) Kenneth Lorber, Bethesda, Maryland 1993,1996  */
 /* NetHack may be freely redistributed.  See license for details. */
 
-#ifndef CROSS_TO_AMIGA
-#include "NH:sys/amiga/windefs.h"
-#include "NH:sys/amiga/winext.h"
-#include "NH:sys/amiga/winproto.h"
-#else
 #include "windefs.h"
 #include "winext.h"
 #include "winproto.h"
-#endif
 
 /* Have to undef CLOSE as display.h and intuition.h both use it */
 #undef CLOSE
@@ -23,9 +17,10 @@ static struct Message *GetFMsg(struct MsgPort *);
 #endif
 
 static int BufferGetchar(void);
-static void ProcessMessage(struct IntuiMessage *message);
+void ProcessMessage(struct IntuiMessage *message);
 
-#define BufferQueueChar(ch) (KbdBuffer[KbdBuffered++] = (ch))
+#define BufferQueueChar(ch) \
+    do { if (KbdBuffered < KBDBUFFER) KbdBuffer[KbdBuffered++] = (ch); } while (0)
 
 struct Device *ConsoleDevice = NULL;
 
@@ -38,11 +33,7 @@ struct Library *GadToolsBase = NULL;
 struct Library *LayersBase = NULL;
 struct Library *AslBase = NULL;
 
-#ifndef CROSS_TO_AMIGA
-#include "NH:sys/amiga/amimenu.c"
-#else
 #include "amimenu.c"
-#endif
 
 /* Now our own variables */
 
@@ -59,9 +50,9 @@ WEVENT lastevent;
 struct Library *DiskfontBase;
 #endif
 
-#define KBDBUFFER 10
+#define KBDBUFFER 32
 static unsigned char KbdBuffer[KBDBUFFER];
-unsigned char KbdBuffered;
+int KbdBuffered;
 
 #ifdef HACKFONT
 
@@ -69,15 +60,17 @@ struct TextFont *TextsFont = NULL;
 struct TextFont *HackFont = NULL;
 struct TextFont *RogueFont = NULL;
 
-UBYTE FontName[] = "NetHack:hack.font";
-/* # chars in "NetHack:": */
-#define SIZEOF_DISKNAME 8
+/* hack.font is registered via NetHack:hack.font (which references
+ * NetHack:hack/8).  OpenFont()/SetFont() take the bare name; only
+ * OpenDiskFont() needs the full path. */
+UBYTE HackFontName[] = "hack.font";
+UBYTE HackFontPath[] = "NetHack:hack.font";
 
 #endif
 
 struct TextAttr Hack80 = {
 #ifdef HACKFONT
-    &FontName[SIZEOF_DISKNAME],
+    HackFontName,
 #else
     (UBYTE *) "topaz.font",
 #endif
@@ -139,13 +132,30 @@ CloseShWindow(struct Window *win)
     /* Flush all messages for all windows to avoid typeahead and other
      * similar problems...
      */
-    while (msg = (struct IntuiMessage *) GetMsg(win->UserPort))
+    while ((msg = (struct IntuiMessage *) GetMsg(win->UserPort)) != NULL)
         ReplyMsg((struct Message *) msg);
     KbdBuffered = 0;
     win->UserPort = (struct MsgPort *) 0;
     ModifyIDCMP(win, 0L);
     Permit();
     CloseWindow(win);
+}
+
+void
+CloseShWindowKeepKbd(struct Window *win)
+{
+    unsigned char savebuf[KBDBUFFER];
+    int saved;
+
+    (void) amikbhit();
+    saved = KbdBuffered;
+    if (saved > 0)
+        memcpy(savebuf, KbdBuffer, saved);
+    CloseShWindow(win);
+    if (saved > 0) {
+        memcpy(KbdBuffer, savebuf, saved);
+        KbdBuffered = saved;
+    }
 }
 
 static int
@@ -190,7 +200,7 @@ ConvertKey(struct IntuiMessage *message)
     ULONG qualifier;
     char numeric_pad, shift, control, alt;
 
-    if (amii_wins[WIN_MAP])
+    if (WIN_MAP != WIN_ERR && amii_wins[WIN_MAP])
         w = amii_wins[WIN_MAP]->win;
     qualifier = message->Qualifier;
 
@@ -328,9 +338,6 @@ ConvertKey(struct IntuiMessage *message)
                 got = 0;
                 break;
             }
-#ifdef OPT_DISPMAP
-            dispmap_sanity();
-#endif
 
             if (got) {
                 CO = (w->Width - w->BorderLeft - w->BorderRight) / mxsize;
@@ -365,7 +372,7 @@ ConvertKey(struct IntuiMessage *message)
  *  ahead of input demands, when the user types ahead.
  */
 
-static void
+void
 ProcessMessage(struct IntuiMessage *message)
 {
     int c;
@@ -386,7 +393,8 @@ ProcessMessage(struct IntuiMessage *message)
             break;
         }
 
-        if (!amii_wins[WIN_MAP] || w != amii_wins[WIN_MAP]->win)
+        if (WIN_MAP == WIN_ERR
+            || !amii_wins[WIN_MAP] || w != amii_wins[WIN_MAP]->win)
             break;
 
         if (message->Code == SELECTDOWN) {
@@ -408,7 +416,7 @@ ProcessMessage(struct IntuiMessage *message)
         while (thismenu != MENUNULL) {
             item = ItemAddress(MenuStrip, (ULONG) thismenu);
             if (KbdBuffered < KBDBUFFER)
-                BufferQueueChar((char) (GTMENUITEM_USERDATA(item)));
+                BufferQueueChar((char) (ULONG) GTMENUITEM_USERDATA(item));
             thismenu = item->NextSelect;
         }
     } break;
@@ -570,6 +578,7 @@ amikbhit(void)
 int
 WindowGetchar(void)
 {
+    amii_flush_msgscroll();
     while ((lastevent.type = WEUNK), amikbhit() <= 0) {
         WaitPort(HackPort);
     }
@@ -579,6 +588,7 @@ WindowGetchar(void)
 WETYPE
 WindowGetevent(void)
 {
+    amii_flush_msgscroll();
     lastevent.type = WEUNK;
     while (amikbhit() == 0) {
         WaitPort(HackPort);
@@ -618,19 +628,18 @@ amii_cleanup(void)
     /* Strip messages before deleting the port */
     if (HackPort) {
         Forbid();
-        while (msg = (struct IntuiMessage *) GetMsg(HackPort))
+        while ((msg = (struct IntuiMessage *) GetMsg(HackPort)) != NULL)
             ReplyMsg((struct Message *) msg);
+        Permit();
         kill_nhwindows(1);
         DeleteMsgPort(HackPort);
         HackPort = NULL;
-        Permit();
     }
 
     /* Close the screen, under v37 or greater it is a pub screen and there may
      * be visitors, so check close status and wait till everyone is gone.
      */
     if (HackScreen) {
-#ifdef INTUI_NEW_LOOK
         if (IntuitionBase->LibNode.lib_Version >= 37) {
             if (MenuStrip)
                 FreeMenus(MenuStrip);
@@ -641,11 +650,9 @@ amii_cleanup(void)
                     sizeof(struct EasyStruct), 0, "Nethack Problem",
                     "Can't Close Screen, Close Visiting Windows", "Okay"
                 };
-                EasyRequest(NULL, &easy, NULL, NULL);
+                EasyRequestArgs(NULL, &easy, NULL, NULL);
             }
-        } else
-#endif
-        {
+        } else {
             CloseScreen(HackScreen);
         }
         HackScreen = NULL;
@@ -693,13 +700,6 @@ amii_cleanup(void)
         IntuitionBase = NULL;
     }
 
-#ifdef SHAREDLIB
-    if (DOSBase) {
-        CloseLibrary((struct Library *) DOSBase);
-        DOSBase = NULL;
-    }
-#endif
-
     ((struct Process *) FindTask(NULL))->pr_WindowPtr = (APTR) pr_WindowPtr;
 
     Initialized = 0;
@@ -707,11 +707,9 @@ amii_cleanup(void)
 
 #endif /* AMII_GRAPHICS */
 
-#ifndef SHAREDLIB
 void
 Abort(long rc)
 {
-    int fault = 1;
 #ifdef CHDIR
     extern char orgdir[];
     chdir(orgdir);
@@ -724,38 +722,11 @@ Abort(long rc)
     } else
 #endif
         printf("\n\nAbort with alert code %08lx...\n", rc);
-/* Alert(rc);              this is too severe */
-#ifdef __SASC
-#ifdef INTUI_NEW_LOOK
-    if (IntuitionBase->LibNode.lib_Version >= 37) {
-        struct EasyStruct es = {
-            sizeof(struct EasyStruct), 0, "NetHack Panic Request",
-            "NetHack is Aborting with code == 0x%08lx",
-            "Continue Abort|Return to Program|Clean up and exit",
-        };
-        fault = EasyRequest(NULL, &es, NULL, (long) rc);
-        if (fault == 2)
-            return;
-    }
-#endif
-    if (fault == 1) {
-        /*  __emit(0x4afc); */ /* illegal instruction */
-        __emit(0x40fc);        /* divide by */
-        __emit(0x0000);        /*  #0  */
-        /* NOTE: don't move amii_cleanup() above here - */
-        /* it is too likely to kill the system     */
-        /* before it can get the SnapShot out, if  */
-        /* there is something really wrong.    */
-    }
-#endif
 #ifdef AMII_GRAPHICS
     if (windowprocs.win_init_nhwindows == amii_procs.win_init_nhwindows)
         amii_cleanup();
 #endif
 #undef exit
-#ifdef AZTEC_C
-    _abort();
-#endif
     exit((int) rc);
 }
 
@@ -764,7 +735,6 @@ CleanUp(void)
 {
     amii_cleanup();
 }
-#endif
 
 #ifdef AMII_GRAPHICS
 
@@ -775,14 +745,15 @@ GetFMsg(struct MsgPort *port)
 {
     struct IntuiMessage *msg, *succ, *succ1;
 
-    if (msg = (struct IntuiMessage *) GetMsg(port)) {
+    if ((msg = (struct IntuiMessage *) GetMsg(port)) != NULL) {
         if (!sysflags.amiflush)
             return ((struct Message *) msg);
         if (msg->Class == RAWKEY) {
             Forbid();
             succ = (struct IntuiMessage *) (port->mp_MsgList.lh_Head);
-            while (succ1 = (struct IntuiMessage *) (succ->ExecMessage.mn_Node
-                                                        .ln_Succ)) {
+            while ((succ1 = (struct IntuiMessage *) (succ->ExecMessage
+                                                         .mn_Node.ln_Succ))
+                   != NULL) {
                 if (succ->Class == RAWKEY) {
                     Remove((struct Node *) succ);
                     ReplyMsg((struct Message *) succ);
@@ -880,7 +851,6 @@ amii_number_pad(int state)
 }
 #endif /* AMII_GRAPHICS */
 
-#ifndef SHAREDLIB
 void
 amiv_loadlib(void)
 {
@@ -910,4 +880,3 @@ VA_DECL(const char *, s)
     VA_END();
     Abort(0L);
 }
-#endif

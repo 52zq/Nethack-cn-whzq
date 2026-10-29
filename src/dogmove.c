@@ -1,4 +1,4 @@
-/* NetHack 5.0	dogmove.c	$NHDT-Date: 1725733007 2024/09/07 18:16:47 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.156 $ */
+/* NetHack 5.0	dogmove.c	$NHDT-Date: 1781973046 2026/06/20 16:30:46 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.177 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -286,8 +286,10 @@ dog_eat(struct monst *mtmp,
             if (tunnels(mtmp->data))
                 pline_mon(mtmp, "%s往里挖.", noit_Monnam(mtmp));
             else
-                pline_mon(mtmp, "%s%s%s.", noit_Monnam(mtmp),
-                      devour ? "吞下了" : "吃下了", obj_name);
+                pline_mon(mtmp, "%s%s%s.",
+                          devour ? noit_or_your_Monnam(mtmp)
+                                 : noit_Monnam(mtmp),
+                          devour ? "吞下了" : "吃下了", obj_name);
         } else if (seeobj) {
             obj_name = distant_name(obj, doname);
             pline("它%s%s.", devour ? "吞下了" : "吃下了", obj_name);
@@ -1529,10 +1531,8 @@ quickmimic(struct monst *mtmp)
             m_unleash(mtmp, FALSE);
         }
         if (glyph_at(mtmp->mx, mtmp->my) != prev_glyph)
-            You("%s%s%s在%s原来的地方!",
-                seeloc ? "看见" : "感觉到",
-                (what != something) ? an(what) : what,
-                seeloc ? "出现" : "已经出现", buf);
+            You("%s%s出现在%s原来的地方!",
+                seeloc ? "看见" : "感觉到", what, buf);
         else
             You("感觉%s感觉有点像%s.", buf, what);
 

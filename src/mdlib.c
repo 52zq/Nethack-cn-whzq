@@ -1,4 +1,4 @@
-/* NetHack 5.0  mdlib.c  $NHDT-Date: 1701499945 2023/12/02 06:52:25 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.51 $ */
+/* NetHack 5.0  mdlib.c  $NHDT-Date: 1781973053 2026/06/20 16:30:53 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.74 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Kenneth Lorber, Kensington, Maryland, 2015. */
 /* Copyright (c) M. Stephenson, 1990, 1991.                       */
@@ -142,19 +142,23 @@ static struct win_information window_opts[] = {
 #ifdef SHIM_GRAPHICS
     { "shim", "NetHack Library Windowing Shim", TRUE },
 #endif
+#ifdef AMIGA_INTUITION
+    { "amii", "Amiga Intuition (text)", TRUE },
+    { "amiv", "Amiga Intuition (tiles)", TRUE },
+#endif
+#ifdef MAC68K /* classic Mac 68k windowport (revived) */
+    { "mac", "Macintosh", TRUE },
+#endif
+#ifdef GEM_GRAPHICS
+    { "Gem", "Atari ST GEM", TRUE },
+#endif
 
 #if 0  /* remainder have been retired */
 #ifdef GNOME_GRAPHICS /* unmaintained/defunct */
     { "Gnome", "Gnome", TRUE },
 #endif
-#ifdef MACOS9 /* defunct OS 9 interface */
+#ifdef MAC68K /* defunct OS 9 interface */
     { "mac", "Mac", TRUE },
-#endif
-#ifdef AMIGA_INTUITION /* unmaintained/defunct */
-    { "amii", "Amiga Intuition", TRUE },
-#endif
-#ifdef GEM_GRAPHICS /* defunct Atari interface */
-    { "Gem", "Gem", TRUE },
 #endif
 #ifdef BEOS_GRAPHICS /* unmaintained/defunct */
     { "BeOS", "BeOS InterfaceKit", TRUE },
@@ -227,6 +231,10 @@ static struct soundlib_information soundlib_opts[] = {
 #ifdef SND_LIB_QTSOUND
     { soundlib_qtsound, "soundlib_qtsound",
         "https://doc.qt.io/qt-5/qsoundeffect.html", FALSE },
+#endif
+#ifdef SND_LIB_MAC68KSOUND
+    /* Uses the classic Mac OS Sound Manager */
+    { soundlib_mac68ksound, "soundlib_mac68ksound", "", FALSE },
 #endif
     { 0, 0, 0, FALSE },
 };
@@ -355,14 +363,16 @@ bannerc_string(char *outbuf, size_t bufsz, const char *build_date)
     subbuf[0] = ' ';
     Strcpy(&subbuf[1], PORT_SUB_ID);
 #endif
+
 #if (NH_DEVEL_STATUS != NH_STATUS_RELEASED)
 #if (NH_DEVEL_STATUS == NH_STATUS_BETA)
-    Strcat(subbuf, " Beta");
-#else
-    Strcat(subbuf, " Work-in-progress");
+    Strcpy(subbuf, " Beta");
+#elif (NH_DEVEL_STATUS == NH_STATUS_WIP)
+    Strcpy(subbuf, " Work-in-progress");
+#elif (NH_DEVEL_STATUS == NH_STATUS_POSTRELEASE)
+    Strcpy(subbuf, " post-release");
 #endif
-#endif
-
+#endif  /* !NH_STATUS_RELEASED */
     Snprintf(outbuf, bufsz, "         Version %s %s%s, %s %s.",
             mdlib_version_string(versbuf, "."), PORT_ID, subbuf,
             date_via_env ? "revised" : "built", build_date);
@@ -533,7 +543,7 @@ static const char *const build_opts[] = {
     "screen clipping",
 #endif
 #ifdef NO_TERMS
-#ifdef MACOS9
+#ifdef MAC68K
     "screen control via mactty",
 #endif
 #ifdef SCREEN_BIOS
@@ -573,6 +583,9 @@ static const char *const build_opts[] = {
 #ifdef USE_XPM
     "tiles file in XPM format",
 #endif
+#ifdef USE_XFT
+    "font rendering with Xft",
+#endif
 #ifdef GRAPHIC_TOMBSTONE
     "graphical RIP screen",
 #endif
@@ -581,9 +594,6 @@ static const char *const build_opts[] = {
 #endif
 #ifdef PREFIXES_IN_USE
     "variable playground",
-#endif
-#ifdef VISION_TABLES
-    "vision tables",
 #endif
 #ifdef SYSCF
     "system configuration at run-time",

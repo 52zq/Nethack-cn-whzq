@@ -12,8 +12,7 @@ char *amii_get_color_string(void);
 void amii_getlin(const char *prompt, char *bufp);
 void getlind(const char *prompt, char *bufp, const char *dflt);
 int filecopy(char *from, char *to);
-char *basename(char *str);
-char *dirname(char *str);
+void nh_dirname(const char *str, char *dir, size_t dirsize);
 
 /* winstr.c */
 void amii_putstr(winid window, int attr, const char *str);
@@ -26,8 +25,15 @@ void amii_remember_topl(void);
 long CountLines(winid);
 long FindLine(winid, int);
 int amii_doprev_message(void);
+extern int amii_msgscroll_dirty;
+void amii_flush_msgscroll(void);
 void flushIDCMP(struct MsgPort *);
 int amii_msgborder(struct Window *);
+void amii_pens_for_color(int, int *, int *);
+void amii_status_init(void);
+void amii_status_finish(void);
+void amii_status_enablefield(int, const char *, const char *, boolean);
+void amii_status_update(int, genericptr_t, int, int, int, unsigned long *);
 void amii_scrollmsg(register struct Window *w,
                     register struct amii_WinDesc *cw);
 
@@ -52,15 +58,15 @@ void SetPropInfo(struct Window *win, struct Gadget *gad, long vis, long total,
 /* amiwind.c */
 struct Window *OpenShWindow(struct NewWindow *nw);
 void CloseShWindow(struct Window *win);
+void CloseShWindowKeepKbd(struct Window *win);
 int ConvertKey(struct IntuiMessage *message);
+void ProcessMessage(struct IntuiMessage *message);
 int kbhit(void);
 int amikbhit(void);
 int WindowGetchar(void);
 WETYPE WindowGetevent(void);
 void amii_cleanup(void);
-#ifndef SHAREDLIB
-void Abort(long rc);
-#endif
+void Abort(long rc) NORETURN;
 void CleanUp(void);
 void flush_glyph_buffer(struct Window *w);
 void amiga_print_glyph(winid window, int color_index, int glyph);
@@ -71,10 +77,8 @@ void FreeNewWindow(struct NewWindow *win);
 void bell(void);
 void amii_delay_output(void);
 void amii_number_pad(int state);
-#ifndef SHAREDLIB
 void amiv_loadlib(void);
 void amii_loadlib(void);
-#endif
 void preserve_icon(void);
 void clear_icon(void);
 
@@ -108,16 +112,12 @@ void amii_wait_synch(void);
 void amii_setclipped(void);
 void amii_cliparound(int x, int y);
 void amii_set_text_font(char *font, int size);
-BitMapHeader ReadImageFile(const char *, struct BitMap **);
+boolean ReadImageFile(const char *, struct BitMap **, BitMapHeader *);
 void FreeImageFile(struct BitMap **);
 BitMapHeader ReadTileImageFiles(void);
 void FreeTileImageFiles(void);
 
 /* winami.c */
-#ifdef SHAREDLIB
-int __UserLibInit(void);
-void __UserLibCleanup(void);
-#endif
 void amii_askname(void);
 void amii_player_selection(void);
 void RandomWindow(char *name);
@@ -127,16 +127,6 @@ void amii_display_file(const char *fn, boolean complain);
 void SetBorder(struct Gadget *gd);
 /* malloc/free provided by stdlib.h */
 
-#ifdef SHAREDLIB
-/* amilib.c */
-void amii_loadlib(void);
-void amiv_loadlib(void);
-void CleanUp(void);
-void setup_librefs(WinamiBASE *base);
-#else
-void Abort(long rc);
-#endif
-
 win_request_info *amii_ctrl_nhwindow(winid, int, win_request_info *);
 
 /* amirip.c */
@@ -145,7 +135,3 @@ void amii_outrip(winid tmpwin, int how, time_t when);
 /* winchar.c */
 void SetMazeType(MazeType);
 int GlyphToIcon(int glyph);
-#ifdef OPT_DISPMAP
-void dispmap_sanity(void);
-int dispmap_sanity1(int);
-#endif

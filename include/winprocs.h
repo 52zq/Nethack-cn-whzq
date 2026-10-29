@@ -1,4 +1,4 @@
-/* NetHack 5.0	winprocs.h	$NHDT-Date: 1736530208 2025/01/10 09:30:08 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.83 $ */
+/* NetHack 5.0	winprocs.h	$NHDT-Date: 1781973091 2026/06/20 16:31:31 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.95 $ */
 /* Copyright (c) David Cohrs, 1992                                */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -16,8 +16,14 @@ enum wp_ids { wp_tty = 1, wp_X11, wp_Qt, wp_mswin, wp_curses,
 #if defined(AMIGA)
               wp_amii, wp_amiv,
 #endif
+#ifdef MAC68K
+              wp_mac,
+#endif
+#if defined(GEM_GRAPHICS)
+              wp_Gem,
+#endif
 #ifdef OUTDATED_STUFF
-              wp_mac, wp_Gem, wp_Gnome,
+              wp_Gnome,
 #endif
               wp_trace  // XXX do we need this?  should chainin/out get an id? TBD
 };
@@ -76,7 +82,7 @@ struct window_procs {
     void (*win_delay_output)(void);
 #ifdef CHANGE_COLOR
     void (*win_change_color)(int, long, int);
-#ifdef MACOS9
+#ifdef MAC68K
     void (*win_change_background)(int);
     short (*win_set_font_name)(winid, char *);
 #endif
@@ -162,7 +168,7 @@ extern
 #define nh_delay_output (*windowprocs.win_delay_output)
 #ifdef CHANGE_COLOR
 #define change_color (*windowprocs.win_change_color)
-#ifdef MACOS9
+#ifdef MAC68K
 #define change_background (*windowprocs.win_change_background)
 #define set_font_name (*windowprocs.win_set_font_name)
 #endif
@@ -394,7 +400,7 @@ struct chain_procs {
     void (*win_delay_output)(CARGS);
 #ifdef CHANGE_COLOR
     void (*win_change_color)(CARGS, int, long, int);
-#ifdef MACOS9
+#ifdef MAC68K
     void (*win_change_background)(CARGS, int);
     short (*win_set_font_name)(CARGS, winid, char *);
 #endif

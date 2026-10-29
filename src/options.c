@@ -1,5 +1,4 @@
-/* NetHack 5.0	options.c	$NHDT-Date: 1737556914 2025/01/22 06:41:54 $
- * $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.753 $ */
+/* NetHack 5.0	options.c	$NHDT-Date: 1778886716 2026/05/15 15:11:56 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.782 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2008. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -350,7 +349,7 @@ static const menu_cmd_t default_menu_cmd_info[] = {
     { (char *) 0, '\0', (char *) 0 }
 };
 
-static const char n_currently_set[] = "(%d currently set)";
+static const char n_currently_set[] = "(已设定%d)";
 
 staticfn void nmcpy(char *, const char *, int);
 staticfn void escapes(const char *, char *);
@@ -360,6 +359,7 @@ staticfn char *string_for_env_opt(const char *, char *, boolean);
 staticfn void bad_negation(const char *, boolean);
 staticfn void set_menuobjsyms_flags(int);
 staticfn int change_inv_order(char *);
+staticfn int utf8_char_len(unsigned char);
 staticfn boolean warning_opts(char *, const char *);
 staticfn int feature_alert_opts(char *, const char *);
 staticfn boolean duplicate_opt_detection(int);
@@ -566,6 +566,7 @@ parseoptions(char *opts, boolean tinitial, boolean tfrom_file)
         got_match = FALSE;
 
         if (allopt[i].pfx) {
+            assert(allopt[i].name != NULL);
             if (str_start_is(opts, allopt[i].name, TRUE)) {
                 matchidx = i;
                 got_match = pfx_match = TRUE;
@@ -1702,7 +1703,7 @@ optfn_fruit(int optidx UNUSED, int req, boolean negated, char *opts, char *op)
             }
         }
     goodfruit:
-        strncpy(svp.pl_fruit, op, PL_FSIZ); /*危险:nmcpy*/
+        nmcpy(svp.pl_fruit, op, PL_FSIZ);
         //危险,冗余,要是出问题了就把注释去掉:sanitize_name(svp.pl_fruit);
         /* OBJ_NAME(objects[SLIME_MOLD]) won't work for this after
            initialization; it gets changed to generic "fruit" */
@@ -2476,6 +2477,14 @@ optfn_name(int optidx, int req, boolean negated UNUSED, char *opts, char *op)
 
         if ((op = string_for_env_opt(allopt[optidx].name, opts, FALSE))
             != empty_optstr) {
+#ifdef WIN32
+            /*
+             * Under windows, if we already set flags.debug with -D
+             * on the command line, leave that alone.
+             */
+            if (flags.debug && !strcmpi(svp.plname, "wizard"))
+                return optn_ok;
+#endif
             nmcpy(svp.plname, op, PL_NSIZ);
         } else
             return optn_err;
@@ -2646,7 +2655,7 @@ optfn_palette(int optidx UNUSED, int req, boolean negated UNUSED, char *opts,
 }
 
 #if 0
-/* old MACOS9 OS9 code */
+/* old MAC68K OS9 code */
 staticfn int
 optfn_palette(
     int optidx UNUSED, int req, boolean negated UNUSED,
@@ -2946,8 +2955,8 @@ optfn_paranoid_confirmation(int optidx, int req, boolean opt_negated,
                          paranoia[i].argname);
         }
         /* note: always leaves enough room for caller to tack on '\n' */
-        opts[0] = '\0';
-        (void) strncat(opts, tmpbuf[0] ? &tmpbuf[1] : "none", BUFSZ - 1);
+        Snprintf(opts, BUFSZ - 1, "%s",
+                 tmpbuf[0] ? &tmpbuf[1] : "none");
         return optn_ok;
     }
     if (req == do_handler) {
@@ -4100,11 +4109,11 @@ optfn_symset(int optidx, int req, boolean negated UNUSED, char *opts,
     if (req == do_handler) {
         int reslt;
 
-        if (!glyphid_cache_status())
-            fill_glyphid_cache();
+        if (!glyphname_hash_indices_loaded())
+            populate_glyphname_hash_indices();
         reslt = handler_symset(optidx);
-        if (glyphid_cache_status())
-            free_glyphid_cache();
+        if (glyphname_hash_indices_loaded())
+            empty_glyphname_hash_indices();
         /* apply_customizations(gc.currentgraphics,
                         (do_custom_colors | do_custom_symbols)); */
         return reslt;
@@ -4945,7 +4954,7 @@ pfxfn_font(int optidx, int req, boolean negated, char *opts, char *op)
         if (opttype > 0
             && (op = string_for_opt(opts, FALSE)) != empty_optstr) {
             wc_set_font_name(opttype, op);
-#ifdef MACOS9
+#ifdef MAC68K
             set_font_name(opttype, op);
 #endif
             return optn_ok;
@@ -5523,8 +5532,13 @@ handler_disclose(void)
     start_menu(tmpwin, MENU_BEHAVE_STANDARD);
     any = cg.zeroany;
     for (i = 0; i < NUM_DISCLOSURE_OPTIONS; i++) {
-        Sprintf(buf, "%-12s[%c%c]", disclosure_names[i],
-                flags.end_disclose[i], disclosure_options[i]);
+        if (iflags.menu_tab_sep) {
+            Sprintf(buf, "%s\t[%c%c]", disclosure_names[i],
+                    flags.end_disclose[i], disclosure_options[i]);
+        } else {
+            Sprintf(buf, "%-12s[%c%c]", disclosure_names[i],
+                    flags.end_disclose[i], disclosure_options[i]);
+        }
         any.a_int = i + 1;
         add_menu(tmpwin, &nul_glyphinfo, &any, disclosure_options[i], 0,
                  ATR_NONE, clr, buf, MENU_ITEMFLAGS_NONE);
@@ -6598,12 +6612,12 @@ complain_about_duplicate(int optidx)
 {
     char buf[BUFSZ];
 
-#ifdef MACOS9
+#ifdef MAC68K
     /* the Mac has trouble dealing with the output of messages while
      * processing the config file.  That should get fixed one day.
      * For now just return.
      */
-#else  /* !MACOS9 */
+#else /* !MAC68K */
     buf[0] = '\0';
     if (using_alias)
         Sprintf(buf, " (via alias: %s)", allopt[optidx].alias);
@@ -6611,7 +6625,7 @@ complain_about_duplicate(int optidx)
                      (allopt[optidx].opttyp == CompOpt) ? "compound"
                                                         : "boolean",
                      allopt[optidx].name, buf);
-#endif /* ?MACOS9 */
+#endif /* ?MAC68K */
     return;
 }
 
@@ -6661,19 +6675,38 @@ nh_getenv(const char *ev)
         return (char *) 0;
 }
 
-/* copy up to maxlen-1 characters; 'dest' must be able to hold maxlen;
-   treat comma as alternate end of 'src' */
+/* UTF-8 字符占用的字节数 (由首字节决定) */
+staticfn int
+utf8_char_len(unsigned char c)
+{
+    if ((c & 0x80) == 0)
+        return 1;
+    if ((c & 0xE0) == 0xC0)
+        return 2;
+    if ((c & 0xF0) == 0xE0)
+        return 3;
+    if ((c & 0xF8) == 0xF0)
+        return 4;
+    return 1;
+}
+
+/* copy up to maxlen-1 bytes but never split a multibyte character;
+   'dest' must be able to hold maxlen; treat comma as alternate end */
 staticfn void
 nmcpy(char *dest, const char *src, int maxlen)
 {
-    int count;
+    const char *sp;
+    char *dp = dest;
+    int clen;
 
-    for (count = 1; count < maxlen; count++) {
-        if (*src == ',' || *src == '\0')
-            break; /*exit on \0 terminator*/
-        *dest++ = *src++;
+    for (sp = src; *sp && *sp != ','; ) {
+        clen = utf8_char_len((unsigned char) *sp);
+        if (dp - dest + clen >= maxlen)
+            break; /* 整个字符放不下, 不劈开 */
+        while (clen-- > 0)
+            *dp++ = *sp++;
     }
-    *dest = '\0';
+    *dp = '\0';
 }
 
 /*
@@ -6957,9 +6990,16 @@ initoptions_init(void)
             gc.cmdline_windowsys = NULL;
     }
 
-    /* make any symbol parsing quicker */
-    if (!glyphid_cache_status())
-        fill_glyphid_cache();
+    /* make any symbol parsing quicker, but only if
+     * gd.disable_glyphname_hash_indices_prefill is not set to TRUE */
+#ifndef MAC68K
+    /* Skip on classic Mac OS — the prefill iterates thousands of glyphs
+       (Sprintf + hash insertions), taking ~2 minutes on a 68030.  Lazy
+       lookup on first use is cheaper; the cache is only needed for glyph
+       name lookups in config files. */
+    if (!glyphname_hash_indices_loaded() && !gd.disable_glyphname_hash_indices_prefill)
+        populate_glyphname_hash_indices();
+#endif
 
     /* set up the command parsing */
     reset_commands(TRUE); /* init */
@@ -7132,7 +7172,7 @@ initoptions_finish(void)
 {
     nhsym sym = 0;
 
-    disregard_this_option(opt_mention_decor); /* defer this */
+    disregard_this_option(opt_mention_decor);  /* defer this */
     rcfile();
 
     (void) fruitadd(svp.pl_fruit, (struct fruit *) 0);
@@ -7183,8 +7223,8 @@ initoptions_finish(void)
         iflags.wc_ascii_map = FALSE, iflags.wc_tiled_map = TRUE;
 
 #ifdef ENHANCED_SYMBOLS
-    if (glyphid_cache_status())
-        free_glyphid_cache();
+    if (glyphname_hash_indices_loaded())
+        empty_glyphname_hash_indices();
     apply_customizations(gc.currentgraphics,
                          do_custom_symbols | do_custom_colors);
 #endif
@@ -7220,8 +7260,24 @@ allopt_array_init(void)
         memcpy(allopt, allopt_init, sizeof(allopt));
         determine_ambiguities();
         for (i = 0; allopt[i].name; i++) {
-            if (allopt[i].addr)
+            if (allopt[i].addr) {
+#if (NH_DEVEL_STATUS != NH_STATUS_RELEASED \
+     && NH_DEVEL_STATUS != NH_STATUS_POSTRELEASE)
+                if (allopt[i].opttyp == BoolOpt
+                    && allopt[i].initval != allopt[i].opt_in_out)
+                    if (wizard)
+                        impossible("conflicting option init for %s: %s is %s, %s is %s",
+                                   allopt[i].name,
+                                   "opt_in_out",
+                                   allopt[i].opt_in_out ? "on" : "off", "initval",
+                                   allopt[i].initval ? "on" : "off");
+#endif
+#if 0
+                if (allopt[i].opttyp == BoolOpt && i != opt_ascii_map)
+                    allopt[i].initval = allopt[i].opt_in_out;
+#endif
                 *(allopt[i].addr) = allopt[i].initval;
+            }
         }
         heed_all_options();
         /*
@@ -8727,9 +8783,10 @@ rerun:
                     getlin(buf, abuf);
                     if (abuf[0] == '\033')
                         continue;
-                    Sprintf(buf, "%s:", allopt[opt_indx].name);
-                    (void) strncat(eos(buf), abuf,
-                                   (sizeof buf - 1 - strlen(buf)));
+                    Snprintf(buf, sizeof buf,
+                             "%s:%s",
+                             allopt[opt_indx].name,
+                             abuf);
                     /* pass the buck */
                     (void) parseoptions(buf, FALSE, FALSE);
                 }
@@ -9199,34 +9256,34 @@ sym_val(const char *strval) /* up to 4*BUFSZ-1 long; only first few
 /* data for option_help() */
 static const char *opt_intro[] = {
     "",
-    "                 NetHack Options Help:",
+    "                 NetHack选项帮助:",
     "",
 #define CONFIG_SLOT 3 /* fill in next value at run-time */
     (char *) 0,
-#if !defined(MICRO) && !defined(MACOS9)
-    "or use `NETHACKOPTIONS=\"<options>\"' in your environment",
+#if !defined(MICRO) && !defined(MAC68K)
+    "或者使用环境变量`NETHACKOPTIONS=\"<options>\"'",
 #endif
-    "(<options> is a list of options separated by commas)",
+    "(<options>是一系列选项, 用逗号隔开)",
 #ifdef VMS
-    "-- for example, $ DEFINE NETHACKOPTIONS \"noautopickup,fruit:kumquat\"",
+    "-- 比如, $ DEFINE NETHACKOPTIONS \"noautopickup,fruit:kumquat\"",
 #endif
-    "or press \"O\" while playing and use the menu.",
+    "或者游玩时按下\"O\"键打开菜单.",
     "",
-    ("Boolean options (which can be negated by prefixing them"
-     " with '!' or \"no\"):"),
+    ("布尔选项(可以前面加'!'或者\"no\"表示否定):"
+     /*" with ):"*/),
     (char *) 0
 };
 
 static const char *const opt_epilog[] = {
     "",
-    "Some of the options can only be set before the game is started;",
-    "those items will not be selectable in the 'O' command's menu.",
-    "Some options are stored in a game's save file, and will keep saved",
-    "values when restoring that game even if you have updated your config-",
-    "uration file to change them.  Such changes will matter for new games.",
-    "The \"other settings\" can be set with 'O', but when set within the",
-    "configuration file they use their own directives rather than OPTIONS.",
-    "See NetHack's \"Guidebook\" for details.",
+    "有的选项只能在游戏开始前设定; 这些选项在按下'O'打开的菜单里看不见. ",
+    "有的选项保存在游戏存档里, 即使你修改配置文件, 下次打开这些值也会保持",
+    "不变. 修改的选项会在新的游戏里生效. ",
+    "\"其他选项\"可以按'O'设定, 但是在配置文件里设置时, 它们有自己的指令, ",
+    "而不是OPTIONS. ",
+    "详情请参阅NetHack的\"说明手册\". ",
+    /*"configuration file they use their own directives rather than OPTIONS.",
+    "See NetHack's \"Guidebook\" for details.",*/
     (char *) 0
 };
 
@@ -9969,7 +10026,7 @@ void
 heed_this_option(enum opt optidx)
 {
     /* ensure OPTIONS= lines are enabled */
-    heed_this_config_statement(0); /* index 0 == OPTIONS */
+    heed_this_config_statement(0);  /* index 0 == OPTIONS */
 
     if (optidx >= 0 && optidx < (enum opt) OPTCOUNT)
         allopt[optidx].disregarded = FALSE;

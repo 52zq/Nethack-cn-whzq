@@ -131,7 +131,7 @@ nhmain(int argc, char *argv[])
                 dir = argv[0];
             }
             if (!*dir)
-                error("Flag -d must be followed by a directory name.");
+                error("选项-d后面必须要有路径名.");
         }
     }
 #endif /* CHDIR */
@@ -284,14 +284,14 @@ nhmain(int argc, char *argv[])
             iflags.news = FALSE; /* in case dorecover() fails */
         }
 #endif
-        pline("Restoring save file...");
+        pline("读取存档中...");
         mark_synch(); /* flush output */
         if (dorecover(nhfp)) {
             resuming = TRUE; /* not starting new game */
             wd_message();
             if (discover || wizard) {
                 /* this seems like a candidate for paranoid_confirmation... */
-                if (y_n("Do you want to keep the save file?") == 'n') {
+                if (y_n("你想保留存档文件吗?") == 'n') {
                     (void) delete_savefile();
                 } else {
                     (void) chmod(fq_save, FCMASK); /* back to readable */
@@ -364,7 +364,7 @@ process_options(int argc, char *argv[])
                 load_symset("DECGraphics", PRIMARYSET);
                 switch_symbols(TRUE);
             } else {
-                raw_printf("Unknown option: %.60s", *argv);
+                raw_printf("未知选项: %.60s", *argv);
             }
             break;
         case 'X':
@@ -385,7 +385,7 @@ process_options(int argc, char *argv[])
                 (void) strncpy(svp.plname, argv[0], sizeof svp.plname - 1);
                 gp.plnamelen = 0;
             } else {
-                raw_print("Player name expected after -u");
+                raw_print("-u后应有玩家名");
             }
             break;
         case 'I':
@@ -395,7 +395,7 @@ process_options(int argc, char *argv[])
                 load_symset("RogueIBM", ROGUESET);
                 switch_symbols(TRUE);
             } else {
-                raw_printf("Unknown option: %.60s", *argv);
+                raw_printf("未知选项: %.60s", *argv);
             }
             break;
         case 'p': /* profession (role) */
@@ -439,7 +439,7 @@ process_options(int argc, char *argv[])
 
 #ifdef SYSCF
     if (argc > 1)
-        raw_printf("MAXPLAYERS are set in sysconf file.\n");
+        raw_printf("sysconf中已设定MAXPLAYERS.\n");
 #else
     /* XXX This is deprecated in favor of SYSCF with MAXPLAYERS */
     if (argc > 1)
@@ -495,7 +495,7 @@ chdirx(const char *dir, boolean wr)
 
     if (dir && chdir(dir) < 0) {
         perror(dir);
-        error("Cannot chdir to %s.", dir);
+        error("无法chdir到%s.", dir);
     }
 
     /* warn the player if we can't write the record file
@@ -622,20 +622,20 @@ wd_message(void)
     if (iflags.wiz_error_flag) {
         if (sysopt.wizards && sysopt.wizards[0]) {
             char *tmp = build_english_list(sysopt.wizards);
-            pline("Only user%s %s may access debug (wizard) mode.",
-                  strchr(sysopt.wizards, ' ') ? "s" : "", tmp);
+            pline("只有%s用户可以进入调试(巫师)模式.",
+                  /*strchr(sysopt.wizards, ' ') ? "s" : "",*/ tmp);
             free(tmp);
         } else {
-            You("cannot access debug (wizard) mode.");
+            You("无法进入调试(巫师)模式.");
         }
         wizard = FALSE; /* (paranoia) */
         if (!iflags.explore_error_flag)
-            pline("Entering explore/discovery mode instead.");
+            pline("进入探索模式.");
     } else if (iflags.explore_error_flag) {
-        You("cannot access explore mode."); /* same as enter_explore_mode */
+        You("无法进入探索模式."); /* same as enter_explore_mode */
         discover = iflags.deferred_X = FALSE; /* (more paranoia) */
     } else if (discover)
-        You("are in non-scoring explore/discovery mode.");
+        You("正在游玩不计分的探索模式.");
 }
 
 /*
@@ -1092,6 +1092,7 @@ void js_constants_init() {
     SET_CONSTANT("GLYPH", GLYPH_SWALLOW_OFF);
     SET_CONSTANT("GLYPH", GLYPH_WARNING_OFF);
     SET_CONSTANT("GLYPH", GLYPH_STATUE_OFF);
+    SET_CONSTANT("GLYPH", GLYPH_PILETOP_OFF);
     SET_CONSTANT("GLYPH", GLYPH_UNEXPLORED_OFF);
     SET_CONSTANT("GLYPH", GLYPH_NOTHING_OFF);
     SET_CONSTANT("GLYPH", MAX_GLYPH);

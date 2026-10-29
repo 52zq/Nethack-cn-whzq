@@ -1,4 +1,4 @@
-/* NetHack 5.0	read.c	$NHDT-Date: 1762577372 2025/11/07 20:49:32 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.323 $ */
+/* NetHack 5.0	read.c	$NHDT-Date: 1782083451 2026/06/21 18:10:51 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.334 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -180,6 +180,7 @@ tshirt_text(struct obj *tshirt, char *buf)
            from book series _A_Song_of_Ice_and_Fire_ by George R.R. Martin,
            TV show "Game of Thrones" (probably an actual T-shirt too...) */
         "/Valar morghulis/ -- /Valar dohaeris/",
+        "Asidonhopo once said: the namesake of my enemy is my enemy",
     };
 
     Strcpy(buf, shirt_msgs[tshirt->o_id % SIZE(shirt_msgs)]);
@@ -245,7 +246,7 @@ hawaiian_design(struct obj *shirt, char *buf)
     unsigned bg = shirt->o_id ^ (unsigned) ~ubirthday;
 
     Sprintf(buf, "的%s背景上印有%s", /*修改语序:Sprintf(buf, "%s的%s背景上",*/
-            an(hawaiian_bgs[bg % SIZE(hawaiian_bgs)]), /*修改语序:makeplural(hawaiian_motif(shirt, buf)),*/
+            hawaiian_bgs[bg % SIZE(hawaiian_bgs)], /*修改语序:makeplural(hawaiian_motif(shirt, buf)),*/
             makeplural(hawaiian_motif(shirt, buf))); /*修改语序:an(hawaiian_bgs[bg % SIZE(hawaiian_bgs)]));*/
     return buf;
 }
@@ -548,7 +549,7 @@ doread(void)
             pline("糖果棒的包装纸是空白的.");
             return ECMD_OK;
         }
-        pline("包装纸上写着:\"%s \".", wrapper);
+        pline("包装纸上写着: \"%s\".", wrapper);
         if (!u.uconduct.literate++)
             livelog_printf(LL_CONDUCT,
                            "因读一张糖果包装纸上的字而脱离文盲");
@@ -666,7 +667,7 @@ stripspe(struct obj *obj)
 staticfn void
 p_glow1(struct obj *otmp)
 {
-    pline("%s%s.", Yobjnam2(otmp, Blind ? "短暂振动了一下" : "发出了短暂"));
+    pline("%s.", Yobjnam2(otmp, Blind ? "短暂振动了一下" : "短暂发光"));
 }
 
 staticfn void
@@ -679,7 +680,7 @@ p_glow2(struct obj *otmp, const char *color)
 staticfn void
 p_glow3(struct obj *otmp, const char *color)
 {
-    pline("%s了片刻%s%s.",
+    pline("%s了片刻%s%s%s.",
           Yobjnam2(otmp, Blind ? "微弱地振动" : "发出"),
           Blind ? "" : "微弱的", Blind ? "" : hcolor(color), Blind ? "" : "光");
 }
@@ -811,7 +812,7 @@ recharge(struct obj *obj, int curse_bless)
                 Ring_gone(obj);
             s = rnd(3 * abs(obj->spe)); /* amount of damage */
             useup(obj), obj = 0;
-            losehp(Maybe_Half_Phys(s), "戒指爆炸", KILLED_BY_AN);
+            losehp(Maybe_Half_Phys(s), "戒指爆炸", KILLED_BY);
         } else {
             long mask = is_on ? (obj == uleft ? LEFT_RING : RIGHT_RING) : 0L;
 
@@ -1000,7 +1001,7 @@ recharge(struct obj *obj, int curse_bless)
 
     } else {
  not_chargable:
-        You("有一种失落感.");
+        You("感觉有点失落.");
     }
 
     /* prevent enchantment from getting out of range */
@@ -1251,10 +1252,10 @@ seffect_enchant_armor(struct obj **sobjp)
             maybe_adjust_light(otmp, old_light);
         return;
     }
-    pline("%s%s%s%s了%s%s%s%s.", Yname2(otmp), /*修改语序:多了一个%s*/
+    pline("%s%s%s了%s%s%s%s.", Yname2(otmp), /*修改语序:多了一个%s*/
           (s == 0) ? "猛烈地" : "",
           otense(otmp, Blind ? "振动" : "发出"),
-          (!Blind && !same_color) ? "" : "",
+          /*冗余:(!Blind && !same_color) ? "" : "",*/
           (s * s > 1) ? "一会" : "片刻", (Blind || same_color) ? "" : ((s * s > 1) ? "" : "的"), /*修改语序:(Blind || same_color);*/
           (Blind || same_color) ? "" : hcolor(scursed ? NH_BLACK : NH_SILVER), /*修改语序:? "" : hcolor(scursed ? NH_BLACK : NH_SILVER), (Blind || same_color) ? "" : "光",*/ /*修改语序:? "" : hcolor(scursed ? NH_BLACK : NH_SILVER),*/
           (Blind || same_color) ? "" : "光"); /*修改语序:(s * s > 1) ? "一会儿" : "一刹那");*/
@@ -1372,7 +1373,7 @@ seffect_destroy_armor(struct obj **sobjp)
             struct obj *atmp;
 
             if (!objects[sobj->otyp].oc_name_known)
-                pline("这是%s!", an(actualoname(sobj)));
+                pline("这是%s!", actualoname(sobj));
             gk.known = TRUE;
             atmp = getobj("摧毁什么", any_worn_armor_ok, GETOBJ_PROMPT);
             /* check the return value, if user picked non-valid obj */
@@ -1408,7 +1409,7 @@ seffect_confuse_monster(struct obj **sobjp)
 
     if (gy.youmonst.data->mlet != S_HUMAN || scursed) {
         if (!HConfusion)
-            You_feel("混乱.");
+            You_feel("很混乱.");
         make_confused(HConfusion + rnd(100), FALSE);
     } else if (confused) {
         if (!sblessed) {
@@ -1587,8 +1588,8 @@ seffect_remove_curse(struct obj **sobjp)
                 /* like rndcurse(sit.c), effect on regular inventory
                    doesn't show things glowing but saddle does */
                 if (!Blind) {
-                    pline("%s了%s色光.", Yobjnam2(obj, "发出"),
-                              hcolor("琥珀"));
+                    pline("%s了%s光.", Yobjnam2(obj, "发出"),
+                              hcolor("琥珀色"));
                     obj->bknown = Hallucination ? 0 : 1;
                 } else {
                     obj->bknown = 0; /* skip set_bknown() */
@@ -1884,7 +1885,7 @@ seffect_fire(struct obj **sobjp)
             monstunseesu(M_SEEN_FIRE);
             pline_The("卷轴着火了, 你烧伤了你的%s.",
                       makeplural(body_part(HAND)));
-            losehp(1, "火焰卷轴", KILLED_BY_AN);
+            losehp(1, "一张火焰卷轴", KILLED_BY);
         }
         return;
     }
@@ -2335,7 +2336,7 @@ drop_boulder_on_player(
         newsym(u.ux, u.uy);
     }
     if (dmg)
-        losehp(Maybe_Half_Phys(dmg), "大地卷轴", KILLED_BY_AN);
+        losehp(Maybe_Half_Phys(dmg), "一张大地卷轴", KILLED_BY);
 }
 
 boolean
@@ -2451,7 +2452,7 @@ wand_explode(struct obj *obj, int chg /* recharging */)
     dmg = d(n, k);
     obj->in_use = TRUE; /* in case losehp() is fatal (or --More--^C) */
     pline("%s%s爆炸了!", Yname2(obj), expl);
-    losehp(Maybe_Half_Phys(dmg), "魔杖爆炸", KILLED_BY_AN);
+    losehp(Maybe_Half_Phys(dmg), "魔杖爆炸", KILLED_BY);
     useup(obj);
     /* obscure side-effect */
     exercise(A_STR, FALSE);
@@ -2555,7 +2556,7 @@ litroom(
             if (Blind)
                 ; /* no feedback */
             else if (digests(u.ustuck->data))
-                pline("%s%s被点亮了.", s_suffix(Monnam(u.ustuck)),
+                pline("%s%s点亮了.", s_suffix(Monnam(u.ustuck)),
                       mbodypart(u.ustuck, STOMACH));
             else if (is_whirly(u.ustuck->data))
                 pline("%s短暂地照耀了一会.", Monnam(u.ustuck));
@@ -2811,8 +2812,8 @@ do_class_genocide(void)
             }
         }
         if (gameover || u.uhp == -1) {
-            svk.killer.format = KILLED_BY_AN;
-            Strcpy(svk.killer.name, "灭绝卷轴");
+            svk.killer.format = KILLED_BY; //危险:KILLED_BY_AN;
+            Strcpy(svk.killer.name, "一张灭绝卷轴");
             if (gameover)
                 done(GENOCIDED);
         }
@@ -2950,7 +2951,7 @@ do_genocide(
         /* use actual type */
         Strcpy(buf, realbuf);
         if ((ptr->geno & G_UNIQ) && ptr != &mons[PM_HIGH_CLERIC])
-            which = !type_is_pname(ptr) ? "" : "";
+            which = ""; //冗余:!type_is_pname(ptr) ? "" : "";
     }
 
     if (how & REALLY) {
@@ -2973,11 +2974,11 @@ do_genocide(
                 Strcpy(svk.killer.name, "混乱的灭绝卷轴");
             } else if (how & ONTHRONE) {
                 /* player selected while on a throne */
-                svk.killer.format = KILLED_BY_AN;
-                Strcpy(svk.killer.name, "专横的命令");
+                svk.killer.format = KILLED_BY;
+                Strcpy(svk.killer.name, "一道专横的命令");
             } else { /* selected player deliberately, not confused */
-                svk.killer.format = KILLED_BY_AN;
-                Strcpy(svk.killer.name, "灭绝卷轴");
+                svk.killer.format = KILLED_BY;
+                Strcpy(svk.killer.name, "一张灭绝卷轴");
             }
 
             /* Polymorphed characters will die as soon as they're rehumanized.
@@ -3009,8 +3010,8 @@ do_genocide(
             /* accumulated 'cnt' doesn't take groups into account;
                assume bringing in new mon(s) didn't remove any old ones */
             cnt = monster_census(FALSE) - census;
-            pline("派来了%s%s.", (cnt > 1) ? "一些" : "",
-                  (cnt > 1) ? makeplural(buf) : an(buf));
+            pline("派来了一%s%s.", (cnt > 1) ? "些" : pm_to_classifier(&mons[mndx]),
+                  (cnt > 1) ? makeplural(buf) : buf);
         } else
             pline1(nothing_happens);
     }
@@ -3037,7 +3038,7 @@ punish(struct obj *sobj)
     if (amorphous(gy.youmonst.data) || is_whirly(gy.youmonst.data)
         || unsolid(gy.youmonst.data)) {
         if (!reuse_ball) {
-            pline("一个球和链出现了, 然后松开了.");
+            pline("一个球连着链出现了, 然后松开了.");
             dropy(mkobj(BALL_CLASS, TRUE));
         } else {
             dropy(reuse_ball);
@@ -3171,42 +3172,169 @@ create_particular_parse(
         d->saddled = TRUE;
         (void) memset(tmpp, ' ', sizeof "saddled " - 1);
     }
+    if ((tmpp = strstri(bufp, "装有鞍的")) != 0) {
+        d->saddled = TRUE;
+        (void) memset(tmpp, ' ', sizeof "装有鞍的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "上鞍的")) != 0) {
+        d->saddled = TRUE;
+        (void) memset(tmpp, ' ', sizeof "上鞍的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "装鞍的")) != 0) {
+        d->saddled = TRUE;
+        (void) memset(tmpp, ' ', sizeof "装鞍的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "有鞍的")) != 0) {
+        d->saddled = TRUE;
+        (void) memset(tmpp, ' ', sizeof "有鞍的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "带鞍的")) != 0) {
+        d->saddled = TRUE;
+        (void) memset(tmpp, ' ', sizeof "带鞍的" - 1);
+    }
     /* state -- limited number of possibilities supported */
     if ((tmpp = strstri(bufp, "sleeping ")) != 0) {
         d->sleeping = TRUE;
         (void) memset(tmpp, ' ', sizeof "sleeping " - 1);
     }
+    if ((tmpp = strstri(bufp, "睡觉的")) != 0) {
+        d->sleeping = TRUE;
+        (void) memset(tmpp, ' ', sizeof "睡觉的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "正在睡觉的")) != 0) {
+        d->sleeping = TRUE;
+        (void) memset(tmpp, ' ', sizeof "正在睡觉的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "睡着的")) != 0) {
+        d->sleeping = TRUE;
+        (void) memset(tmpp, ' ', sizeof "睡着的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "睡着了的")) != 0) {
+        d->sleeping = TRUE;
+        (void) memset(tmpp, ' ', sizeof "睡着了的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "睡眠的")) != 0) {
+        d->sleeping = TRUE;
+        (void) memset(tmpp, ' ', sizeof "睡眠的" - 1);
+    }
     if ((tmpp = strstri(bufp, "invisible ")) != 0) {
         d->invisible = TRUE;
         (void) memset(tmpp, ' ', sizeof "invisible " - 1);
     }
+    if ((tmpp = strstri(bufp, "隐形的")) != 0) {
+        d->invisible = TRUE;
+        (void) memset(tmpp, ' ', sizeof "隐形的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "隐身的")) != 0) {
+        d->invisible = TRUE;
+        (void) memset(tmpp, ' ', sizeof "隐身的" - 1);
+    }
     if ((tmpp = strstri(bufp, "hidden ")) != 0) {
         d->hidden = TRUE;
         (void) memset(tmpp, ' ', sizeof "hidden " - 1);
+    }
+    if ((tmpp = strstri(bufp, "隐藏的")) != 0) {
+        d->hidden = TRUE;
+        (void) memset(tmpp, ' ', sizeof "隐藏的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "藏起来的")) != 0) {
+        d->hidden = TRUE;
+        (void) memset(tmpp, ' ', sizeof "藏起来的" - 1);
     }
     /* check "female" before "male" to avoid false hit mid-word */
     if ((tmpp = strstri(bufp, "female ")) != 0) {
         d->fem = 1;
         (void) memset(tmpp, ' ', sizeof "female " - 1);
     }
+    if ((tmpp = strstri(bufp, "女性的")) != 0) {
+        d->fem = 1;
+        (void) memset(tmpp, ' ', sizeof "女性的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "女的")) != 0) {
+        d->fem = 1;
+        (void) memset(tmpp, ' ', sizeof "女的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "雌性的")) != 0) {
+        d->fem = 1;
+        (void) memset(tmpp, ' ', sizeof "雌性的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "雌性")) != 0) {
+        d->fem = 1;
+        (void) memset(tmpp, ' ', sizeof "雌性" - 1);
+    }
+    if ((tmpp = strstri(bufp, "母的")) != 0) {
+        d->fem = 1;
+        (void) memset(tmpp, ' ', sizeof "母的" - 1);
+    }
     if ((tmpp = strstri(bufp, "male ")) != 0) {
         d->fem = 0;
         (void) memset(tmpp, ' ', sizeof "male " - 1);
+    }
+    if ((tmpp = strstri(bufp, "男性的")) != 0) {
+        d->fem = 0;
+        (void) memset(tmpp, ' ', sizeof "男性的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "男的")) != 0) {
+        d->fem = 0;
+        (void) memset(tmpp, ' ', sizeof "男的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "男")) != 0) {
+        d->fem = 0;
+        (void) memset(tmpp, ' ', sizeof "男" - 1);
+    }
+    if ((tmpp = strstri(bufp, "雄性的")) != 0) {
+        d->fem = 0;
+        (void) memset(tmpp, ' ', sizeof "雄性的" - 1);
+    }
+    if ((tmpp = strstri(bufp, "雄性")) != 0) {
+        d->fem = 0;
+        (void) memset(tmpp, ' ', sizeof "雄性" - 1);
+    }
+    if ((tmpp = strstri(bufp, "公的")) != 0) {
+        d->fem = 0;
+        (void) memset(tmpp, ' ', sizeof "公的" - 1);
     }
     bufp = mungspaces(bufp); /* after potential memset(' ') */
     /* allow the initial disposition to be specified */
     if (!strncmpi(bufp, "tame ", 5)) {
         bufp += 5;
         d->maketame = TRUE;
+    } else if (strncmpi(bufp, "女武神", strlen("女武神")) && !strncmpi(bufp, "女", strlen("女"))) {
+        bufp += strlen("女");
+        d->fem = 1;
+    } else if (!strncmpi(bufp, "母", strlen("母"))) {
+        bufp += strlen("母");
+        d->fem = 1;
+    } else if (strncmpi(bufp, "公家", strlen("公家")) && !strncmpi(bufp, "公", strlen("公"))) {
+        bufp += strlen("公");
+        d->fem = 0;
+    } else if (!strncmpi(bufp, "驯服的", strlen("驯服的"))) {
+        bufp += strlen("驯服的");
+        d->maketame = TRUE;
+    } else if (!strncmpi(bufp, "驯服的", strlen("驯服的"))) {
+        bufp += strlen("驯服的");
+        d->maketame = TRUE;
+    } else if (!strncmpi(bufp, "顺服的", strlen("顺服的"))){
+        bufp += strlen("顺服的");
+        d->maketame = TRUE;
     } else if (!strncmpi(bufp, "peaceful ", 9)) {
         bufp += 9;
+        d->makepeaceful = TRUE;
+    } else if (!strncmpi(bufp, "和平的", strlen("和平的"))) {
+        bufp += strlen("和平的");
+        d->makepeaceful = TRUE;
+    } else if (!strncmpi(bufp, "平和的", strlen("平和的"))){
+        bufp += strlen("平和的");
         d->makepeaceful = TRUE;
     } else if (!strncmpi(bufp, "hostile ", 8)) {
         bufp += 8;
         d->makehostile = TRUE;
+    } else if (!strncmpi(bufp, "敌对的", strlen("敌对的"))) {
+        bufp += strlen("敌对的");
+        d->makehostile = TRUE;
     }
     /* decide whether a valid monster was chosen */
-    if (wizard && (!strcmp(bufp, "*") || !strcmp(bufp, "random"))) {
+    if (wizard && (!strcmp(bufp, "*") || !strcmp(bufp, "random") || !strcmp(bufp, "随机"))) {
         d->randmonst = TRUE;
         return TRUE;
     }

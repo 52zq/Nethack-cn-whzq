@@ -1,4 +1,4 @@
-/* NetHack 5.0	dungeon.h	$NHDT-Date: 1685863327 2023/06/04 07:22:07 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.47 $ */
+/* NetHack 5.0	dungeon.h	$NHDT-Date: 1781973079 2026/06/20 16:31:19 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.56 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2006. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -59,7 +59,7 @@ typedef struct exclusion_zone {
 } exclusion_zone;
 
 typedef struct dungeon {   /* basic dungeon identifier */
-    char dname[24];        /* name of the dungeon (eg. "Hell") */ char dcname[24];
+    char dname[24];        /* name of the dungeon (eg. "Hell") */
     char proto[15];        /* name of prototype file (eg. "tower") */
     char fill_lvl[15];     /* name of "fill" level protype file */
     char themerms[15];     /* lua file name containing themed rooms */

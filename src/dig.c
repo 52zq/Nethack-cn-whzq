@@ -1,4 +1,4 @@
-/* NetHack 5.0	dig.c	$NHDT-Date: 1740629713 2025/02/26 20:15:13 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.227 $ */
+/* NetHack 5.0	dig.c	$NHDT-Date: 1781973044 2026/06/20 16:30:44 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.236 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Michael Allison, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -712,7 +712,7 @@ digactualhole(coordxy x, coordxy y, struct monst *madeby, int ttyp)
         if (IS_STWALL(old_typ))
             pline_The("%s倒塌成了%s.", surface_type, an(tname));
         else
-            pline("在%s中出现了一个%s.", An(tname), surface_type);
+            pline("在%s中出现了%s.", surface_type, An(tname));
     }
     if (IS_FURNITURE(old_typ) && cansee(x, y))
         pline_The("%s掉进了%s里!", furniture, tname);
@@ -970,9 +970,9 @@ dighole(boolean pit_only, boolean by_magic, coord *cc)
              * We can't dig a hole here since that will destroy
              * the drawbridge.  The following is a cop-out. --dlc
              */
-            pline_The("%s%s这里太硬了, 无法挖掘.",
+            pline_The("%s%s里太硬了, 无法挖掘.",
                       surface(dig_x, dig_y),
-                      (dig_x != u.ux || dig_y != u.uy) ? "t" : "");
+                      (dig_x != u.ux || dig_y != u.uy) ? "那" : "这");
         } else {
             lev->drawbridgemask &= ~DB_UNDER;
             lev->drawbridgemask |= (typ == LAVAPOOL) ? DB_LAVA : DB_MOAT;
@@ -1166,7 +1166,7 @@ use_pick_axe2(struct obj *obj)
     struct trap *trap, *trap_with_u;
     int dig_target;
     boolean ispick = is_pick(obj);
-    const char *verbing = ispick ? "挖" : "劈";
+    const char *verbing = ispick ? "挖掘" : "劈开";
 
     if (u.uswallow && do_attack(u.ustuck)) {
         ; /* return 1 */
@@ -1229,7 +1229,7 @@ use_pick_axe2(struct obj *obj)
             } else if (IS_TREE(lev->typ)) {
                 You("需要斧头来砍树.");
             } else if (IS_OBSTRUCTED(lev->typ)) {
-                You("需要鹤嘴锄来挖掘岩石.");
+                You("需要镐子来挖掘岩石.");
             } else if ((boulder = sobj_at(BOULDER, rx, ry)) != 0
                        || sobj_at(STATUE, rx, ry)) {
                 /* if both boulders and statues are present, the topmost
@@ -1270,7 +1270,7 @@ use_pick_axe2(struct obj *obj)
                 You("挥动%s, 但碎石无处可去.",
                     yobjnam(obj, (char *) 0));
             } else {
-                You("对空气挥动%s.", yobjnam(obj, (char *) 0));
+                You("对着空气挥动%s.", yobjnam(obj, (char *) 0));
             }
         } else {
             static const char *const d_action[6] = { "挥动", "挖掘",
@@ -1393,14 +1393,14 @@ watch_dig(struct monst *mtmp, coordxy x, coordxy y, boolean zap)
                 const char *str;
 
                 if (IS_DOOR(lev->typ))
-                    str = "门";
+                    str = "扇门";
                 else if (IS_TREE(lev->typ))
-                    str = "树";
+                    str = "棵树";
                 else if (IS_OBSTRUCTED(lev->typ))
-                    str = "墙";
+                    str = "堵墙";
                 else
-                    str = "喷泉";
-                verbalize("嘿, 别破坏那个%s!", str);
+                    str = "座喷泉";
+                verbalize("嘿, 别破坏那%s!", str);
                 svc.context.digging.warned = TRUE;
             }
             if (is_digging())
@@ -1591,7 +1591,7 @@ zap_dig(void)
                               stway->isladder ? "梯子" : "楼梯",
                               ceiling(u.ux, u.uy));
                 }
-                You("从%s上翘下一块岩石.", ceiling(u.ux, u.uy));
+                You("从%s上撬下一块岩石.", ceiling(u.ux, u.uy));
                 pline("它掉到了你的%s上!", body_part(HEAD));
                 dmg = rnd(hard_helmet(uarmh) ? 2 : 6);
                 losehp(Maybe_Half_Phys(dmg), "falling rock", KILLED_BY_AN);
@@ -2075,7 +2075,7 @@ bury_objs(int x, int y)
     maybe_unhide_at(x, y);
 
     if (costly && loss) {
-        You("欠%s%ld %s埋着的商品.", shkname(shkp), loss,
+        You("欠%s %ld %s埋着的商品.", shkname(shkp), loss,
             currency(loss));
     }
 }

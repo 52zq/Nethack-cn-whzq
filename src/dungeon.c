@@ -1,5 +1,4 @@
-/* NetHack 5.0	dungeon.c	$NHDT-Date: 1737343478 2025/01/19 19:24:38 $
- * $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.228 $ */
+/* NetHack 5.0	dungeon.c	$NHDT-Date: 1781973047 2026/06/20 16:30:47 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.239 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -282,7 +281,7 @@ dname_to_dnum(const char *s)
     xint16 i;
 
     for (i = 0; i < svn.n_dgns; i++)
-        if (!strcmp(svd.dungeons[i].dname, s) || !strcmp(svd.dungeons[i].dcname, s))
+        if (!strcmp(svd.dungeons[i].dname, s) || !strcmp(svd.dcname[i], s))
             return i;
 
     panic("Couldn't resolve dungeon number for name \"%s\".", s);
@@ -321,7 +320,7 @@ find_branch(const char *s, /* dungeon name */
         const char *dnam, *dcnam;
 
         for (br = svb.branches; br; br = br->next) {
-            dnam = svd.dungeons[br->end2.dnum].dname; dcnam = svd.dungeons[br->end2.dnum].dcname;
+            dnam = svd.dungeons[br->end2.dnum].dname; dcnam = svd.dcname[br->end2.dnum];
             if (!strcmpi(dnam, s)
                 || ((!strncmpi(dnam, "The ", 4) && !strcmpi(dnam + 4, s)) || !strcmpi(dnam, s) || !strcmpi(dcnam, s)))
                 break;
@@ -1017,11 +1016,25 @@ init_dungeon_dungeons(lua_State *L, struct proto_dungeon *pd, int dngidx)
     pd->tmpdungeon[dngidx].chance = dgn_chance;
     pd->tmpdungeon[dngidx].entry_lev = dgn_entry;
 
-    /* FIXME: these should have length checks */
+    if (Strlen(dgn_fill) >= sizeof svd.dungeons[dngidx].fill_lvl)
+        panic("fill_lvl too long for dungeon %d", dngidx);
     Strcpy(svd.dungeons[dngidx].fill_lvl, dgn_fill);
-    Strcpy(svd.dungeons[dngidx].dname, dgn_name); Strcpy(svd.dungeons[dngidx].dcname, dgn_cname); /*危险:自己看dungeons.lua*/
+
+    if (Strlen(dgn_name) >= sizeof svd.dungeons[dngidx].dname)
+        panic("dname too long for dungeon %d", dngidx);
+    Strcpy(svd.dungeons[dngidx].dname, dgn_name);
+    if (Strlen(dgn_cname) >= sizeof svd.dcname[dngidx])
+        panic("dcname too long for dungeon %d", dngidx);
+    Strcpy(svd.dcname[dngidx], dgn_cname);
+
+    if (Strlen(dgn_protoname) >= sizeof svd.dungeons[dngidx].proto)
+        panic("proto too long for dungeon %d", dngidx);
     Strcpy(svd.dungeons[dngidx].proto, dgn_protoname);
+
+    if (Strlen(dgn_themerms) >= sizeof svd.dungeons[dngidx].themerms)
+        panic("themerms too long for dungeon %d", dngidx);
     Strcpy(svd.dungeons[dngidx].themerms, dgn_themerms);
+
     /* FIXME: accept "none", convert that to '\0' */
     svd.dungeons[dngidx].boneid = *dgn_bonetag ? *dgn_bonetag : 0;
     free((genericptr) dgn_fill);
@@ -1275,6 +1288,55 @@ init_dungeons(void)
 #ifdef DEBUG
     dumpit();
 #endif
+}
+
+/* Reload the Chinese dungeon names (static display strings) from DUNGEON_FILE
+ * into svd.dcname[].  They are not part of the save file, so they must be
+ * re-populated after restoring a saved game: restgamestate() restores the
+ * English dname[] inside each struct dungeon but not the Chinese names.
+ * Match by English name so the result does not depend on iteration order. */
+void
+init_dungeon_cnames(void)
+{
+    lua_State *L;
+    int i, tidx;
+    nhl_sandbox_info sbi = { NHL_SB_SAFE, 1 * 1024 * 1024, 0,
+                             1 * 1024 * 1024 };
+
+    L = nhl_init(&sbi);
+    if (!L) {
+        panic1("'nhl_init' failed; can't continue.");
+        /*NOTREACHED*/
+    }
+    if (!nhl_loadlua(L, DUNGEON_FILE))
+        panic1("Cannot open dungeon description.");
+
+    lua_getglobal(L, "dungeon");
+    if (!lua_istable(L, -1))
+        panic("dungeon is not a lua table");
+
+    tidx = lua_gettop(L);
+    lua_pushnil(L); /* first key */
+    while (lua_next(L, tidx) != 0) {
+        if (lua_istable(L, -1)) {
+            char *dgn_name = get_table_str(L, "name");
+            char *dgn_cname = get_table_str(L, "cname");
+
+            for (i = 0; i < svn.n_dgns; ++i) {
+                if (!strcmp(svd.dungeons[i].dname, dgn_name)) {
+                    if (Strlen(dgn_cname) >= sizeof svd.dcname[i])
+                        panic("dcname too long for dungeon %d", i);
+                    Strcpy(svd.dcname[i], dgn_cname);
+                    break;
+                }
+            }
+            free((genericptr_t) dgn_name);
+            free((genericptr_t) dgn_cname);
+        }
+        lua_pop(L, 1); /* pop the dungeon table */
+    }
+    lua_pop(L, 1); /* pop the dungeon global */
+    nhl_done(L);
 }
 
 #undef DUNGEON_FILE
@@ -1739,7 +1801,7 @@ surface(coordxy x, coordxy y)
     else if (IS_ROOM(levtyp) && !Is_earthlevel(&u.uz))
         return "地板";
     else
-        return "地";
+        return "地面";
 }
 
 /*
@@ -2220,9 +2282,9 @@ print_branch(winid win, int dnum, int lower_bound, int upper_bound,
     for (br = svb.branches; br; br = br->next) {
         if (br->end1.dnum == dnum && lower_bound < br->end1.dlevel
             && br->end1.dlevel <= upper_bound) {
-            Sprintf(buf, "%c 到%s的%s: %d",
+            Sprintf(buf, "%c 通往%s的%s: %d",
                     bymenu ? chr_u_on_lvl(&br->end1) : ' ',
-                    svd.dungeons[br->end2.dnum].dcname, br_string(br->type), /*修改语序:br_string(br->type), svd.dungeons[br->end2.dnum].dname,*/
+                    svd.dcname[br->end2.dnum], br_string(br->type), /*修改语序:br_string(br->type), svd.dungeons[br->end2.dnum].dname,*/
                     depth(&br->end1));
             if (bymenu)
                 tport_menu(win, buf, lchoices_p, &br->end1,
@@ -2260,11 +2322,11 @@ print_dungeon(boolean bymenu, schar *rlev, xint16 *rdgn)
         descr = unplaced ? "层深" : "层";
         nlev = dptr->num_dunlevs;
         if (nlev > 1)
-            Snprintf(buf, sizeof buf, "%s: %d到%d%s", dptr->dcname,
+            Snprintf(buf, sizeof buf, "%s: %d到%d%s", svd.dcname[i],
                      dptr->depth_start, dptr->depth_start + nlev - 1,
                      makeplural(descr)); /*修改语序:自己看*/
         else
-            Snprintf(buf, sizeof buf, "%s: %d%s", dptr->dcname, dptr->depth_start,
+            Snprintf(buf, sizeof buf, "%s: %d%s", svd.dcname[i], dptr->depth_start,
                      descr); /*修改语序:自己看*/
 
         /* Most entrances are uninteresting. */
@@ -2336,7 +2398,7 @@ print_dungeon(boolean bymenu, schar *rlev, xint16 *rdgn)
                 putstr(win, 0, "飘浮分支");
                 first = FALSE;
             }
-            Sprintf(buf, "   到%s的%s", svd.dungeons[br->end2.dnum].dcname,
+            Sprintf(buf, "   到%s的%s", svd.dcname[br->end2.dnum],
                     br_string(br->type)); /*修改语序:交换*/
             putstr(win, 0, buf);
         }
@@ -3313,6 +3375,7 @@ staticfn const char *
 seen_string(xint16 x, const char *obj)
 {
     /* players are computer scientists: 0, 1, 2, n */
+    nhUse(obj);
     switch (x) {
     case 0:
         return "没有";
@@ -3481,13 +3544,13 @@ print_mapseen(
         if (svd.dungeons[dnum].dunlev_ureached == svd.dungeons[dnum].entry_lev
             /* suppress the negative numbers in the endgame */
             || In_endgame(&mptr->lev))
-            Sprintf(buf, "%s:", svd.dungeons[dnum].dcname);
+            Sprintf(buf, "%s:", svd.dcname[dnum]);
         else if (builds_up(&mptr->lev))
-            Sprintf(buf, "%s: %d层往上到%d层", svd.dungeons[dnum].dcname,
+            Sprintf(buf, "%s: %d层往上到%d层", svd.dcname[dnum],
                     depthstart + svd.dungeons[dnum].entry_lev - 1,
                     depthstart + svd.dungeons[dnum].dunlev_ureached - 1);
         else
-            Sprintf(buf, "%s: %d层到%d层", svd.dungeons[dnum].dcname,
+            Sprintf(buf, "%s: %d层到%d层", svd.dcname[dnum],
                     depthstart,
                     depthstart + svd.dungeons[dnum].dunlev_ureached - 1);
 
@@ -3555,8 +3618,9 @@ print_mapseen(
             /* only print out altar's god if they are all to your god */
             atmp = mptr->feat.msalign;              /*    0,  1,  2,  3 */
             atmp = Msa2amask(atmp);                 /*    0,  1,  2,  4 */
-            if (Amask2align(atmp) == u.ualign.type) /* -128, -1,  0, +1 */
-                Sprintf(buf, "%s的%s", align_gname(u.ualign.type), buf); /*危险,修改语序:Sprintf(eos(buf), "%s的", align_gname(u.ualign.type));*/
+            if (Amask2align(atmp) == u.ualign.type) { /* -128, -1,  0, +1 */
+                Sprintf(eos(buf), "(%s的)", align_gname(u.ualign.type));
+            }
         }
         ADDNTOBUF("王座", mptr->feat.nthrone);
         ADDNTOBUF("喷泉", mptr->feat.nfount);
@@ -3620,7 +3684,7 @@ print_mapseen(
 
     /* print out branches */
     if (mptr->br) {
-        Sprintf(buf, "%s到%s的%s", PREFIX, svd.dungeons[mptr->br->end2.dnum].dcname,
+        Sprintf(buf, "%s到%s的%s", PREFIX, svd.dcname[mptr->br->end2.dnum],
                 br_string2(mptr->br)); /*修改语序:同上*/
 
         /* Since mapseen objects are printed out in increasing order

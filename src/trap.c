@@ -1,4 +1,4 @@
-/* NetHack 5.0	trap.c	$NHDT-Date: 1741926700 2025/03/13 20:31:40 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.621 $ */
+/* NetHack 5.0	trap.c	$NHDT-Date: 1781973071 2026/06/20 16:31:11 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.645 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2013. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -684,7 +684,7 @@ fall_through(
         if (dist > 1)
             You("%s下一个%s%s竖井!",
                 controlled_flight ? "飞" : "掉",
-                dist > 3 ? "非常" : "很",
+                dist > 3 ? "非常" : (dist > 2 ? "很" : ""),
                 dist > 2 ? "深的" : "");
     }
     if (!td)
@@ -1129,6 +1129,9 @@ m_harmless_trap(struct monst *mtmp, struct trap *ttmp)
     case LANDMINE:
         break;
     case ROLLING_BOULDER_TRAP:
+        /* the Sokoban rolling boulder traps are not dangerous */
+        if (In_sokoban(&u.uz))
+            return TRUE;
         break;
     case SLP_GAS_TRAP:
         if (resists_sleep(mtmp) || defended(mtmp, AD_SLEE))
@@ -1205,7 +1208,7 @@ trapeffect_arrow_trap(
         }
         trap->once = 1;
         seetrap(trap);
-        pline("一枝箭射向你!");
+        pline("一支箭射向你!");
         otmp = t_missile(ARROW, trap);
         dam = dmgval(otmp, &gy.youmonst);
         if (u.usteed && !rn2(2) && steedintrap(trap, otmp)) {
@@ -1268,7 +1271,7 @@ trapeffect_dart_trap(
         }
         trap->once = 1;
         seetrap(trap);
-        pline("一支小飞镖射向你!");
+        pline("一枚小飞镖射向你!");
         otmp = t_missile(DART, trap);
         if (!rn2(6))
             otmp->opoisoned = 1;
@@ -1343,14 +1346,14 @@ trapeffect_rocktrap(
             otmp = t_missile(ROCK, trap);
             place_object(otmp, u.ux, u.uy);
 
-            pline("%s上的陷阱门打开了, %s落到了你的%s上!",
-                  the(ceiling(u.ux, u.uy)), an(xname(otmp)), body_part(HEAD));
+            pline("%s上的陷阱门打开了, 一%s%s落到了你的%s上!",
+                  the(ceiling(u.ux, u.uy)), obj_classifier(otmp), xname(otmp), body_part(HEAD));
             if (uarmh) {
                 /* normally passes_rocks() would protect against a falling
                    rock, but not when wearing a helmet */
                 if (passes_rocks(gy.youmonst.data)) {
-                    pline("不幸的是, 你戴着%s.",
-                          an(helm_simple_name(uarmh))); /* helm or hat */
+                    pline("不幸的是, 你戴着一顶%s.",
+                          helm_simple_name(uarmh)); /* helm or hat */
                     dmg = 2;
                 } else if (hard_helmet(uarmh)) {
                     pline("幸运的是, 你戴着一顶硬头盔.");
@@ -1368,7 +1371,7 @@ trapeffect_rocktrap(
             newsym(u.ux, u.uy); /* map the rock */
 
             if (!harmless) {
-                losehp(Maybe_Half_Phys(dmg), "落石", KILLED_BY_AN);
+                losehp(Maybe_Half_Phys(dmg), "一块落石", KILLED_BY);
                 exercise(A_STR, FALSE);
             }
         }
@@ -2043,7 +2046,7 @@ trapeffect_hole(
                     seetrap(trap);
                     if (tt == TRAPDOOR)
                         pline_mon(mtmp,
-                            "一个陷阱门打开了, 但是%s没有没有掉进去.",
+                            "一个陷阱门打开了, 但是%s没有掉进去.",
                               mon_nam(mtmp));
                     else /* (tt == HOLE) */
                         pline_mon(mtmp,
@@ -2301,7 +2304,7 @@ trapeffect_magic_trap(
             deltrap(trap);
             newsym(u.ux, u.uy); /* update position */
             You("被卷入了爆炸的魔力之中!");
-            losehp(rnd(10), "魔法爆炸", KILLED_BY_AN);
+            losehp(rnd(10), "一场魔法爆炸", KILLED_BY);
             Your("身体吸收了一些魔法能量!");
             u.uen = (u.uenmax += 2);
             if (u.uenmax > u.uenpeak)
@@ -2375,7 +2378,7 @@ trapeffect_anti_magic(
                      : (dmgval2 >= hp / 4) ? "非常疲惫."
                        : "呆滞.");
             /* opposite of magical explosion */
-            losehp(dmgval2, "反魔法内爆", KILLED_BY_AN);
+            losehp(dmgval2, "一场反魔法内爆", KILLED_BY);
         }
 
         /* if the drain amount is more than hero's maximum energy then up
@@ -3067,7 +3070,7 @@ trapnote(struct trap *trap, boolean noprefix)
         "E音",  "F音", "升F音", "G音",
         "升G音", "A音", "降B音",  "B音",
     };
-    static char tnbuf[12]; /* result buffer */
+    static char tnbuf[32]; /* result buffer */
     const char *tn;
 
     tnbuf[0] = '\0';
@@ -3319,7 +3322,7 @@ launch_obj(
     case ROLL | LAUNCH_UNSEEN:
         if (otyp == BOULDER) {
             if (cansee(x1, y1)) {
-                You_see("%s在滚动.", an(xname(singleobj)));
+                You_see("一%s%s在滚动.", obj_classifier(singleobj), xname(singleobj));
             } else if (Hallucination) {
                 Soundeffect(se_someone_bowling, 60);
                 You_hear("有人在打保龄球.");
@@ -3889,7 +3892,7 @@ selftouch(const char *arg)
         && !Stone_resistance) {
         corpse_pmname = obj_pmname(uwep);
         pline("%s碰到了%s的尸体.", arg, corpse_pmname);
-        Sprintf(kbuf, "%s的尸体", an(corpse_pmname));
+        Sprintf(kbuf, "%s的尸体", corpse_pmname);
         instapetrify(kbuf);
         /* life-saved; unwield the corpse if we can't handle it */
         if (!uarmg && !Stone_resistance)
@@ -3901,7 +3904,7 @@ selftouch(const char *arg)
         && touch_petrifies(&mons[uswapwep->corpsenm]) && !Stone_resistance) {
         corpse_pmname = obj_pmname(uswapwep);
         pline("%s碰到了%s的尸体.", arg, corpse_pmname);
-        Sprintf(kbuf, "%s的尸体", an(corpse_pmname));
+        Sprintf(kbuf, "%s的尸体", corpse_pmname);
         instapetrify(kbuf);
         /* life-saved; unwield the corpse */
         if (!uarmg && !Stone_resistance)
@@ -3961,7 +3964,7 @@ float_up(void)
                 body_part(LEG),
                 IS_ROOM(levl[cc.x][cc.y].typ) ? "地板" : "地面");
         } else if (u.utraptype == WEB) {
-            You("微微上浮, 但仍仍然卡在%s中.",
+            You("微微上浮, 但仍然卡在%s中.",
                 trapname(WEB, FALSE));
         } else { /* bear trap */
             You("微微上浮, 但你的%s仍然卡在里面.",
@@ -4300,7 +4303,7 @@ dofiretrap(
     if (!num)
         You("未受伤害.");
     else
-        losehp(num, tower_of_flame, KILLED_BY_AN); /* fire damage */
+        losehp(num, tower_of_flame, KILLED_BY); /* fire damage */
     burn_away_slime();
 
     if (burnarmor(&gy.youmonst) || rn2(3)) {
@@ -4397,7 +4400,7 @@ domagictrap(void)
                         ? "挺奇怪的"
                         : "");
             else
-                You("突然思念%s.",
+                You("突然开始思念%s.",
                     Hallucination
                         ? "克利夫兰"
                         : (In_quest(&u.uz) || at_dgn_entrance("The Quest")) /*待写*/
@@ -4977,7 +4980,7 @@ back_on_ground(boolean rescued)
 {
     const char *preposit = (Levitation || Flying) ? "飞回了" : "回到了",
                *surf = surface(u.ux, u.uy), *you_are_back;
-    char icebuf[QBUFSZ];
+    //char icebuf[QBUFSZ];
 
     //if (is_ice(u.ux, u.uy)) { /*危险、冗余*/
         /* "on ice" */
@@ -5098,8 +5101,8 @@ drown(void)
         return FALSE;
 
     if ((i = number_leashed()) > 0) {
-        pline_The("狗链%s变%s松了.", (i > 1) ? "" : "",
-                  (i > 1) ? "" : "");
+        pline_The("狗链变松了."/*冗余:, (i > 1) ? "" : "",
+                  (i > 1) ? "" : ""*/);
         unleash_all();
     }
 
@@ -5454,7 +5457,7 @@ try_disarm(
     }
     /* We might be forced to move onto the trap's location. */
     if (sobj_at(BOULDER, ttmp->tx, ttmp->ty) && !Passes_walls && !under_u) {
-        There("有一个巨石挡在你前面.");
+        pline("有巨石挡在你前面."); //There
         return 0;
     }
     /* duplicate tight-space checks from test_move */
@@ -5741,7 +5744,7 @@ help_monster_out(
         } else {
             char kbuf[BUFSZ];
 
-            Sprintf(kbuf, "试图把%s拉出坑", an(mtmp_pmname));
+            Sprintf(kbuf, "试图把一%s%s拉出坑", mon_classifier(mtmp), mtmp_pmname);
             instapetrify(kbuf);
             return 1;
         }
@@ -5812,7 +5815,7 @@ disarm_box(struct obj *box, boolean force, boolean confused)
         exercise(A_DEX, TRUE);
     } else {
         pline("那个%s没有被困.", xname(box));
-        box->tknown = 0;
+        box->tknown = 1; /* known not trapped */
     }
 }
 
@@ -5823,9 +5826,14 @@ untrap_box(
     boolean force,
     boolean confused)
 {
+    if (box->tknown && !box->otrapped) {
+        You("know %s is not trapped.", the(xname(box)));
+        return;
+    }
+
     if ((box->otrapped
          && (force || (!confused && rn2(MAXULEV + 1 - u.ulevel) < 10)))
-        || box->tknown
+        || (box->tknown && box->otrapped)
         || (!force && confused && !rn2(3))) {
         if (!(box->tknown && box->dknown))
             You("发现%s上有一个陷阱!", the(xname(box)));
@@ -5896,7 +5904,7 @@ untrap(
 
     if (here) /* are there are one or more containers here? */
         for (otmp = svl.level.objects[x][y]; otmp; otmp = otmp->nexthere)
-            if (Is_box(otmp)) {
+            if (Is_box(otmp) && !(otmp->tknown && !otmp->otrapped)) {
                 if (++boxcnt > 1)
                     break;
             }
@@ -6001,7 +6009,9 @@ untrap(
             for (otmp = svl.level.objects[x][y]; otmp; otmp = otmp->nexthere) {
                 if (!Is_box(otmp))
                     continue;
-                if (otmp->tknown && otmp->dknown)
+                if (otmp->tknown && !otmp->otrapped)
+                    continue;
+                if (otmp->tknown && otmp->otrapped && otmp->dknown)
                     (void) safe_qbuf(qbuf, "解除这", NULL,
                                      otmp, xname, ansimpleoname, "盒子");
                 else
@@ -6012,7 +6022,7 @@ untrap(
                     case 'q':
                         return 0;
                     case 'y':
-                        if (otmp->tknown && otmp->dknown)
+                        if (otmp->tknown && otmp->otrapped && otmp->dknown)
                             disarm_box(otmp, force, confused);
                         else
                             untrap_box(otmp, force, confused);
@@ -6020,7 +6030,7 @@ untrap(
                     }
                     /* 'n' => continue to next box */
             }
-            There("没有其他箱子或盒子了.");
+            There("没有其他箱子或盒子.");
         }
 
         if (stumble_on_door_mimic(x, y))
@@ -6053,10 +6063,10 @@ untrap(
         You("%s那里没有门.", Blind ? "感觉" : "看到");
         return 0;
     case D_ISOPEN:
-        pline("这个门被破坏了.");
+        pline("这扇门被破坏了.");
         return 0;
     case D_BROKEN:
-        pline("这个门坏了.");
+        pline("这扇门坏了.");
         return 0;
     }
 
@@ -6087,7 +6097,7 @@ untrap(
                 newexplevel();
             }
         } else
-            pline("这个门没有陷阱.");
+            pline("这扇门没有陷阱.");
         return 1;
     } else {
         You("在门上没找到陷阱.");
@@ -6159,7 +6169,7 @@ openholdingtrap(
     assert(t != NULL);
     if (!which)
         which = t->tseen ? the_your[t->madeby_u]
-                         : strchr(vowels, *trapdescr) ? "一个" : "一个";
+                         : "一个";//冗余: strchr(vowels, *trapdescr) ? "一个" : "一个";
     assert(which != 0);
     if (*which)
         which = strcat(strcpy(whichbuf, which), " ");
@@ -6395,14 +6405,14 @@ chest_trap(
                 delobj(otmp);
             }
             wake_nearby(FALSE);
-            losehp(Maybe_Half_Phys(d(6, 6)), buf, KILLED_BY_AN);
+            losehp(Maybe_Half_Phys(d(6, 6)), buf, KILLED_BY);
             exercise(A_STR, FALSE);
             if (costly && loss) {
                 if (insider) {
                     You("因物品被毁, 你需支付%ld %s.", loss,
                         currency(loss));
                 } else {
-                    You("造成了%ld %s的损失!", loss,
+                    You("造成了价值%ld %s的损失!", loss,
                         currency(loss));
                     make_angry_shk(shkp, ox, oy);
                 }
@@ -6453,7 +6463,7 @@ chest_trap(
             }
             (void) destroy_items(&gy.youmonst, AD_ELEC, orig_dmg);
             if (dmg)
-                losehp(dmg, "电流冲击", KILLED_BY_AN);
+                losehp(dmg, "一阵电流冲击", KILLED_BY);
             break;
         } /* case 6 */
         case 5:
@@ -6699,7 +6709,7 @@ b_trapped(const char *item, int bodypart)
     Soundeffect(se_kaboom, 80);
     pline("嘭!! %s里藏了个炸弹!", The(item));
     wake_nearby(FALSE);
-    losehp(Maybe_Half_Phys(dmg), "爆炸", KILLED_BY_AN);
+    losehp(Maybe_Half_Phys(dmg), "一场爆炸", KILLED_BY);
     exercise(A_STR, FALSE);
     if (bodypart != NO_PART)
         exercise(A_CON, FALSE);
@@ -6911,12 +6921,12 @@ lava_effects(void)
             }
         }
         if (usurvive && burncount > burnmesgcount)
-            pline("你的背包中的%s物品%s%s被摧毁了.",
+            pline("你的背包中的%s物品%s被摧毁了.",
                   (burnmesgcount > 0)
                     ? ((burncount - burnmesgcount == 1) ? "另一个" : "另一些")
                     : ((burncount == 1) ? "一个" : "一些"),
-                  plur(burncount - burnmesgcount),
-                  (burncount - burnmesgcount == 1) ? "" : "");
+                  plur(burncount - burnmesgcount)
+                  /*冗余:(burncount - burnmesgcount == 1) ? "" : ""*/);
 
         /* s/he died... */
         boil_away = (u.umonnum == PM_WATER_ELEMENTAL
@@ -7142,7 +7152,7 @@ trapname(
                                                           : gu.urole.name.m)
                               : rank_of(u.ulevel, Role_switch, fem),
                        (int) (sizeof roletrap - sizeof "陷阱"));
-            Strcat(roletrap, "陷阱陷阱");
+            Strcat(roletrap, "陷阱");
             return lcase(roletrap);
         } else if (nameidx >= TRAPNUM) {
             nameidx -= TRAPNUM;

@@ -1,4 +1,4 @@
--- NetHack nhlib.lua	$NHDT-Date: 1652196140 2022/05/10 15:22:20 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.4 $
+-- NetHack nhlib.lua	$NHDT-Date: 1781994886 2026/06/20 22:34:46 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.20 $
 --	Copyright (c) 2021 by Pasi Kallinen
 -- NetHack may be freely redistributed.  See license for details.
 -- compatibility shim
@@ -221,8 +221,8 @@ local tutorial_events = {
          if (u.uhunger < 148) then
             local o = obj.new("blessed food ration");
             o:placeobj(u.ux, u.uy);
-            nh.pline("Looks like you're getting hungry.  You'll starve to death, unless you eat something.", true);
-            nh.pline("Comestibles are eaten with '" .. nh.eckey("eat") .. "'", true);
+            nh.pline("看上去你在饿肚子. 要是再不吃的话就要饿死了.", true);
+            nh.pline("按'" .. nh.eckey("eat") .. "'可以吃东西.", true);
             return true;
          end
       end

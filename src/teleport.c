@@ -1,5 +1,4 @@
-/* NetHack 5.0	teleport.c	$NHDT-Date: 1769342601 2026/01/25 04:03:21 $
- * $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.239 $ */
+/* NetHack 5.0	teleport.c	$NHDT-Date: 1781973069 2026/06/20 16:31:09 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.246 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -850,7 +849,7 @@ scrolltele(struct obj *scroll)
         You_feel("迷失了一刹那.");
         /* don't discover the scroll [at least not yet for wizard override];
            disorientation doesn't reveal that this is a teleport attempt */
-        if (!wizard || y_n("Override?") != 'y')
+        if (!wizard || y_n("覆盖迷失?") != 'y')
             return;
     }
     if (((Teleport_control || (scroll && scroll->blessed)) && !Stunned)
@@ -1172,6 +1171,7 @@ level_tele(void)
     if ((Teleport_control && !Stunned) || wizard) {
         char qbuf[BUFSZ];
         int trycnt = 0;
+        s_level *protolev;
 
         Strcpy(qbuf, "你想传送到哪一层?");
         do {
@@ -1200,7 +1200,12 @@ level_tele(void)
             } else if (!strcmp(buf, "\033")) { /* cancelled */
                 return;
             }
-            if (wizard && !strcmp(buf, "?")) {
+            if (wizard && (protolev = find_level(buf)) != 0) {
+                newlevel.dnum = protolev->dlevel.dnum;
+                newlevel.dlevel = protolev->dlevel.dlevel;
+                newlev = depth(&u.uz);
+                force_dest = TRUE;
+            } else if (wizard && !strcmp(buf, "?")) {
                 schar destlev;
                 xint16 destdnum;
 
@@ -1478,7 +1483,7 @@ tele_trap(struct trap *trap)
     if (In_endgame(&u.uz) || Antimagic || noteleport_level(&gy.youmonst)) {
         if (Antimagic)
             shieldeff(u.ux, u.uy);
-        You_feel("一阵扭曲.");
+        You("感到一阵扭曲."); //You_feel
     } else if (!next_to_u()) {
         You1(shudder_for_moment);
     } else if (trap->once) {
@@ -1526,7 +1531,7 @@ level_tele_trap(struct trap *trap, unsigned int trflags)
         shieldeff(u.ux, u.uy);
     }
     if ((Antimagic && !intentional) || In_endgame(&u.uz)) {
-        You_feel("一阵扭曲.");
+        You("感到一阵扭曲."); //You_feel
         return;
     }
     deltrap(trap);
@@ -1686,11 +1691,11 @@ rloc_to_core(struct monst *mtmp, coordxy x, coordxy y, unsigned rlocflags)
                   : (du < olddu)                        ? "更近处"
                                                         : "更远处");
         } else {
-            pline("%s%s%s%s!", appearmsg ? Amonnam(mtmp) : Monnam(mtmp),
-                  appearmsg ? "突然" : "", !Blind ? "出现在" : "到达",
+            pline("%s%s%s%s%s!", appearmsg ? Amonnam(mtmp) : Monnam(mtmp),
+                  appearmsg ? "突然" : "", !Blind ? "出现" : "到达", (next ? "在" : (nearu ? "在" : "")),
                   next    ? next
                   : nearu ? nearu
-                          : "");
+                          : "了");
         }
         /* wand discovery only happens if a messaage is delivered (bug?);
            if spell or q.mechanic attack or artifact #invoke for banish

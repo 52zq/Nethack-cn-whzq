@@ -1,4 +1,4 @@
-/* NetHack 5.0	role.c	$NHDT-Date: 1737607158 2025/01/22 20:39:18 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.107 $ */
+/* NetHack 5.0	role.c	$NHDT-Date: 1781973065 2026/06/20 16:31:05 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.111 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985-1999. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -243,7 +243,7 @@ const struct Role roles[NUM_ROLES+1] = {
         { "风之学徒", 0 },
         { "火之学徒", 0 },
         { "长老", 0 } },
-      "哪吒", "太上老君", "混世四猴", /* Chinese */
+      "哪吒", "太上老君", "混世四猴", /* Chinese */ //没错我故意改的，跟dNetHack一样。你知道Shan Lai Ching是什么神吗？你知道黄帝为什么是混沌吗？
       "Mon", "禅",
       "禅顺寺", /*待写:我不知道Chan-Sune是什么，翻遍了所有我能查到的汉语方言和外语汉字音都不知道是什么，姑且这么猜吧*/
       "土地庙", /*这真的是土地庙吗？？？*/
@@ -413,7 +413,7 @@ const struct Role roles[NUM_ROLES+1] = {
       SPE_INVISIBILITY,
       -4 },
     { { "武士", 0 },
-      { { "旗本", 0 },       /* Banner Knight */
+      { { "旗本", 0 },       /* Banner Knight */ //译者问:旗本<浪人<忍者???
         { "浪人", 0 },          /* no allegiance */
         { "忍者", "くノ一" }, /* secret society */ /*待写:くノ一（kunoichi）三笔连在一起为“女”*/
         { "城主", 0 },          /* heads a castle */
@@ -1389,8 +1389,8 @@ promptsep(char *buf, int num_post_attribs)
 
     if (num_post_attribs > 1 && gr.role_post_attribs < num_post_attribs
         && gr.role_post_attribs > 1)
-        Strcat(buf, ",");
-    Strcat(buf, "");
+        Strcat(buf, ", ");
+    //冗余: Strcat(buf, "");
     --gr.role_post_attribs;
     if (!gr.role_post_attribs && num_post_attribs > 1)
         Strcat(buf, conjuct);
@@ -1586,7 +1586,7 @@ build_plselection_prompt(
     char *buf, int buflen,
     int rolenum, int racenum, int gendnum, int alignnum)
 {
-    const char *defprompt = "需要我帮你选好一个角色吗? [ynaq] ";
+    const char *defprompt = "需要我帮你选好角色吗? [ynaq] ";
     int num_post_attribs = 0;
     char tmpbuf[BUFSZ], *p;
 
@@ -1597,7 +1597,7 @@ build_plselection_prompt(
     if (racenum != ROLE_NONE || validrole(rolenum))
         Strcat(tmpbuf, "选择你的");
     else
-        Strcat(tmpbuf, "选择一个");
+        Strcat(tmpbuf, "选择");
     /* <your> */
 
     (void) root_plselection_prompt(eos(tmpbuf), buflen - Strlen(tmpbuf),
@@ -1672,7 +1672,14 @@ plnamesuffix(void)
     /* some generic user names will be ignored in favor of prompting */
     if (sysopt.genericusers) {
         if (*sysopt.genericusers == '*') {
-            svp.plname[0] = '\0';
+            /* '*' = always ask, but role_init() calls plnamesuffix()
+               again on newgame/restore; asking once is enough */
+            static boolean generic_prompted = FALSE;
+
+            if (!generic_prompted) {
+                svp.plname[0] = '\0';
+                generic_prompted = TRUE;
+            }
         } else {
             /* need to ignore appended '-role-race-gender-alignment';
                'plnamelen' is non-zero when dealing with plname[] value that
@@ -2126,8 +2133,8 @@ Hello(struct monst *mtmp)
         return "向你致敬"; /* Olde English */
     case PM_SAMURAI:
         return (mtmp && mtmp->data == &mons[PM_SHOPKEEPER])
-                    ? "いらっしゃいませ"
-                    : "こんにちは"; /* Japanese */
+                    ? "いらっしゃいませ(欢迎光临)"
+                    : "こんにちは(你好)"; /* Japanese */
     case PM_TOURIST:
         return "阿罗哈"; /* Hawaiian */
     case PM_VALKYRIE:
@@ -2148,7 +2155,7 @@ Goodbye(void)
     case PM_KNIGHT:
         return "一路顺风"; /* Olde English */
     case PM_SAMURAI:
-        return "さようなら"; /* Japanese */
+        return "さようなら(再见)"; /* Japanese */
     case PM_TOURIST:
         return "阿罗哈"; /* Hawaiian */
     case PM_VALKYRIE:
@@ -2322,7 +2329,7 @@ genl_player_setup(int screenheight)
                     role_menu_extra(RS_ALGNMNT, win, FALSE);
                     role_menu_extra(RS_filter, win, FALSE);
                     role_menu_extra(ROLE_NONE, win, FALSE); /* quit */
-                    Strcpy(pbuf, "选择一个职业");
+                    Strcpy(pbuf, "选择职业");
                     end_menu(win, pbuf);
                     n = select_menu(win, PICK_ONE, &selected);
                     /*
@@ -2416,7 +2423,7 @@ genl_player_setup(int screenheight)
                         role_menu_extra(RS_ALGNMNT, win, FALSE);
                         role_menu_extra(RS_filter, win, FALSE);
                         role_menu_extra(ROLE_NONE, win, FALSE); /* quit */
-                        Strcpy(pbuf, "选择一个种族");
+                        Strcpy(pbuf, "选择种族");
                         end_menu(win, pbuf);
                         n = select_menu(win, PICK_ONE, &selected);
                         if (n > 0) {
@@ -2504,7 +2511,7 @@ genl_player_setup(int screenheight)
                         role_menu_extra(RS_ALGNMNT, win, FALSE);
                         role_menu_extra(RS_filter, win, FALSE);
                         role_menu_extra(ROLE_NONE, win, FALSE); /* quit */
-                        Strcpy(pbuf, "选择一个性别");
+                        Strcpy(pbuf, "选择性别");
                         end_menu(win, pbuf);
                         n = select_menu(win, PICK_ONE, &selected);
                         if (n > 0) {
@@ -2862,7 +2869,7 @@ setup_rolemenu(
     anything any;
     int i;
     boolean role_ok;
-    char thisch, lastch = '\0', rolenamebuf[50];
+    char rolenamebuf[50];
     int clr = NO_COLOR;
 
     any = cg.zeroany; /* zero out all bits */
@@ -2878,10 +2885,6 @@ setup_rolemenu(
             any.a_int = i + 1;
         else
             any.a_string = roles[i].name.m;
-            thisch = '\0';
-        /*危险，冗余:thisch = lowc(*roles[i].name.m);*/
-        /*危险，冗余:if (thisch == lastch)
-            thisch = highc(thisch);*/
         Strcpy(rolenamebuf, roles[i].name.m);
         if (roles[i].name.f) {
             /* role has distinct name for female (C,P) */
@@ -2900,7 +2903,6 @@ setup_rolemenu(
                  ATR_NONE, clr, rolenamebuf,
                  (!filtering && !role_ok)
                     ? MENU_ITEMFLAGS_SELECTED : MENU_ITEMFLAGS_NONE);
-        //lastch = thisch;
     }
 }
 
@@ -2913,7 +2915,6 @@ setup_racemenu(
     anything any;
     boolean race_ok;
     int i;
-    char this_ch;
     int clr = NO_COLOR;
 
     any = cg.zeroany;
@@ -2928,7 +2929,6 @@ setup_racemenu(
             any.a_int = i + 1;
         else
             any.a_string = races[i].noun;
-        this_ch = *races[i].noun;
         /* filtering: picking race, so choose by first letter, with
            capital letter as unseen accelerator;
            !filtering: resetting filter rather than picking, choose by
@@ -2951,7 +2951,6 @@ setup_gendmenu(
     anything any;
     boolean gend_ok;
     int i;
-    char this_ch;
     int clr = NO_COLOR;
 
     any = cg.zeroany;
@@ -2966,7 +2965,6 @@ setup_gendmenu(
             any.a_int = i + 1;
         else
             any.a_string = genders[i].adj;
-        this_ch = *genders[i].adj;
         /* (see setup_racemenu for explanation of selector letters
            and setup_rolemenu for preselection) */
         add_menu(win, &nul_glyphinfo, &any,
@@ -2987,7 +2985,6 @@ setup_algnmenu(
     anything any;
     boolean algn_ok;
     int i;
-    char this_ch;
     int clr = NO_COLOR;
 
     any = cg.zeroany;
@@ -3002,7 +2999,6 @@ setup_algnmenu(
             any.a_int = i + 1;
         else
             any.a_string = aligns[i].adj;
-        this_ch = *aligns[i].adj;
         /* (see setup_racemenu for explanation of selector letters
            and setup_rolemenu for preselection) */
         add_menu(win, &nul_glyphinfo, &any,

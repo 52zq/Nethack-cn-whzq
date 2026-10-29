@@ -1,4 +1,4 @@
-/* NetHack 5.0	end.c	$NHDT-Date: 1720397752 2024/07/08 00:15:52 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.315 $ */
+/* NetHack 5.0	end.c	$NHDT-Date: 1781973048 2026/06/20 16:30:48 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.349 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -247,8 +247,9 @@ done_in_by(struct monst *mtmp, int how)
             Strcpy(shape, fakenm);
         else if (the_unique_pm(mptr)) /* "the"; don't use the() here */
             Sprintf(shape, "%s", fakenm);
-        else /* "a"/"an" */
-            Strcpy(shape, an(fakenm));
+        else /* "a"/"an" */{
+            Sprintf(shape, "一%s%s", pm_to_classifier(mptr), fakenm);
+        }
         /* omit "called" to avoid excessive verbosity */
         Sprintf(eos(buf),
                 alt ? "%s(处于%s形态)"
@@ -929,8 +930,8 @@ artifact_score(
                 /* not observe_object; dead characters don't observe */
                 otmp->known = otmp->dknown = otmp->bknown = otmp->rknown = 1;
                 /* assumes artifacts don't have quan > 1 */
-                Sprintf(pbuf, "%s%s (价值%ld %s, 分数%ld)",
-                        the_unique_obj(otmp) ? "" : "",
+                Sprintf(pbuf, "%s (价值%ld %s, 分数%ld)",
+                        /*冗余:the_unique_obj(otmp) ? "" : "",*/
                         otmp->oartifact ? artiname(otmp->oartifact)
                                         : OBJ_NAME(objects[otmp->otyp]),
                         value, currency(value), points);
@@ -1359,7 +1360,7 @@ really_done(int how)
              (u.ugrave_arise != PM_GREEN_SLIME)
                  ? "尸体从死亡中站起"
                  : "复仇还在持续",
-             an(pmname(&mons[u.ugrave_arise], Ugender)));
+             an_pmname(&mons[u.ugrave_arise], Ugender));
         display_nhwindow(WIN_MESSAGE, FALSE);
     }
 
@@ -1475,7 +1476,7 @@ really_done(int how)
         } else {
             Strcat(pbuf, "");
         }
-        Sprintf(eos(pbuf), "带着%ld点%s, %s",
+        Sprintf(eos(pbuf), "带着%ld点分数%s, %s",
                 u.urexp, plur(u.urexp), /*修改语序:(how == ASCENDED) ? "得到了应有的回报"*/
                 (how == ASCENDED) ? "得到了应有的回报" /*修改语序:  : "逃离了地牢",*/
                 : "逃离了地牢"); /*修改语序:u.urexp, plur(u.urexp));*/
@@ -1530,7 +1531,7 @@ really_done(int how)
                     (u.uz.dlevel < 0) ? "去世" : ends[how]);
         } else {
             /* more conventional demise */
-            const char *where = svd.dungeons[u.uz.dnum].dcname;
+            const char *where = svd.dcname[u.uz.dnum];
 
             if (Is_astralevel(&u.uz))
                 where = "星界";
@@ -1679,9 +1680,6 @@ nh_terminate(int status)
     program_state.in_moveloop = 0; /* won't be returning to normal play */
 
     l_nhcore_call(NHCORE_GAME_EXIT);
-#ifdef MACOS9
-    getreturn("to exit");
-#endif
     /* don't bother to try to release memory if we're in panic mode, to
        avoid trouble in case that happens to be due to memory problems */
     if (!program_state.panicking) {
@@ -1846,7 +1844,7 @@ build_english_list(char *in)
         if (words == 2) {
             /* "first or second" */
             bel_copy1(&p, out);
-            Strcat(out, " ");
+            //冗余:Strcat(out, " ");
         } else {
             /* "first, second, or third */
             do {
@@ -1854,7 +1852,7 @@ build_english_list(char *in)
                 Strcat(out, ", ");
             } while (--words > 1);
         }
-        Strcat(out, "或 ");
+        Strcat(out, "或");
         bel_copy1(&p, out);
         break;
     }
@@ -1896,7 +1894,7 @@ build_english_list(char *in)
 # endif
 
 void
-NH_abort(char *why USED_FOR_CRASHREPORT)
+NH_abort(const char *why USED_FOR_CRASHREPORT)
 {
 #ifdef PANICTRACE
     int gdb_prio = SYSOPT_PANICTRACE_GDB;
@@ -1912,7 +1910,7 @@ NH_abort(char *why USED_FOR_CRASHREPORT)
 
 #ifdef PANICTRACE
 #ifdef CRASHREPORT
-    if(!submit_web_report(1, "Panic", why))
+    if (!submit_web_report(1, "Panic", why))
 #endif
     {
 #ifndef VMS

@@ -175,6 +175,8 @@ extern void (*ibmgraphics_mode_callback)(void);  /* symbols.c */
 extern void (*utf8graphics_mode_callback)(void); /* symbols.c */
 #endif /* VIRTUAL_TERMINAL_SEQUENCES */
 
+static boolean OnWindows95_98_Me(void);
+
 static void init_custom_colors(void);
 static void free_custom_colors(void);
 
@@ -989,6 +991,12 @@ void buffer_write(cell_t * buffer, cell_t * cell, COORD pos)
         back_buffer_flip();
 }
 
+static boolean
+OnWindows95_98_Me(void)
+{
+    return ((GetVersion() & 0x80000000) != 0);
+}
+
 /*
  * Called after returning from ! or ^Z
  */
@@ -1051,7 +1059,7 @@ tty_number_pad(int state UNUSED)
 void
 term_shutdown(void)
 {
-    consoletty_exit();
+    console_exit();
 }
 
 #ifdef ASCIIGRAPH
@@ -1141,14 +1149,19 @@ consoletty_open(int mode UNUSED)
 extern void set_emergency_io(void);
 
 void
-consoletty_exit(void)
+console_exit(void)
 {
     free_custom_colors();
-    free((genericptr_t) console.front_buffer);
-    free((genericptr_t) console.back_buffer);
+    if (console.front_buffer)
+        free((genericptr_t) console.front_buffer);
+    if (console.back_buffer)
+        free((genericptr_t) console.back_buffer);
     console.front_buffer = console.back_buffer = 0;
-    free((genericptr_t) console.localestr);
-    free((genericptr_t) console.orig_localestr);
+    if (console.localestr)
+        free((genericptr_t) console.localestr), console.localestr = 0;
+    if (console.orig_localestr)
+        free((genericptr_t) console.orig_localestr),
+            console.orig_localestr = 0;
     set_emergency_io();
 }
 
@@ -2299,8 +2312,8 @@ check_and_set_font(void)
 #ifndef VIRTUAL_TERMINAL_SEQUENCES
     if (!check_font_widths()) {
         if (wizard) {
-            const char *msg = "WARNING: glyphs too wide in console font."
-                             " Changing code page to 437 and font to Consolas";
+            const char *msg = "警告: 控制台字体的字符过宽."
+                             " 将代码页更改为437, 字体更改为Consolas";
 
             if (iflags.window_inited)
                 pline ("%s", msg);
@@ -2342,7 +2355,7 @@ check_font_widths(void)
                                         (LPARAM) &matching_log_font, 0);
 
     if (matching_log_font.lfHeight == 0) {
-        raw_print("Unable to enumerate system fonts\n");
+        raw_print("无法枚举系统字体\n");
         return FALSE;
     }
 
@@ -2354,7 +2367,7 @@ check_font_widths(void)
     HFONT console_font = CreateFontIndirectW(&console_font_log_font);
 
     if (console_font == NULL) {
-        raw_print("Unable to create console font\n");
+        raw_print("无法创建控制台字体\n");
         return FALSE;
     }
 
@@ -2369,7 +2382,7 @@ check_font_widths(void)
     success = GetTextMetricsA(hDC, &tm);
 
     if (!success) {
-        raw_print("Unable to get console font text metrics\n");
+        raw_print("无法获取控制台字体的文本度量值\n");
         goto clean_up;
     }
 
@@ -2467,11 +2480,11 @@ restore_original_console_font(void)
     if (console.font_changed) {
         BOOL success;
 #ifndef VIRTUAL_TERMINAL_SEQUENCES
-        raw_print("Restoring original font and code page\n");
+        raw_print("恢复原始字体和代码页\n");
         success = SetConsoleOutputCP(console.orig_code_page);
 #else /* VIRTUAL_TERMINAL_SEQUENCES */
         if (wizard)
-            raw_print("Restoring original font, code page and locale\n");
+            raw_print("恢复原始字体, 代码页和区域设置\n");
 
         tmplocalestr = setlocale(LC_ALL, console.orig_localestr);
         if (tmplocalestr) {
@@ -2482,12 +2495,12 @@ restore_original_console_font(void)
         success = SetConsoleOutputCP(console.orig_code_page);
 #endif /* VIRTUAL_TERMINAL_SEQUENCES */
         if (!success)
-            raw_print("Unable to restore original code page\n");
+            raw_print("无法恢复原始代码页\n");
 
         success = SetCurrentConsoleFontEx(console.hConOut, FALSE,
                                             &console.orig_font_info);
         if (!success)
-            raw_print("Unable to restore original font\n");
+            raw_print("无法恢复原始字体\n");
 
         console.font_changed = FALSE;
     }
@@ -2656,7 +2669,7 @@ void nethack_enter_consoletty(void)
          */
         width = csbi.srWindow.Right - csbi.srWindow.Left + 1;
 #ifdef DEBUG
-        if (NH_DEVEL_STATUS != NH_STATUS_RELEASED)
+        if (wizard && NH_DEVEL_STATUS != NH_STATUS_RELEASED)
             fprintf(stdout, "width = %d\n", width);
 #endif
     }
@@ -2736,14 +2749,15 @@ void nethack_enter_consoletty(void)
     /* setup front and back buffers */
     int buffer_size_bytes = sizeof(cell_t) * console.buffer_size;
 
-    console.front_buffer = (cell_t *)malloc(buffer_size_bytes);
+    console.front_buffer = (cell_t *)alloc(buffer_size_bytes);
     buffer_fill_to_end(console.front_buffer, &undefined_cell, 0, 0);
 
-    console.back_buffer = (cell_t *)malloc(buffer_size_bytes);
+    console.back_buffer = (cell_t *)alloc(buffer_size_bytes);
     buffer_fill_to_end(console.back_buffer, &clear_cell, 0, 0);
 
     /* determine whether OS version has unicode support */
-    console.has_unicode = (IsWindows8OrGreater());
+    /* console.has_unicode = (IsWindows8OrGreater()); */
+    console.has_unicode = !OnWindows95_98_Me();
 
 #ifdef VIRTUAL_TERMINAL_SEQUENCES
     /* store the original code page*/
@@ -2897,7 +2911,7 @@ VA_DECL(const char *, fmt)
          * confirm and then clear.
          */
         if (console.cursor.Y > console.height - 4) {
-            xputs("Hit <Enter> to continue.");
+            xputs("按<Enter>键继续.");
             while (pgetchar() != '\n')
                ;
             raw_clear_screen();
@@ -3141,7 +3155,7 @@ set_keyhandling_via_option(void)
                  0, ATR_NONE, clr,
                  legal_key_handling[i], MENU_ITEMFLAGS_NONE);
     }
-    end_menu(tmpwin, "Select windows console key handling:");
+    end_menu(tmpwin, "选择Windows控制台按键处理方式:");
     if (select_menu(tmpwin, PICK_ONE, &console_key_handling_pick) > 0) {
         iflags.key_handling = keyh[console_key_handling_pick->item.a_int - 1];
         free((genericptr_t) console_key_handling_pick);
@@ -3361,9 +3375,7 @@ default_checkinput(
              * advantage and do a game checkpoint,
              * then resume the wait.
              */
-#ifdef INSURANCE
-            save_currentstate();
-#endif  /* INSURANCE */
+            do_idlecheckpoint();
             done_a_checkpoint = TRUE;
         } else
         {

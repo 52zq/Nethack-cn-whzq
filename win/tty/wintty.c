@@ -1,4 +1,4 @@
-﻿/* NetHack 5.0	wintty.c	$NHDT-Date: 1737691300 2025/01/23 20:01:40 $  $NHDT-Branch: NetHack-3.7 $:$NHDT-Revision: 1.420 $ */
+/* NetHack 5.0	wintty.c	$NHDT-Date: 1781973100 2026/06/20 16:31:40 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.438 $ */
 /* Copyright (c) David Cohrs, 1991                                */
 /* NetHack may be freely redistributed.  See license for details. */
 
@@ -24,7 +24,7 @@
 /* leave this undefined; it produces bad screen output with rxvt-unicode */
 /*#define DECgraphicsOptimization*/
 
-#ifdef MACOS9
+#ifdef MAC68K
 #define MICRO /* The Mac is a MICRO only for this file, not in general! */
 #ifdef THINK_C
 extern void msmsg(const char *, ...);
@@ -147,7 +147,7 @@ struct window_procs tty_procs = {
     tty_getlin, tty_get_ext_cmd, tty_number_pad, tty_delay_output,
 #ifdef CHANGE_COLOR /* the Mac uses a palette device */
     tty_change_color,
-#ifdef MACOS9
+#ifdef MAC68K
     tty_change_background, set_tty_font_name,
 #endif
     tty_get_color_string,
@@ -186,7 +186,7 @@ static const char winpanicstr[] = "Bad window Id %d (%s)";
 char defmorestr[] = "--更多--";
 
 #ifdef CLIPPING
-#if defined(TILES_IN_GLYPHMAP) && defined(MSDOS)
+#if (defined(TILES_IN_GLYPHMAP) || defined(ENHANCED_SYMBOLS)) && defined(MSDOS)
 boolean clipping = FALSE; /* clipping on? */
 int clipx = 0, clipxmax = 0;
 int clipy = 0, clipymax = 0;
@@ -197,7 +197,7 @@ static int clipy = 0, clipymax = 0;
 #endif
 #endif /* CLIPPING */
 
-#if defined(TILES_IN_GLYPHMAP) && defined(MSDOS)
+#if defined(NO_TERMS) && defined(MSDOS)
 extern void adjust_cursor_flags(struct WinDesc *);
 #endif
 
@@ -837,6 +837,8 @@ getret(void)
 #if defined(MICRO) || defined(WIN32CON)
     getreturn("to continue");
 #else
+    if (!isatty(STDIN_FILENO) || program_state.early_options)
+        return;
     HUPSKIP();
     xputs("\n");
     if (flags.standout)
@@ -1395,6 +1397,7 @@ toggle_menu_attr(boolean on, int color, int attr)
     }
 }
 
+#ifdef WIN32CON
 /* detect if a string contains UTF-8 encoded characters */
 static int
 is_utf8(const char *str)
@@ -1412,6 +1415,7 @@ is_utf8(const char *str)
     }
     return 0;
 }
+#endif /* WIN32CON */
 
 #ifdef WIN32CON
 static int
@@ -1779,7 +1783,7 @@ process_menu_window(winid window, struct WinDesc *cw)
             dmore(cw, resp);
         } else {
             /* just put the cursor back... */
-            tty_curs(window, (int) utf8str_width(cw->morestr) + 2, page_lines);
+            tty_curs(window, utf8str_width(cw->morestr) + 2, page_lines);
             xwaitforspace(resp);
         }
 
@@ -2334,7 +2338,7 @@ tty_curs(
 
     print_vt_code2(AVTC_SELECT_WINDOW, window);
 
-#if defined(TILES_IN_GLYPHMAP) && defined(MSDOS)
+#if defined(NO_TERMS) && defined(MSDOS)
     adjust_cursor_flags(cw);
 #endif
 
@@ -3047,7 +3051,7 @@ tty_end_menu(
     if (cw->npages > 1) {
         char buf[QBUFSZ];
         /* produce the largest demo string */
-        Sprintf(buf, "(页数%ld/%ld) ", cw->npages, cw->npages); /*(%ld %ld)*/
+        Sprintf(buf, "(页数 %ld/%ld) ", cw->npages, cw->npages); /*(%ld %ld)*/
         len = strlen(buf);
         cw->morestr = dupstr("");
     } else {
@@ -3260,9 +3264,9 @@ ttyinv_create_window(int newid, struct WinDesc *newwin)
                    &newwin->maxrow)) {
         tty_destroy_nhwindow(newid);
         WIN_INVEN = WIN_ERR;
-        pline("%s.", "tty perm_invent could not be enabled");
-        pline("tty perm_invent needs a terminal that is at least %dx%d, "
-              "yours is %dx%d.",
+        pline("%s.", "tty perm_invent无法启用");
+        pline("tty perm_invent需要的最小窗口是%dx%d, "
+              "你的是%dx%d.",
               (int) (minrow + 1 + ROWNO + StatusRows()), tty_perminv_mincol,
               ttyDisplay->rows, ttyDisplay->cols);
         tty_wait_synch();
@@ -3600,9 +3604,9 @@ ttyinv_render(winid window, struct WinDesc *cw)
            continue;
         if (slot == 0 && !filled_count) {
             Sprintf(invbuf, "%-4s[%s]", "",
-                    inuse_only ? "no items are in use"
-                    : (!show_gold && money_cnt(gi.invent)) ? "only gold"
-                      : "empty");
+                    inuse_only ? "没有物品在使用"
+                    : (!show_gold && money_cnt(gi.invent)) ? "只有金币"
+                      : "空");
         } else if (sparse && filled_count) {
             Sprintf(invbuf, "%c", slot_to_invlet(slot, show_gold));
         } else {
@@ -4200,18 +4204,17 @@ tty_print_glyph(
             if (ttyDisplay->color != NO_COLOR)
                 term_end_color();
         }
-        /* we don't link with termcap.o if NO_TERMS is defined */
-        if ((tty_procs.wincap2 & WC2_EXTRACOLORS)
-            && glyphinfo->gm.customcolor != 0
-            && iflags.colorcount >= 256
+        if (glyphinfo->gm.customcolor != 0
             && !calling_from_update_inventory) {
-            if ((glyphinfo->gm.customcolor & NH_BASIC_COLOR) == 0) {
+            if ((glyphinfo->gm.customcolor & NH_BASIC_COLOR) != 0) {
+                /* NH_BASIC_COLOR */
+                color = COLORVAL(glyphinfo->gm.customcolor);
+            } else if ((tty_procs.wincap2 & WC2_EXTRACOLORS)
+                       && iflags.colorcount >= 256) {
                 term_start_extracolor(glyphinfo->gm.customcolor,
                                       glyphinfo->gm.color256idx);
                 ttyDisplay->colorflags = 0;
                 colordone = TRUE;
-            } else {
-                color = COLORVAL(glyphinfo->gm.customcolor);
             }
         }
         if (!colordone) {
@@ -5597,7 +5600,7 @@ render_status(void)
                     /* when a field's value shrinks (e.g. AC 10->9),
                        fill the gap with spaces so that stale bytes
                        from the previous rendering are cleared */
-                    if (tlth < tty_status[BEFORE][idx].lth
+                    if ((size_t) tlth < tty_status[BEFORE][idx].lth
                         && tty_status[NOW][idx].x
                            == tty_status[BEFORE][idx].x) {
                         int gap = tty_status[BEFORE][idx].lth - tlth;

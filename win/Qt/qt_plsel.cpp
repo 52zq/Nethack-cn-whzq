@@ -75,7 +75,7 @@ void centerOnMain( QWidget* w );
 // hack: padded with blank lines by inserting breaks above and below in
 // order to force window to be tall enough to show all the roles at once
 static const char nh_attribution[] = "<br><center><big>NetHack %1</big>"
-        "<br><small>by the NetHack DevTeam</small></center><br>";
+        "<br><small>NetHack DevTeam出品</small></center><br>";
 
 //
 // None of these extra classes seem to be used except for NhPSListView. [pr]
@@ -197,9 +197,9 @@ NetHackQtPlayerSelector::NetHackQtPlayerSelector(
     chosen_align(ROLE_NONE),
     cleric_role_row(0),
     human_race_row(0),
-    rand_btn(new QPushButton("Random")),
-    play_btn(new QPushButton("Play")),
-    quit_btn(new QPushButton("Quit"))
+    rand_btn(new QPushButton("随机")),
+    play_btn(new QPushButton("开始")),
+    quit_btn(new QPushButton("退出"))
 {
     /*
                0              1              2
@@ -254,12 +254,12 @@ NetHackQtPlayerSelector::NetHackQtPlayerSelector(
     l->setColumnStretch(2, 1);
     sizePolicy().setHorizontalPolicy(QSizePolicy::Minimum);
 
-    QGroupBox* namebox = new QGroupBox("Name", this);
+    QGroupBox* namebox = new QGroupBox("姓名", this);
     QVBoxLayout *namelayout = new QVBoxLayout(namebox);
     QLineEdit* name = new QLineEdit(namebox);
     namelayout->addWidget(name);
     name->setMaxLength(PL_NSIZ - 1);
-    name->setPlaceholderText(QString("  (required)")); // grayed out
+    name->setPlaceholderText(QString("  (必填)")); // grayed out
 
     // if plname[] contains a generic user name, clear it
     if (generic_plname())
@@ -337,12 +337,12 @@ NetHackQtPlayerSelector::NetHackQtPlayerSelector(
 
     connect(role, SIGNAL(currentCellChanged(int, int, int, int)),
             this, SLOT(selectRole(int, int, int, int)));
-    role->setHorizontalHeaderLabels(QStringList("Role"));
+    role->setHorizontalHeaderLabels(QStringList("职业"));
     role->resizeColumnToContents(0);
 
     connect(race, SIGNAL(currentCellChanged(int, int, int, int)),
             this, SLOT(selectRace(int, int, int, int)));
-    race->setHorizontalHeaderLabels(QStringList("Race"));
+    race->setHorizontalHeaderLabels(QStringList("种族"));
     race->resizeColumnToContents(0);
 
     // TODO:
@@ -350,7 +350,7 @@ NetHackQtPlayerSelector::NetHackQtPlayerSelector(
     //  horizontal header labels for role and race.  (Getting the font from
     //  race table above and setting it for labels below made no difference.)
 
-    QLabel *gendlabel = new QLabel("Gender");
+    QLabel *gendlabel = new QLabel("性别");
     genderbox->layout()->addWidget(gendlabel);
     gender = new QRadioButton*[ROLE_GENDERS];
     for (i=0; i<ROLE_GENDERS; i++) {
@@ -358,10 +358,15 @@ NetHackQtPlayerSelector::NetHackQtPlayerSelector(
 	genderbox->layout()->addWidget(gender[i]);
 	gendergroup->addButton(gender[i], i);
     }
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    connect(gendergroup, SIGNAL(idClicked(int)),
+            this, SLOT(selectGender(int)));
+#else
     connect(gendergroup, SIGNAL(buttonClicked(int)),
             this, SLOT(selectGender(int)));
+#endif
 
-    QLabel *alignlabel = new QLabel("Alignment");
+    QLabel *alignlabel = new QLabel("阵营");
     alignbox->layout()->addWidget(alignlabel);
     alignment = new QRadioButton*[ROLE_ALIGNS];
     for (i=0; i<ROLE_ALIGNS; i++) {
@@ -369,8 +374,13 @@ NetHackQtPlayerSelector::NetHackQtPlayerSelector(
 	alignbox->layout()->addWidget(alignment[i]);
 	aligngroup->addButton(alignment[i], i);
     }
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    connect(aligngroup, SIGNAL(idClicked(int)),
+            this, SLOT(selectAlignment(int)));
+#else
     connect(aligngroup, SIGNAL(buttonClicked(int)),
             this, SLOT(selectAlignment(int)));
+#endif
 
     l->addWidget(rand_btn, 4, 2);
     connect(rand_btn, SIGNAL(clicked()), this, SLOT(Randomize()));
@@ -559,7 +569,10 @@ void NetHackQtPlayerSelector::plnamePlayVsQuit()
 // the line edit widget for the name field has received input
 void NetHackQtPlayerSelector::selectName(const QString& n)
 {
-    const char *name_str = n.toLatin1().constData();
+    // the QByteArray has to outlive name_str; calling constData() on
+    // the temporary returned by toLatin1() leaves it dangling
+    QByteArray name_bytes = n.toUtf8(); //危险:toLatin1
+    const char *name_str = name_bytes.constData();
     // skip any leading spaces
     // (it would be better to set up a validator that rejects leading spaces)
     while (*name_str == ' ')
