@@ -1320,7 +1320,7 @@ dochat(void)
             return 1;
         }
          */
-        pline("自言自语不是个地牢探险家的的好习惯.");
+        pline("地牢探险家自言自语不是个好习惯.");
         return ECMD_OK;
     }
 

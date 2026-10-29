@@ -136,7 +136,7 @@ precheck(struct monst *mon, struct obj *obj)
            message doesn't need it since You_hear() has one of its own */
         if (vis) {
             pline_mon(mon, "%s挥舞一%s%s, 然后它突然爆炸!", Monnam(mon),
-                   classifier(obj), xname(obj));
+                   obj_classifier(obj), xname(obj));
         } else {
             /* same near/far threshold as mzapwand() */
             int range = couldsee(mon->mx, mon->my) /* 9 or 5 */
@@ -184,7 +184,7 @@ mzapwand(
               monverbself(mtmp, Monnam(mtmp), "对", (char *) 0),
               doname(otmp));
     } else {
-        pline_mon(mtmp, "%s挥舞一%s%s!", Monnam(mtmp), classifier(otmp), xname(otmp));
+        pline_mon(mtmp, "%s挥舞一%s%s!", Monnam(mtmp), obj_classifier(otmp), xname(otmp));
         stop_occupation();
     }
     otmp->spe -= 1;
@@ -213,7 +213,7 @@ mplayhorn(
         objnamp = xname(otmp);
         if (strlen(objnamp) >= QBUFSZ)
             objnamp = simpleonames(otmp);
-        Sprintf(objbuf, "吹奏一%s%s", classifier(otmp), objnamp);
+        Sprintf(objbuf, "吹奏一%s%s", obj_classifier(otmp), objnamp);
         /* "<mon> plays a <horn> directed at himself!" */
         pline("%s!", monverbself(mtmp, Monnam(mtmp), "对", objbuf));
         makeknown(otmp->otyp); /* (wands handle this slightly differently) */
@@ -225,7 +225,7 @@ mplayhorn(
         pline("%s对准了你吹奏一%s%s!",
               /* monverbself() would adjust the verb if hallucination made
                  subject plural; stick with singular here, at least for now */
-              Monnam(mtmp), classifier(otmp), objnamp);
+              Monnam(mtmp), obj_classifier(otmp), objnamp);
         makeknown(otmp->otyp);
         stop_occupation();
     }

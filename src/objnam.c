@@ -511,7 +511,7 @@ safe_etypename(int otyp)
 }
 
 const char *
-classifier(struct obj *obj)
+obj_classifier(struct obj *obj)
 {
     switch (obj->otyp)
     {
@@ -2017,7 +2017,7 @@ mshot_xname(struct obj *obj)
     if (gm.m_shot.n > 1 && gm.m_shot.o == obj->otyp) {
         /* "the Nth arrow"; value will eventually be passed to an() or
            The(), both of which correctly handle this "the " prefix */
-        Sprintf(tmpbuf, "第%d%s", gm.m_shot.i, classifier(obj));
+        Sprintf(tmpbuf, "第%d%s", gm.m_shot.i, obj_classifier(obj));
         onm = strprepend(onm, tmpbuf);
     }
     return onm;
@@ -2282,13 +2282,13 @@ doname_base(
                      || type_is_pname(&mons[obj->corpsenm]))) {
                 if (with_space) {
                     if (obj->quan != 1L || force_class) {
-                        Sprintf(prefix, "%ld %s", obj->quan, classifier(obj));
+                        Sprintf(prefix, "%ld %s", obj->quan, obj_classifier(obj));
                     }
                 } else {
                     if (obj->quan != 1L || force_class) {
-                        Sprintf(prefix, "%ld%s", obj->quan, classifier(obj));
+                        Sprintf(prefix, "%ld%s", obj->quan, obj_classifier(obj));
                     } else if (obj->quan == 1L) {
-                        Sprintf(prefix, "一%s", classifier(obj));
+                        Sprintf(prefix, "一%s", obj_classifier(obj));
                     }
                 }
             }
@@ -3141,7 +3141,7 @@ killer_xname(struct obj *obj)
     if (obj->quan == 1L && !strstri(buf, "'s ") && !strstri(buf, "s' ")) {
         char tmpbuf[BUFSZ];
 
-        Snprintf(tmpbuf, sizeof tmpbuf, "一%s%s", classifier(obj), buf);
+        Snprintf(tmpbuf, sizeof tmpbuf, "一%s%s", obj_classifier(obj), buf);
         Strcpy(buf, tmpbuf);
     }
     objects[obj->otyp].oc_name_known = save_ocknown;
@@ -3391,7 +3391,7 @@ aobjnam(struct obj *otmp, const char *verb)
     char *bp = cxname(otmp);
 
     if (otmp->quan != 1L) {
-        Sprintf(prefix, "%ld%s", otmp->quan, classifier(otmp));
+        Sprintf(prefix, "%ld%s", otmp->quan, obj_classifier(otmp));
         bp = strprepend(bp, prefix);
     }
     if (verb) {
@@ -3624,7 +3624,7 @@ ansimpleoname(struct obj *obj)
         char namebuf[BUFSZ];
 
         Strcpy(namebuf, simpleoname);
-        Sprintf(simpleoname, "一%s%s", classifier(obj), namebuf);
+        Sprintf(simpleoname, "一%s%s", obj_classifier(obj), namebuf);
     }
     return simpleoname;
 }
@@ -5397,7 +5397,7 @@ wizterrainwish(struct _readobjnam_data *d)
         const char *tname;
 
         tname = trapname(trap, TRUE);
-        if (!str_start_is(bp, tname, TRUE))
+        if (!str_start_is(bp, tname, TRUE) && !str_start_is(bp, defsyms[trap_to_defsym(trap)].bexplanation, TRUE))
             continue;
         /* found it; avoid stupid mistakes */
         if (is_hole(trap) && !Can_fall_thru(&u.uz))
@@ -5405,8 +5405,8 @@ wizterrainwish(struct _readobjnam_data *d)
         if ((t = maketrap(x, y, trap)) != 0) {
             trap = t->ttyp;
             tname = trapname(trap, TRUE);
-            pline("%s%s.", An(tname),
-                  (trap != MAGIC_PORTAL) ? "" : "通往虚无");
+            pline("一个%s%s.", (trap != MAGIC_PORTAL) ? "" : "通往虚无的",
+                  tname);
         } else {
             pline("生成%s失败.", an(tname));
         }
@@ -5419,20 +5419,20 @@ wizterrainwish(struct _readobjnam_data *d)
     oldtyp = lev->typ;
     is_dbridge = (oldtyp == DRAWBRIDGE_DOWN || oldtyp == DRAWBRIDGE_UP);
     p = eos(bp);
-    if (!BSTRCMPI(bp, p - 8, "fountain")) {
+    if (!BSTRCMPI(bp, p - 8, "fountain") || !BSTRCMPI(bp, p - strlen("喷泉"), "喷泉")) {
         lev->typ = FOUNTAIN;
         if (oldtyp != FOUNTAIN)
             svl.level.flags.nfountains++;
         lev->looted = d->looted ? F_LOOTED : 0; /* overlays 'flags' */
-        lev->blessedftn = d->blessed || !strncmpi(bp, "magic ", 6);
+        lev->blessedftn = d->blessed || !strncmpi(bp, "magic ", 6) || !strncmpi(bp, "魔法", strlen("魔法"));
         pline("一个%s喷泉.", lev->blessedftn ? "魔法" : "");
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 6, "throne")) {
+    } else if (!BSTRCMPI(bp, p - 6, "throne") || !BSTRCMPI(bp, p - strlen("王座"), "王座")) {
         lev->typ = THRONE;
         lev->looted = d->looted ? T_LOOTED : 0; /* overlays 'flags' */
         pline("一个王座.");
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 4, "sink")) {
+    } else if (!BSTRCMPI(bp, p - 4, "sink") || !BSTRCMPI(bp, p - strlen("水槽"), "水槽")) {
         lev->typ = SINK;
         if (oldtyp != SINK)
             svl.level.flags.nsinks++;
@@ -5441,13 +5441,13 @@ wizterrainwish(struct _readobjnam_data *d)
         madeterrain = TRUE;
 
     /* ("water" matches "potion of water" rather than terrain) */
-    } else if (!BSTRCMPI(bp, p - 4, "pool")
-               || !BSTRCMPI(bp, p - 4, "moat")
-               || !BSTRCMPI(bp, p - 13, "wall of water")) {
+    } else if (!BSTRCMPI(bp, p - 4, "pool") || !BSTRCMPI(bp, p - strlen("水"), "水")
+               || !BSTRCMPI(bp, p - 4, "moat") || !BSTRCMPI(bp, p - strlen("水池"), "水池")
+               || !BSTRCMPI(bp, p - 13, "wall of water") || !BSTRCMPI(bp, p - strlen("水墙"), "水墙")) {
         long save_prop;
         const char *new_water;
 
-        ltyp = !BSTRCMPI(bp, p - 4, "pool") ? POOL
+        ltyp = !BSTRCMPI(bp, p - 4, "pool") || !BSTRCMPI(bp, p - strlen("水池"), "水池") ? POOL
                : !BSTRCMPI(bp, p - 4, "moat") ? MOAT
                  : WATER;
         if (!is_dbridge) {
@@ -5473,9 +5473,9 @@ wizterrainwish(struct _readobjnam_data *d)
         madeterrain = TRUE;
 
     /* also matches "molten lava" */
-    } else if (!BSTRCMPI(bp, p - 4, "lava")
-               || !BSTRCMPI(bp, p - 12, "wall of lava")) {
-        ltyp = !BSTRCMPI(bp, p - 12, "wall of lava") ? LAVAWALL : LAVAPOOL;
+    } else if (!BSTRCMPI(bp, p - 4, "lava") || !BSTRCMPI(bp, p - strlen("熔岩"), "熔岩")
+               || !BSTRCMPI(bp, p - 12, "wall of lava") || !BSTRCMPI(bp, p - strlen("熔岩墙"), "熔岩墙")) {
+        ltyp = !BSTRCMPI(bp, p - 12, "wall of lava") || !BSTRCMPI(bp, p - strlen("熔岩墙"), "熔岩墙") ? LAVAWALL : LAVAPOOL;
         if (!is_dbridge) {
             lev->typ = ltyp;
             lev->flags = 0;
@@ -5486,7 +5486,7 @@ wizterrainwish(struct _readobjnam_data *d)
         }
         del_engr_at(x, y);
         if (!is_dbridge) {
-            pline("一%s熔岩.",
+            pline("一个熔岩%s.",
                   (lev->typ == LAVAPOOL) ? "池" : "墙");
             if (!(Levitation || Flying) || lev->typ == LAVAWALL)
                 pooleffects(FALSE);
@@ -5495,7 +5495,7 @@ wizterrainwish(struct _readobjnam_data *d)
         }
         fire_damage_chain(svl.level.objects[x][y], TRUE, TRUE, x, y);
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 3, "ice")) {
+    } else if (!BSTRCMPI(bp, p - 3, "ice") || !BSTRCMPI(bp, p - strlen("冰"), "冰")) {
         if (!is_dbridge) {
             lev->typ = ICE;
             /* icedpool overloads flags; specifies what ice will melt into */
@@ -5507,7 +5507,10 @@ wizterrainwish(struct _readobjnam_data *d)
         }
         del_engr_at(x, y);
 
-        if (!strncmpi(bp, "melting ", 8))
+        if (!strncmpi(bp, "melting ", 8) || !strncmpi(bp, "正在融化的", strlen("正在融化的")) ||
+            !strncmpi(bp, "正在熔化的", strlen("正在熔化的")) || !strncmpi(bp, "在融化的", strlen("在融化的")) ||
+            !strncmpi(bp, "在熔化的", strlen("在熔化的")) || !strncmpi(bp, "融化的", strlen("融化的")) ||
+            !strncmpi(bp, "熔化的", strlen("熔化的")))
             start_melt_ice_timeout(x, y, 0L);
 
         if (!is_dbridge) {
@@ -5518,42 +5521,42 @@ wizterrainwish(struct _readobjnam_data *d)
             dbterrainmesg("Ice", x, y);
         }
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 5, "altar")) {
+    } else if (!BSTRCMPI(bp, p - 5, "altar") || !BSTRCMPI(bp, p - strlen("祭坛"), "祭坛")) {
         aligntyp al;
 
         lev->typ = ALTAR;
-        if (!strncmpi(bp, "chaotic ", 8))
+        if (!strncmpi(bp, "chaotic ", 8) || !strncmpi(bp, "混沌", strlen("混沌")) || !strncmpi(bp, "混乱", strlen("混乱")))
             al = A_CHAOTIC;
-        else if (!strncmpi(bp, "neutral ", 8))
+        else if (!strncmpi(bp, "neutral ", 8) || !strncmpi(bp, "中立", strlen("中立")))
             al = A_NEUTRAL;
-        else if (!strncmpi(bp, "lawful ", 7))
+        else if (!strncmpi(bp, "lawful ", 7) || !strncmpi(bp, "秩序", strlen("秩序")) || !strncmpi(bp, "秩序", strlen("守序")))
             al = A_LAWFUL;
-        else if (!strncmpi(bp, "unaligned ", 10))
+        else if (!strncmpi(bp, "unaligned ", 10) || !strncmpi(bp, "无阵营", strlen("无阵营")))
             al = A_NONE;
         else /* -1 - A_CHAOTIC, 0 - A_NEUTRAL, 1 - A_LAWFUL */
             al = !rn2(6) ? A_NONE : (rn2((int) A_LAWFUL + 2) - 1);
         lev->altarmask = Align2amask(al); /* overlays 'flags' */
         pline("%s祭坛.", An(align_str(al)));
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 5, "grave")
-               || !BSTRCMPI(bp, p - 9, "headstone")) {
+    } else if (!BSTRCMPI(bp, p - 5, "grave") || !BSTRCMPI(bp, p - strlen("墓碑"), "墓碑")
+               || !BSTRCMPI(bp, p - 9, "headstone") || !BSTRCMPI(bp, p - strlen("墓地"), "墓地") || !BSTRCMPI(bp, p - strlen("坟墓"), "坟墓")) {
         make_grave(x, y, (char *) 0);
         if (IS_GRAVE(lev->typ)) {
             lev->looted = 0; /* overlays 'flags' */
             lev->disturbed = d->looted ? 1 : 0;
-            pline("一座%s墓地.", lev->disturbed ? "被扰动的 " : "");
+            pline("一座%s墓地.", lev->disturbed ? "被扰动的" : "");
             madeterrain = TRUE;
         } else {
             pline("无法在此处放置坟墓.");
             badterrain = TRUE;
         }
-    } else if (!BSTRCMPI(bp, p - 4, "tree")) {
+    } else if (!BSTRCMPI(bp, p - 4, "tree") || !BSTRCMPI(bp, p - strlen("树"), "树")) {
         lev->typ = TREE;
         lev->looted = d->looted ? (TREE_LOOTED | TREE_SWARM) : 0;
         set_wallprop_from_str(bp);
         pline("一棵树.");
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 4, "bars")) {
+    } else if (!BSTRCMPI(bp, p - 4, "bars") || !BSTRCMPI(bp, p - strlen("栅栏"), "栅栏") || !BSTRCMPI(bp, p - strlen("栏杆"), "栏杆")) {
         lev->typ = IRONBARS;
         lev->flags = 0;
         set_wallprop_from_str(bp);
@@ -5563,17 +5566,17 @@ wizterrainwish(struct _readobjnam_data *d)
             and then another adjacent might need to recalculate first one.] */
         pline("铁栅栏.");
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 5, "cloud")) {
+    } else if (!BSTRCMPI(bp, p - 5, "cloud") || !BSTRCMPI(bp, p - strlen("云"), "云") ) {
         lev->typ = CLOUD;
         lev->flags = 0;
         pline("一朵云.");
         del_engr_at(x, y);
         madeterrain = TRUE;
-    } else if (!BSTRCMPI(bp, p - 4, "door")
+    } else if (!BSTRCMPI(bp, p - 4, "door") || !BSTRCMPI(bp, p - strlen("门"), "门") 
                || (d->doorless && !BSTRCMPI(bp, p - 7, "doorway"))) {
         char dbuf[40];
         unsigned old_wall_info;
-        boolean secret = !BSTRCMPI(bp, p - 11, "secret door");
+        boolean secret = !BSTRCMPI(bp, p - 11, "secret door") || !BSTRCMPI(bp, p - strlen("暗门"), "暗门") ;
 
         /* require door or wall so that the 'horizontal' flag will
            already have the correct value; player might choose to put
@@ -5653,8 +5656,8 @@ wizterrainwish(struct _readobjnam_data *d)
             pline("%s需要门或墙的位置.", upstart(dbuf));
             badterrain = TRUE;
         }
-    } else if (!BSTRCMPI(bp, p - 4, "wall")
-                         && (bp == p - 4 || p[-5] == ' ')) {
+    } else if ((!BSTRCMPI(bp, p - 4, "wall")
+                         && (bp == p - 4 || p[-5] == ' ')) || !BSTRCMPI(bp, p - strlen("墙"), "墙")) {
         schar wall = HWALL;
 
         if ((isok(u.ux, u.uy-1) && IS_WALL(levl[u.ux][u.uy-1].typ))
@@ -5667,7 +5670,7 @@ wizterrainwish(struct _readobjnam_data *d)
         fix_wall_spines(max(0,u.ux-1), max(0,u.uy-1),
                         min(COLNO,u.ux+1), min(ROWNO,u.uy+1));
         pline("一堵墙.");
-    } else if (!BSTRCMPI(bp, p - 15, "secret corridor")) {
+    } else if (!BSTRCMPI(bp, p - 15, "secret corridor") || !BSTRCMPI(bp, p - strlen("暗道"), "暗道")) {
         if (lev->typ == CORR) {
             lev->typ = SCORR;
             /* neither CORR nor SCORR uses 'flags' or 'horizontal' */
@@ -5677,7 +5680,7 @@ wizterrainwish(struct _readobjnam_data *d)
             pline("秘密走廊需要走廊位置.");
             badterrain = TRUE;
         }
-    } else if (!BSTRCMPI(bp, p - 4, "room")
+    } else if (!BSTRCMPI(bp, p - 4, "room") || !BSTRCMPI(bp, p - strlen("地板"), "地板") || !BSTRCMPI(bp, p - strlen("地面"), "地面")
                || !BSTRCMPI(bp, p - 5, "floor")
                || !BSTRCMPI(bp, p - 6, "ground")) {
         if (oldtyp == ROOM

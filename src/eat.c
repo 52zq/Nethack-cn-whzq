@@ -1822,7 +1822,7 @@ Hear_again(void)
 staticfn int
 rottenfood(struct obj *obj)
 {
-    pline("呕! 这%s%s!",// classifier(obj),
+    pline("呕! 这%s%s!",
           foodword(obj), is_rottable(obj) ? "已经烂了" : "真糟糕"); /*修改语序:is_rottable(obj) ? "已经烂了" : "真糟糕", foodword(obj));*/
     if (!rn2(4)) {
         if (Hallucination)
@@ -2180,7 +2180,7 @@ fprefx(struct obj *otmp)
     default:
         if (otmp->otyp == SLIME_MOLD && !otmp->cursed
             && otmp->spe == svc.context.current_fruit) {
-            pline("天哪, 这%s%s%s!", classifier(otmp),
+            pline("天哪, 这%s%s%s!", obj_classifier(otmp),
                   singular(otmp, xname), /*修改语序:Hallucination ? "简直是一流" : "真好吃",*/
                   Hallucination ? "简直是一流" : "真好吃"); /*修改语序:singular(otmp, xname));*/
         } else if (otmp->otyp == APPLE && otmp->cursed && !Sleep_resistance) {
@@ -2212,7 +2212,7 @@ fprefx(struct obj *otmp)
 #endif
         } else {
  give_feedback:
-            pline("这%s%s%s", classifier(otmp), singular(otmp, xname),
+            pline("这%s%s%s", obj_classifier(otmp), singular(otmp, xname),
                   otmp->cursed
                      ? (Hallucination ? "很恶心!" : "很难吃!")
                      : (otmp->otyp == CRAM_RATION
@@ -2734,7 +2734,7 @@ edibility_prompts(struct obj *otmp)
 
     if (*buf) {
         Snprintf(eos(buf), sizeof buf - strlen(buf), "  确定要吃%s%s吗?",
-                 (otmp->quan == 1L) ? "它" : "一", (otmp->quan == 1L) ? "" : classifier(otmp));
+                 (otmp->quan == 1L) ? "它" : "一", (otmp->quan == 1L) ? "" : obj_classifier(otmp));
         return (yn_function(buf, ynchars, 'n', TRUE) == 'n') ? 1 : 2;
     }
     return 0;
@@ -2892,7 +2892,7 @@ doeat(void)
             else
                 otmp = splitobj(otmp, 1L);
         }
-        pline("呃 - 那%s%s是防锈的!", classifier(otmp), xname(otmp));
+        pline("呃 - 那%s%s是防锈的!", obj_classifier(otmp), xname(otmp));
         /* The regurgitated object's rustproofing is gone now */
         otmp->oerodeproof = 0;
         make_stunned((HStun & TIMEOUT) + (long) rn2(10), TRUE);
@@ -3704,7 +3704,7 @@ floorfood(
             /* "There is <an object> here; <verb> it?" or
                "There are <N objects> here; <verb> one?" */
             Sprintf(qbuf, "这里%s", otense(otmp, "有")); strsubst(verb2, "什么", "");
-            Snprintf(qsfx, sizeof(qsfx), "; %s%s%s?", verb2, one ? "了它" : "一", one ? "" : classifier(otmp)); /*危险:Sprintf(qsfx, "; %s%s?", verb2, one ? "了它" : "一个");*/
+            Snprintf(qsfx, sizeof(qsfx), "; %s%s%s?", verb2, one ? "了它" : "一", one ? "" : obj_classifier(otmp)); /*危险:Sprintf(qsfx, "; %s%s?", verb2, one ? "了它" : "一个");*/
             (void) safe_qbuf(qbuf, qbuf, qsfx, otmp, doname, ansimpleoname,
                              one ? "什么东西" : (const char *) "一些东西"); /*危险:one ? something : (const char *) "一些东西");*/
             if ((c = yn_function(qbuf, ynqchars, 'n', TRUE)) == 'y')

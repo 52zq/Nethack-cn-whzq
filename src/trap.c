@@ -1347,7 +1347,7 @@ trapeffect_rocktrap(
             place_object(otmp, u.ux, u.uy);
 
             pline("%s上的陷阱门打开了, 一%s%s落到了你的%s上!",
-                  the(ceiling(u.ux, u.uy)), classifier(otmp), xname(otmp), body_part(HEAD));
+                  the(ceiling(u.ux, u.uy)), obj_classifier(otmp), xname(otmp), body_part(HEAD));
             if (uarmh) {
                 /* normally passes_rocks() would protect against a falling
                    rock, but not when wearing a helmet */
@@ -2046,7 +2046,7 @@ trapeffect_hole(
                     seetrap(trap);
                     if (tt == TRAPDOOR)
                         pline_mon(mtmp,
-                            "一个陷阱门打开了, 但是%s没有没有掉进去.",
+                            "一个陷阱门打开了, 但是%s没有掉进去.",
                               mon_nam(mtmp));
                     else /* (tt == HOLE) */
                         pline_mon(mtmp,
@@ -3070,7 +3070,7 @@ trapnote(struct trap *trap, boolean noprefix)
         "E音",  "F音", "升F音", "G音",
         "升G音", "A音", "降B音",  "B音",
     };
-    static char tnbuf[12]; /* result buffer */
+    static char tnbuf[32]; /* result buffer */
     const char *tn;
 
     tnbuf[0] = '\0';
@@ -3322,7 +3322,7 @@ launch_obj(
     case ROLL | LAUNCH_UNSEEN:
         if (otyp == BOULDER) {
             if (cansee(x1, y1)) {
-                You_see("%s%s在滚动.", classifier(singleobj), xname(singleobj));
+                You_see("一%s%s在滚动.", obj_classifier(singleobj), xname(singleobj));
             } else if (Hallucination) {
                 Soundeffect(se_someone_bowling, 60);
                 You_hear("有人在打保龄球.");
@@ -3964,7 +3964,7 @@ float_up(void)
                 body_part(LEG),
                 IS_ROOM(levl[cc.x][cc.y].typ) ? "地板" : "地面");
         } else if (u.utraptype == WEB) {
-            You("微微上浮, 但仍仍然卡在%s中.",
+            You("微微上浮, 但仍然卡在%s中.",
                 trapname(WEB, FALSE));
         } else { /* bear trap */
             You("微微上浮, 但你的%s仍然卡在里面.",
@@ -5815,7 +5815,7 @@ disarm_box(struct obj *box, boolean force, boolean confused)
         exercise(A_DEX, TRUE);
     } else {
         pline("那个%s没有被困.", xname(box));
-        box->tknown = 0;
+        box->tknown = 1; /* known not trapped */
     }
 }
 
@@ -5826,9 +5826,14 @@ untrap_box(
     boolean force,
     boolean confused)
 {
+    if (box->tknown && !box->otrapped) {
+        You("know %s is not trapped.", the(xname(box)));
+        return;
+    }
+
     if ((box->otrapped
          && (force || (!confused && rn2(MAXULEV + 1 - u.ulevel) < 10)))
-        || box->tknown
+        || (box->tknown && box->otrapped)
         || (!force && confused && !rn2(3))) {
         if (!(box->tknown && box->dknown))
             You("发现%s上有一个陷阱!", the(xname(box)));
@@ -5899,7 +5904,7 @@ untrap(
 
     if (here) /* are there are one or more containers here? */
         for (otmp = svl.level.objects[x][y]; otmp; otmp = otmp->nexthere)
-            if (Is_box(otmp)) {
+            if (Is_box(otmp) && !(otmp->tknown && !otmp->otrapped)) {
                 if (++boxcnt > 1)
                     break;
             }
@@ -6004,7 +6009,9 @@ untrap(
             for (otmp = svl.level.objects[x][y]; otmp; otmp = otmp->nexthere) {
                 if (!Is_box(otmp))
                     continue;
-                if (otmp->tknown && otmp->dknown)
+                if (otmp->tknown && !otmp->otrapped)
+                    continue;
+                if (otmp->tknown && otmp->otrapped && otmp->dknown)
                     (void) safe_qbuf(qbuf, "解除这", NULL,
                                      otmp, xname, ansimpleoname, "盒子");
                 else
@@ -6015,7 +6022,7 @@ untrap(
                     case 'q':
                         return 0;
                     case 'y':
-                        if (otmp->tknown && otmp->dknown)
+                        if (otmp->tknown && otmp->otrapped && otmp->dknown)
                             disarm_box(otmp, force, confused);
                         else
                             untrap_box(otmp, force, confused);
@@ -7145,7 +7152,7 @@ trapname(
                                                           : gu.urole.name.m)
                               : rank_of(u.ulevel, Role_switch, fem),
                        (int) (sizeof roletrap - sizeof "陷阱"));
-            Strcat(roletrap, "陷阱陷阱");
+            Strcat(roletrap, "陷阱");
             return lcase(roletrap);
         } else if (nameidx >= TRAPNUM) {
             nameidx -= TRAPNUM;

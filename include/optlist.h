@@ -635,7 +635,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
            "空格绑定休息命令")
     NHOPTC(roguesymset, Advanced, 70, opt_in, set_in_game,
                 No, Yes, No, Yes, NoAlias,
-                "从symbols文件中加载加载一系列rogue显示符号")
+                "从symbols文件中加载一系列rogue显示符号")
  /* NHOPTC(role) -- moved to top */
     NHOPTC(runmode, Advanced, sizeof "teleport", opt_in, set_in_game,
                 Yes, Yes, No, Yes, NoAlias,
@@ -752,7 +752,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
                 "屏蔽有关特定版本功能的提醒")
     NHOPTC(symset, Map, 70, opt_in, set_in_game,
                 No, Yes, No, Yes, NoAlias,
-                "从symbols文件中加载加载一系列显示符号")
+                "从symbols文件中加载一系列显示符号")
     NHOPTC(term_cols, Advanced, 6, opt_in, set_in_config,
                 No, Yes, No, No, "termcolumns", "列数")
     NHOPTC(term_rows, Advanced, 6, opt_in, set_in_config,

@@ -277,6 +277,24 @@ themeroom_fills = {
          end
       end,
    },
+
+   {
+      name = "Meat",
+      contents = function(rm)
+         local meats = { "meatball", "meatball", "meat ring",
+                         "meat stick", "enormous meatball" };
+         local i = d(5, 5);
+         while (i > 0) do
+            local meatidx = math.random(#meats);
+            des.object({ id = meats[meatidx] });
+            i = i - meatidx;
+         end
+         if (nh.level_difficulty() > 8 and percent(75)) then
+            des.monster({ id = "flesh golem", waiting = true });
+         end
+      end,
+   },
+
 };
 
 themerooms = {
@@ -1059,13 +1077,13 @@ function make_dig_engraving(data)
       dig = " here";
    else
       if (tx < 0 or tx > 0) then
-         dig = string.format(" %i %s", math.abs(tx), (tx > 0) and "east" or "west");
+         dig = string.format("%s挖%i格", (tx > 0) and "东" or "西", math.abs(tx));
       end
       if (ty < 0 or ty > 0) then
-         dig = dig .. string.format(" %i %s", math.abs(ty), (ty > 0) and "south" or "north");
+         dig = dig .. string.format("%s挖%i格", (ty > 0) and "南" or "北", math.abs(ty));
       end
    end
-   des.engraving({ coord = pos, type = "burn", text = "Dig" .. dig });
+   des.engraving({ coord = pos, type = "burn", text = "向" .. dig });
 end
 
 -- postprocess callback: turn room walls into trees

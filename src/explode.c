@@ -207,14 +207,15 @@ explode(
     int i, j, k, damu = dam;
     boolean starting = 1;
     boolean visible, any_shield;
-    int uhurt = 0; /* 0=unhurt, 1=items damaged, 2=you and items damaged */
-    const char *str = (const char *) 0;
+    int uhurt = 0, /* 0=unhurt, 1=items damaged, 2=you and items damaged */
+        do_hallu = 0;
+    const char *str = (const char *) 0, *unmorphed_str = (const char *) 0;
     struct monst *mtmp, *mdef = 0;
     uchar adtyp;
     int explmask[3][3]; /* 0=normal explosion, 1=do shieldeff, 2=do nothing */
     coordxy xx, yy;
     boolean shopdamage = FALSE, generic = FALSE,
-            do_hallu = FALSE, inside_engulfer, grabbed, grabbing;
+            inside_engulfer, grabbed, grabbing;
     coord grabxy;
     char hallu_buf[BUFSZ], killr_buf[BUFSZ];
     short exploding_wand_typ = 0;
@@ -299,9 +300,20 @@ explode(
         /* when explode() is called recursively, svk.killer.name might change
            so retain a copy of the current value for this explosion */
         str = strcpy(killr_buf, svk.killer.name);
-        do_hallu = (Hallucination
-                    && (strstri(str, "爆炸")
-                        || strstri(str, "的爆炸")));
+
+        unmorphed_str = strstr(str, "变形成了");
+        if (unmorphed_str) {
+            unmorphed_str += 16;
+        } //野蛮语言又拿显示字符串当控制符,,,还他妈一个字符串又要当被动又要当一般过去时用,,,
+
+        if (Hallucination) {
+            do_hallu = ((strstri(str, "'s explosion")
+                         || strstri(str, "s' explosion") || strstri(str, "爆炸")) || strstri(str, "的爆炸"))
+                           ? 1
+                       : (strstr(str, "explosion of an ")) ? 2
+                       : (strstr(str, "explosion of a "))  ? 3
+                                                           : 0;
+        }
     }
     if (type == PHYS_EXPL_TYPE) {
         /* currently only gas spores */
@@ -505,7 +517,9 @@ explode(
                 } else if (cansee(xx, yy)) {
                     if (mtmp->m_ap_type)
                         seemimic(mtmp);
-                    pline("%s卷入了%s!", Monnam(mtmp), str);
+                    pline("%s被卷入了%s%s!", Monnam(mtmp), 
+                          unmorphed_str ? s_suffix(unmorphed_str) : str,
+                          unmorphed_str ? "的爆炸" : "");
                 }
 
                 itemdmg = destroy_items(mtmp, (int) adtyp, dam);
@@ -534,7 +548,9 @@ explode(
                     if (resist(mtmp, olet, 0, FALSE)) {
                         /* inside_engulfer: <xx,yy> == <u.ux,u.uy> */
                         if (cansee(xx, yy) || inside_engulfer)
-                            pline("%s抵抗住了%s!", Monnam(mtmp), str);
+                            pline("%s抵抗住了%s%s!", Monnam(mtmp),
+                                  unmorphed_str ? s_suffix(unmorphed_str) : str,
+                                  unmorphed_str ? "的爆炸" : "");
                         mdam = (dam + 1) / 2;
                     }
                     /* if grabber is reaching into hero's spot and
@@ -599,7 +615,9 @@ explode(
                 } while (*hallu_buf != lowc(*hallu_buf));
                 str = hallu_buf;
             }
-            You("被卷入%s中!", str);
+            You("被卷入%s%s!",
+                unmorphed_str ? s_suffix(unmorphed_str) : str,
+                unmorphed_str ? "的爆炸" : "");
             iflags.last_msg = PLNMSG_CAUGHT_IN_EXPLOSION;
         }
         /* do property damage first, in case we end up leaving bones */
@@ -655,12 +673,12 @@ explode(
                 } else if (olet == TRAP_EXPLODE) {
                     svk.killer.format = NO_KILLER_PREFIX;
                     Snprintf(svk.killer.name, sizeof svk.killer.name,
-                             "卷入%s之中", /*修改语序:"caught %sself in a %s", uhim(),*/
+                             "被卷入%s之中", /*修改语序:"caught %sself in a %s", uhim(),*/
                              str);
                 } else if (type >= 0 && olet != SCROLL_CLASS) {
                     svk.killer.format = NO_KILLER_PREFIX;
                     Snprintf(svk.killer.name, sizeof svk.killer.name,
-                             "卷入%s自己的%s之中", /*修改语序:"caught %sself in %s own %s", uhim(),*/
+                             "被卷入%s自己的%s之中", /*修改语序:"caught %sself in %s own %s", uhim(),*/
                              uhis(), str);
                 } else {
                     svk.killer.format = (!strcmpi(str, "一柱火焰")
@@ -1024,8 +1042,9 @@ mon_explodes(
     struct monst *mon,
     struct attack *mattk)
 {
-    int dmg;
-    int type;
+    int dmg, type, recent_altform = NON_PM;
+
+
     if (mattk->damn) {
         dmg = d((int) mattk->damn, (int) mattk->damd);
     }
@@ -1050,6 +1069,9 @@ mon_explodes(
         return;
     }
 
+    if (mon->cham != NON_PM && is_shapeshifter(&mons[mon->cham])) {
+        recent_altform = monsndx(mon->data);
+    }
     /* Kill it now so it won't appear to be caught in its own explosion.
      * Must check to see if already dead - which happens if this is called
      * from an AT_BOOM attack upon death. */
@@ -1059,9 +1081,16 @@ mon_explodes(
 
     /* This might end up killing you, too; you never know...
      * also, it is used in explode() messages */
-    Sprintf(svk.killer.name, "%s的爆炸",
-            s_suffix(pmname(mon->data, Mgender(mon))));
-    svk.killer.format = KILLED_BY;
+
+    if (recent_altform != NON_PM && is_shapeshifter(mon->data)) {
+        Sprintf(svk.killer.name, "变形成%s的%s的爆炸",
+                an_pmname(&mons[recent_altform], Mgender(mon)),
+                an_pmname(mon->data, Mgender(mon)));
+    } else {
+        Sprintf(svk.killer.name, "%s的爆炸",
+                pmname(mon->data, Mgender(mon)));
+    }
+    svk.killer.format = KILLED_BY_AN;
 
     explode(mon->mx, mon->my, type, dmg, MON_EXPLODE,
             adtyp_to_expltype(mattk->adtyp));

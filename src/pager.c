@@ -225,7 +225,7 @@ mhidden_description(
                    : obj_descr[STRANGE_OBJECT].oc_name;
             if (incl_article && (!otmp || otmp->quan == 1L))
                 Sprintf(eos(outbuf), "一%s%s",
-                        otmp ? classifier(otmp) : "个", what);
+                        otmp ? obj_classifier(otmp) : "个", what);
             else
                 Strcat(outbuf, what);
 
@@ -3025,7 +3025,7 @@ static const struct {
     { dispfile_license, "NetHack许可协议." },
     { docontact, "支持信息." },
 #ifdef PORT_HELP
-    { port_help, "%s特定的的帮助和命令." },
+    { port_help, "%s特定的帮助和命令." },
 #endif
     { dispfile_debughelp, "巫师模式命令列表." },
     { (void (*)(void)) 0, (char *) 0 }

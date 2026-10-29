@@ -1155,7 +1155,7 @@ kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
             if (is_plural(treefruit))
                 pline("一些%s从树上掉了下来!", xname(treefruit));
             else
-                pline("一%s%s从树上掉了下来!", classifier(treefruit), xname(treefruit));
+                pline("一%s%s从树上掉了下来!", obj_classifier(treefruit), xname(treefruit));
             nfall = scatter(x, y, 2, MAY_HIT, treefruit);
             if (nfall != nfruit) {
                 /* scatter left some in the tree, but treefruit
@@ -1163,7 +1163,7 @@ kick_nondoor(coordxy x, coordxy y, int avrg_attrib)
                 treefruit = mksobj(frtype, TRUE, FALSE);
                 treefruit->quan = nfruit - nfall;
                 pline("%ld%s%s被树枝挂住了.",
-                      nfruit - nfall, classifier(treefruit), xname(treefruit));
+                      nfruit - nfall, obj_classifier(treefruit), xname(treefruit));
                 dealloc_obj(treefruit);
             }
             exercise(A_DEX, TRUE);
