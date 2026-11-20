@@ -1,4 +1,4 @@
-/* NetHack 5.0	role.c	$NHDT-Date: 1781973065 2026/06/20 16:31:05 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.111 $ */
+/* $NHDT-Header: NetHack 5.0 role.c 2026/06/20_22:26:43 NetHack-5.0:1.113 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985-1999. */
 /*-Copyright (c) Robert Patrick Rankin, 2012. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -2090,8 +2090,13 @@ role_init(void)
         gu.urole.ngod = roles[flags.pantheon].ngod;
         gu.urole.cgod = roles[flags.pantheon].cgod;
     }
-    /* 0 or 1; no gods are neuter, nor is gender randomized */
-    svq.quest_status.godgend = !strcmpi(align_gtitle(alignmnt), "goddess");
+    {
+        const char *gnm = (alignmnt == A_LAWFUL) ? gu.urole.lgod
+                          : (alignmnt == A_NEUTRAL) ? gu.urole.ngod
+                          : (alignmnt == A_CHAOTIC) ? gu.urole.cgod : NULL;
+
+        svq.quest_status.godgend = (gnm && *gnm == '_') ? 1 : 0;
+    }
 
     if (Role_if(PM_CLERIC))
         objects[SPE_LIGHT].oc_skill = P_CLERIC_SPELL;

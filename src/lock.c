@@ -1,4 +1,4 @@
-/* NetHack 5.0	lock.c	$NHDT-Date: 1781973052 2026/06/20 16:30:52 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.150 $ */
+/* $NHDT-Header: NetHack 5.0 lock.c 2026/11/02_21:05:17 NetHack-5.0:1.155 $ */
 /* Copyright (c) Stichting Mathematisch Centrum, Amsterdam, 1985. */
 /*-Copyright (c) Robert Patrick Rankin, 2011. */
 /* NetHack may be freely redistributed.  See license for details. */
@@ -482,10 +482,9 @@ pick_lock(
                 } else if (autounlock
                           && (flags.autounlock & AUTOUNLOCK_APPLY_KEY) != 0) {
                     c = 'q';
-                    if (pick != &dummypick) {
-                        Sprintf(qbuf, "用%s解锁它?", yname(pick));
-                        c = ynq(qbuf);
-                    }
+                    if (pick != &dummypick)
+                        c = ynq(safe_qbuf(qbuf, "用", "解锁它?", pick,
+                                          yname, ysimple_name, "那个"));
                     if (c != 'y')
                         return PICKLOCK_DID_NOTHING;
                 } else {
@@ -617,10 +616,13 @@ pick_lock(
                 return PICKLOCK_LEARNED_SOMETHING;
             }
 
-            Sprintf(qbuf, "%s%s%s它?",
-                    autounlock ? "用" : "", /*修改语序:(door->doormask & D_LOCKED) ? "解锁" : "锁定",*/
-                    autounlock ? yname(pick) : "", /*修改语序:autounlock ? "用" : "",*/
-                    (door->doormask & D_LOCKED) ? "解锁" : "锁定"); /*修改语序:autounlock ? yname(pick) : "");*/
+            if (autounlock) {
+                (void) safe_qbuf(qbuf, "用",
+                                 (door->doormask & D_LOCKED) ? "解锁它?" : "锁定它?",
+                                 pick, yname, ysimple_name, "那个");
+            } else {
+                Sprintf(qbuf, "%s它?", (door->doormask & D_LOCKED) ? "解锁" : "锁定");
+            }
             c = ynq(qbuf);
             if (c != 'y')
                 return PICKLOCK_DID_NOTHING;

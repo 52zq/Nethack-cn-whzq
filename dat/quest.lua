@@ -1,4 +1,4 @@
--- NetHack quest.lua	$NHDT-Date: 1781994887 2026/06/20 22:34:47 $  $NHDT-Branch: NetHack-5.0 $:$NHDT-Revision: 1.11 $
+-- $NHDT-Header: NetHack 5.0 quest.lua 2026/11/02_21:05:17 NetHack-5.0:1.23 $
 -- Copyright (c) 2021 by Pasi Kallinen
 -- NetHack may be freely redistributed.  See license for details.
 -- TODO:
@@ -143,7 +143,7 @@ questtext = {
     暗洞穴之中, 如今他正潜伏于此, 伺机而动.
 
 你的%G%d企图夺取这枚护身符, 并借此获得
-理应属于他的神权, 凌驾于其他诸神之上. 
+其应得的神权, 凌驾于其他诸神之上. 
 
 你, 一位新近受训的%r, 自出生起便被预言为
 %G%d的器具. 你注定要为你的神夺回护符, 
